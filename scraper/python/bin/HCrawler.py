@@ -27,6 +27,15 @@ INPUT_DIR = SCRAPER_DIR.parent / "input"
 SCAN_DIR = SCRAPER_DIR / "scan"
 REQUEST_TIMEOUT = 30.0
 REQUEST_DELAY = 0.5
+HTTP_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "zh-TW,zh;q=0.9,en;q=0.7",
+    "Upgrade-Insecure-Requests": "1",
+}
 PAGE_PATH = re.compile(r"^(?P<book>/[^/]+/)(?P<series>\d+)_(?P<entry>\d+)(?:_(?P<part>\d+))?\.html$")
 CHAPTER = re.compile(r"^(第\s*[零〇一二三四五六七八九十百千萬万兩两\d\s]+\s*[章回])(?:\s*[:：、.．\-—]?\s*)(.*)$")
 PAGINATION = re.compile(r"[（(]\s*(\d+)\s*[/／]\s*(\d+)\s*[）)]")
@@ -64,6 +73,12 @@ def _get(client: httpx.Client, url: str, start: str, output_dir: Path) -> Beauti
             time.sleep(REQUEST_DELAY if attempt == 0 else attempt * 2)
             try:
                 response = client.get(current)
+                if response.status_code == 403:
+                    raise ValueError(
+                        f"Could not fetch {current}: HTTP 403 Forbidden. "
+                        "Browser request headers are already set; the site refused "
+                        "this request. Progress is preserved, not marked complete."
+                    )
                 if response.status_code in {429, 500, 502, 503, 504} and attempt < 2:
                     continue
                 if not response.is_redirect:
@@ -85,40 +100,56 @@ def _get(client: httpx.Client, url: str, start: str, output_dir: Path) -> Beauti
     raise ValueError(f"Too many redirects: {url}")
 
 
-def _directory(soup: BeautifulSoup, directory_url: str, start: str) -> dict[int, str]:
-    entries = {}
-    first = int(_address(start)["entry"])
-    for anchor in soup.find_all("a", href=True):
-        url = _safe_url(urllib.parse.urljoin(directory_url, anchor["href"]), start)
-        match = _address(url) if url else None
-        if match and int(match["part"] or 1) == 1 and int(match["entry"]) >= first:
-            entries[int(match["entry"])] = url
-    if first not in entries:
-        raise ValueError("The starting chapter is not in the book's directory; nothing was written")
-    return dict(sorted(entries.items()))
+def _next_url(soup: BeautifulSoup, current: str, start: str) -> str | None:
+    """Follow the chapter's navigation, without a prerequisite /dir request.
 
-
-def _next_url(soup: BeautifulSoup, current: str, start: str, entries: dict[int, str]) -> str | None:
+    A missing link is not proof that the book is finished. Require the final
+    chapter marker when there is no forward link, and never follow another book.
+    """
     address = _address(current)
     entry, part = int(address["entry"]), int(address["part"] or 1)
+    pages, chapters = set(), set()
+    invalid_pagination = False
     for anchor in soup.find_all(["a", "link"], href=True):
-        label = re.sub(r"\s+", "", anchor.get_text()).lower()
-        if "next" not in anchor.get("rel", []) and label not in NEXT_LABELS:
+        labels = (
+            anchor.get_text(), anchor.get("title", ""), anchor.get("aria-label", "")
+        )
+        labels = {re.sub(r"\s+", "", label).lower().strip(">›»→ ") for label in labels}
+        if "next" not in anchor.get("rel", []) and not labels.intersection(NEXT_LABELS):
             continue
         url = _safe_url(urllib.parse.urljoin(current, anchor["href"]), start)
         match = _address(url) if url else None
-        if match and int(match["entry"]) == entry:
-            if int(match["part"] or 1) != part + 1:
-                raise ValueError(f"Pagination loops or skips a page at {current}: {url}")
-            return url
-    # A missing pagination link is an error, not a silently truncated chapter.
+        if match is None:
+            continue
+        next_entry, next_part = int(match["entry"]), int(match["part"] or 1)
+        if next_entry == entry:
+            if next_part == part + 1:
+                pages.add(url)
+            else:
+                invalid_pagination = True
+        elif next_entry > entry and next_part == 1:
+            chapters.add(url)
+        else:
+            invalid_pagination = True
+    if len(pages) > 1 or len(chapters) > 1:
+        raise ValueError(f"Conflicting next-page/chapter links at {current}; progress preserved")
+    if pages:
+        return pages.pop()
     heading = soup.find("h1") or soup.find("title")
-    count = PAGINATION.search(heading.get_text(" ", strip=True)) if heading else None
+    title = heading.get_text(" ", strip=True) if heading else ""
+    count = PAGINATION.search(title)
     if count and int(count[1]) < int(count[2]):
-        raise ValueError(f"Page {current} says {count[0]}, but its next-page link is missing")
-    # Actual directory links, not chapter-number arithmetic. The directory's
-    # latest-chapter block repeats entries in reverse order, hence numeric sort.
-    return next((url for number, url in entries.items() if number > entry), None)
+        raise ValueError(f"Page {current} says {count[0]}, but its next-page link is missing or skips a page")
+    if chapters:
+        return chapters.pop()
+    if re.search(r"大[結结]局|全[文書书本]完", title):
+        return None
+    if invalid_pagination:
+        raise ValueError(f"Pagination loops or skips a page at {current}; progress preserved")
+    raise ValueError(
+        f"No usable next-page/chapter link at {current}; "
+        "not treating a missing or out-of-book link as the end of the book"
+    )
 
 
 def _heading(line: str) -> tuple[str, str] | None:
@@ -226,15 +257,13 @@ def crawl_html(start_url: str, *, output_dir: Path = INPUT_DIR, scan_dir: Path =
             pass
         state = {"start_url": start, "next_url": start, "bytes": 0, "heading": "", "pages": 0, "sections": 0, "complete": False}
         _checkpoint(journal, state)
-    directory_url = urllib.parse.urljoin(start, address["book"] + "dir")
     with limit_downloads(0, log=print), httpx.Client(
         timeout=REQUEST_TIMEOUT,
         follow_redirects=False,
-        headers={"Accept": "text/html,application/xhtml+xml"},
+        headers={**HTTP_HEADERS, "Referer": state.get("last_url", start)},
         **client_options(),
     ) as client:
         ensure_logged_in_sync(client, start)
-        entries = _directory(_get(client, directory_url, start, destination.parent), directory_url, start)
         seen = set()
         with destination.open("r+b") as output:
             output.seek(state["bytes"])
@@ -245,15 +274,16 @@ def crawl_html(start_url: str, *, output_dir: Path = INPUT_DIR, scan_dir: Path =
                     raise ValueError(f"Pagination loop at {url}")
                 seen.add(url)
                 soup = _get(client, url, start, destination.parent)
-                following = _next_url(soup, url, start, entries)
+                following = _next_url(soup, url, start)
                 text, heading, sections = _text(soup, url, state["heading"])
                 output.write(text.encode("utf-8"))
                 output.flush()
                 os.fsync(output.fileno())
-                state.update(next_url=following, bytes=output.tell(), heading=heading,
+                state.update(next_url=following, last_url=url, bytes=output.tell(), heading=heading,
                              pages=state["pages"] + 1, sections=state["sections"] + sections,
                              complete=following is None)
                 _checkpoint(journal, state)
+                client.headers["Referer"] = url
                 print(f"[saved] {state['pages']} page(s), {state['sections']} section(s): {heading}", flush=True)
     print(f"[done] {state['pages']} page(s) -> {destination}", flush=True)
     return destination, state["pages"]

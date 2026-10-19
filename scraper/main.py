@@ -56,7 +56,8 @@ examples:
 
 HTML (--Hcrawler): include the supplied chapter and continue to the book's end;
 one UTF-8 text in ../input/ with actual chapter names as section headers.
-Pagination stays within the same book. Rerun the same command to resume.
+Starts at CHAPTER_URL, with no directory preflight; follows its next-page
+links within the same book. Rerun the same command to resume.
 No upload or email for this plain HTML fetcher.
 
 exit codes: 0 ok (also --process stopping at its {NIGHT_HOURS:g}-hour mark), 1 failed,
