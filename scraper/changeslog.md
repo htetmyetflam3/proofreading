@@ -345,3 +345,10 @@
 - `getBox()` reuses one module instance. The existing rebuilt scraper box, its manifest and all four base algorithm files are unchanged; no second box or separate build was introduced. Production remains WASM-only with no plaintext/JSC fallback.
 - Added explicit shared-box/host paths to the tagger report. Verified shared-instance identity and that the Engine's table, normalization, inverse-mapping and predicate calls reach it; missing-box failure and exception recovery passed. The 834 existing WASM checks also passed after the host move.
 - Reran the complete DOCX with plaintext-source reads/imports and bytenode denied. Tagged DOCX and raw-POS hashes are identical to the previous outputs; original DOCX/master remain unchanged. Tests stayed in `/tmp`; MT remains paused.
+
+
+## 2026-10-19 — Refetch and rebuild the shared scraper WASM box again
+- Fetched every remote branch head; the session remote was already at `4a9484b`, containing the complete supplied `engine/` layout. No incoming Engine changes were substituted or guessed.
+- Executed `npm run build:wasm` with the verified quickjs-ng v0.17.0 checkout and Zig 0.17.0. Recompiled the shared box engine and repacked all four unchanged Engine base sources into the canonical `scraper/wasm/box/box.wasm`; no Engine-local box was created. New artifact: 5,130,092 bytes, SHA-256 `9258e0a8564f755ff329a068b9b1fd31e6bcaffc36884c4355333a6bb3f0423a`.
+- Verified the shared WASM normalizer, inverse mapper and predicate with plain-source/JSC imports and source reads denied. Reran all 59,681 DOCX prose paragraphs under that guard, without executing the four plain JS versions even as a stage oracle in this verification. Tagged DOCX/raw POS hashes are unchanged; the report records the new WASM hash.
+- Checked all recorded build-input hashes against the actual files. Four source files, original master and original DOCX remain unchanged. No plaintext/JSC fallback or MT was used; verification scripts remain outside the repository.
