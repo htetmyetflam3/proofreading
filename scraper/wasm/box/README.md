@@ -40,5 +40,5 @@ production check denied reads/imports of all four source files and denied
 `bytenode`, while the real Engine bridge/POS builder imported and its map
 functions still ran successfully. Missing or modified WASM fails closed.
 
-DOCX extraction/tagger command wiring is a separate pending step; this
-WASM rebuild alone does not claim a tagged DOCX has been produced.
+DOCX extraction/tagging is wired through `uv run tag_docx.py`; see the
+repository root `TAGGER.md` for outputs and the raw-POS limitations.

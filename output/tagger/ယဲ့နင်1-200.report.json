@@ -1,0 +1,45 @@
+{
+  "runtime": "required rebuilt scraper WASM",
+  "input_pipeline": "WASM mapperNormalize; English/digit blocks masked before segmentation",
+  "wasm_sha256": "a4ca7d361b2abe9d94021d08bb967a1d5ff84842b0cc3adee4e840d96b75d846",
+  "master_sha256": "14f8e544d67fe1f287cf18212dfe6acb867879d09881771464fbf8b0ebf5bb2e",
+  "scraper_cache_commit": "8914406feef263443a34aba9a0bc189e10b824af",
+  "source_sha256": "5f046cf05c48431c35c67d6d88c2f491b175f49df5dac5005b96e94b926cd365",
+  "raw_pos_sha256": "51e55fafbd4e1458aab64a02d426adeba2403aaad28c9af5fc55ea7bcf22e0ea",
+  "raw_pos_bytes": 10355654,
+  "output_units": 12096,
+  "pos_tree_roots": 1895,
+  "rejected_dictionary_entries": 1214,
+  "tag_occurrences": 625428,
+  "unknown_tag_occurrences": 106612,
+  "ambiguous_tag_occurrences": 270880,
+  "rule_engine": "owner pass-through; raw POS candidates retained, not grammar-disambiguated",
+  "phrase_alignment": "not established",
+  "original_master_unchanged": true,
+  "input_docx": "input/ယဲ့နင်1-200.docx",
+  "docx_sha256": "0b21e13e98c26f822b3208339da94bf3c909b9396b61f0f66b2c1ec49b00e73e",
+  "original_docx_unchanged": true,
+  "tagged_docx_sha256": "0d82de228aea197ac51f473194d2ce43df56711a29e15aa9a0298eba157bcb9d",
+  "tagged_docx_text_roundtrip": true,
+  "tagged_docx_paragraphs": 12096,
+  "tagged_docx_layout": "raw tagger units, not the original DOCX paragraph/page layout; Word rendering not tested",
+  "extraction": {
+    "xml_paragraphs": 88001,
+    "nonempty_paragraphs_seen": 64495,
+    "metadata_wrappers_removed": 4,
+    "page_wrappers_removed": 4414,
+    "prose_paragraphs": 59681,
+    "separator_wrappers_removed": 396
+  },
+  "partial_pilot": false,
+  "paragraph_offsets": "Python Unicode code points and UTF-8 bytes in .source.txt, before WASM normalization; not tagged-text offsets",
+  "outputs": {
+    "raw_pos": "ယဲ့နင်1-200.raw_pos.txt",
+    "tagged_docx": "ယဲ့နင်1-200.tagged.docx",
+    "rejected_dictionary": "ယဲ့နင်1-200.pos-rejected.txt"
+  },
+  "generated_local_support": {
+    "source": "ယဲ့နင်1-200.source.txt",
+    "paragraphs": "ယဲ့နင်1-200.paragraphs.jsonl"
+  }
+}

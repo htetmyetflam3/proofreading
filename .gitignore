@@ -13,3 +13,8 @@ __pycache__/
 # Tagger work copies and logs, never the original DOCX/master data.
 /output/tagger/.work/
 /output/tagger/logs/
+
+# Reproducible extraction/index support stays local; requested tagged outputs ship.
+/output/tagger/*.source.txt
+/output/tagger/*.paragraphs.jsonl
+/output/tagger/*-first-*

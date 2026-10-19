@@ -1,19 +1,25 @@
 // FILE: bridge/path.js
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "node:url";
 
-// ── Project Directory Constants ──
-// Relative to the repo root. The terminal is always opened from project root.
-// File workspace (tree / input / output / log) lives in the python project.
-const TREE_DIR = "/File/.tree/";
-const LOG_DIR = "File/.output/.log/";
-const OUTPUT_DIR = "/File/.output/txt/";
-// The readable knowledge dir as this branch actually lays it out
-// (pre-renamed constants pointed at Private/Engine/_knowledge/... / "_knowledge").
-// NO leading slash anywhere below: a leading "/" makes the string absolute and
-// both fs calls and path.resolve would ignore the repo root entirely.
-const DATA_DIR = "knowledge/isTreasure";
-const INPUT_DIR = "/File/input/";
+// All runtime writes stay in an explicit workspace, never filesystem /File.
+const ENGINE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const WORK = path.resolve(ENGINE_ROOT, "../output/tagger/.work/default");
+let TREE_DIR = path.join(WORK, "tree");
+let LOG_DIR = path.join(WORK, "log");
+let OUTPUT_DIR = path.join(WORK, "out");
+let DATA_DIR = path.join(WORK, "data");
+const INPUT_DIR = path.join(WORK, "input") + path.sep;
+
+// Called before importing/running the pipeline; dataDir holds a disposable
+// copy because the supplied POS builder removes rejected dictionary rows.
+export function configureWorkspace({ treeDir, logDir, outputDir, dataDir } = {}) {
+  if (treeDir !== undefined) TREE_DIR = path.resolve(treeDir);
+  if (logDir !== undefined) LOG_DIR = path.resolve(logDir);
+  if (outputDir !== undefined) OUTPUT_DIR = path.resolve(outputDir);
+  if (dataDir !== undefined) DATA_DIR = path.resolve(dataDir);
+}
 
 // ── Map build layout (MonoSyllabism/map) — the FIXED output dir ──
 // Four artifacts land here, all consumed by the runtime through these names:
@@ -64,7 +70,7 @@ export function MasterFile() {
 	// Runtime default: the map copy. The readable plaintext lives at
 	// JSON_SOURCE_FILE for the build; at runtime readSecureText() serves the
 	// ".enc" twin beside this name, so callers never hold the readable name.
-	return MAP_MASTER_FILE;
+	return path.join(ENGINE_ROOT, MAP_MASTER_FILE);
 }
 
 // ── Map build paths (string form; the build scripts resolve them against the
@@ -103,7 +109,7 @@ export function JscFile() {
 
 // ── Path Utility Functions ──
 export function resolvePath(p) {
-	return path.isAbsolute(p) ? p : path.resolve(process.cwd(), p);
+	return path.isAbsolute(p) ? p : path.resolve(ENGINE_ROOT, p);
 }
 
 export function joinPath(...segments) {

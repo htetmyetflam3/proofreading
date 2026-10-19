@@ -7,6 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "build:wasm": "sh scraper/wasm/rebuild-box.sh"
+    "build:wasm": "sh scraper/wasm/rebuild-box.sh",
+    "tag:docx": "python3 tag_docx.py"
   }
 }
