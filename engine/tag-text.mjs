@@ -15,15 +15,16 @@ if (!sourceArg || !workArg || !resultArg) {
 if (globalThis[Symbol.for('proofreading.scraper.wasm-only')] !== true) {
   throw new Error('Required WASM-only production guard is missing; run uv run tag_docx.py');
 }
-const { getBox } = await import('../scraper/wasm/box/host.mjs');
+const { getBox, assertMapData } = await import('../scraper/wasm/box/host.mjs');
 getBox(); // Require the actual shared WASM box before any tagging work.
 const source = path.resolve(sourceArg), work = path.resolve(workArg);
 const masterPath = path.join(ROOT, 'engine/knowledge/isTreasure/master.json');
 const masterBytes = fs.readFileSync(masterPath), masterHash = hash(masterBytes);
 const build = JSON.parse(fs.readFileSync(path.join(ROOT, 'scraper/wasm/box/build-info.json')));
-if (build.input_sha256['engine/knowledge/isTreasure/master.json'] !== masterHash) {
-  throw new Error('Master data changed after the WASM build. Rebuild WASM before tagging; no fallback.');
-}
+// top/resolution belong to comparison. Only actual normalizer-table changes
+// require rebuilding the box; the POS dictionary is rebuilt separately below.
+const masterData = JSON.parse(masterBytes);
+assertMapData(masterData.mapData);
 const treeDir = path.join(work, 'tree'), dataDir = path.join(work, 'data');
 const outputDir = path.join(work, 'out'), logDir = path.join(work, 'log');
 for (const dir of [treeDir, dataDir, outputDir, logDir]) fs.mkdirSync(dir, {recursive:true});
@@ -65,6 +66,7 @@ const stats = {
   wasm_instance_scope:'shared module instance',
   input_pipeline:'WASM mapperNormalize; English/digit blocks masked before segmentation',
   wasm_sha256:build.box_sha256, master_sha256:masterHash,
+  tag_data_sha256:hash(JSON.stringify({dictionary:masterData.dictionary,mapData:masterData.mapData})),
   scraper_cache_commit:cacheSource.commit,
   source_sha256:hash(fs.readFileSync(source)),
   raw_pos_path:result.rawPosPath, raw_pos_sha256:hash(Buffer.from(raw)),

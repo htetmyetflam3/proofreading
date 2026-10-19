@@ -10,7 +10,7 @@ const STANDALONES = [
 ];
 
 const POS_KEY= 'x';
-const POS_MAP = {
+export const POS_MAP = {
 	ADJECTIVE: "aj",
 	ADVERB: "av",
 	CONJUNCTION: "cn",

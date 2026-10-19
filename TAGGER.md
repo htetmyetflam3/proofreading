@@ -64,5 +64,10 @@ The completed full run processed 59,681 prose paragraphs into 12,096 units,
 with 625,428 tag occurrences, 106,612 unknown-tag occurrences and 270,880
 ambiguous-tag occurrences. These counts are **not an accuracy score**.
 The POS builder rejected 1,214 dictionary entries; the originals remain intact.
-Exact phrase alignment, grammatical disambiguation and MT are not established
-by this tagging step. MT remains paused.
+Exact phrase alignment and grammatical disambiguation are not established
+by this tagging step. The three-route MT pilot is described in `MT.md`;
+compound-first sentence/style resolution remains a later comparison stage.
+
+`top` and `resolution` belong to comparison. Normalizer preflight checks the
+actual `mapData` tables in WASM, rather than treating comparison-only edits as
+normalizer changes. The POS builder uses a work copy of the dictionary.

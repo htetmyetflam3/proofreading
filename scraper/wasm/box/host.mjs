@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { WASI } from 'node:wasi';
+import { isDeepStrictEqual } from 'node:util';
 
 export class WasmBox {
   constructor(file = new URL('./box.wasm', import.meta.url),
@@ -79,4 +80,19 @@ export class WasmBox {
 let sharedBox;
 export function getBox() {
   return sharedBox ??= new WasmBox();
+}
+
+// Compare only the map tables actually used by the sealed normalizer. Changes
+// to dictionary/top/resolution do not change the compiled map algorithms.
+export function assertMapData(mapData) {
+  if (!mapData?.MMap || !mapData?.NewMap) throw new Error('Master is missing mapData');
+  const actual = getBox().call('tables');
+  const sets = new Set(['PUNCTUATION','Glue','ENGLISH_DIGITS','BURMESE_DIGITS','BLOCK_PUNCT']);
+  for (const [key, value] of Object.entries(mapData)) {
+    const left = sets.has(key) ? new Set(actual[key]) : actual[key];
+    const right = sets.has(key) ? new Set(value) : value;
+    if (!isDeepStrictEqual(left, right)) {
+      throw new Error(`Master mapData.${key} differs from the built WASM. Rebuild WASM; no fallback.`);
+    }
+  }
 }
