@@ -1,67 +1,12 @@
 {
-  "name": "linga-site",
-  "version": "3.5.0",
-  "description": "Preproduction Site web with SPA, SQLite, and in-process Myanmar parser",
-  "author": "KaungMyatThu",
-  "license": "ISC",
+  "name": "proofreading-engine",
   "private": true,
   "type": "module",
-  "main": "index.js",
+  "description": "Owner Engine with required rebuilt scraper WASM; no plaintext map runtime",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
-  "workspaces": [
-    "Parsed/parser",
-    "frontend/frontend-bootstrap",
-    "frontend/frontend-react"
-  ],
   "scripts": {
-    "build": "node utility-tools/build-frontend.mjs",
-    "build:bootstrap": "node utility-tools/build-frontend.mjs bootstrap",
-    "build:react": "node utility-tools/build-frontend.mjs react",
-    "clean": "node utility-tools/clean-dist.mjs",
-    "start": "node index.js",
-    "dev": "nodemon --config nodemon.json",
-    "test": "npm run test:unit && npm run test:parser && npm run test:frontend && npm run test:chain",
-    "test:unit": "COOKIE_SECRET=test-cookie-secret-at-least-32-characters node --test backend/cookie/*.test.js backend/db/*.test.js backend/gateway/*.test.js backend/gateway/api/*.test.js backend/gateway/generator/*.test.js backend/gateway/queue/*.test.js",
-    "test:parser": "node --test utility-tools/parser-layout.test.mjs utility-tools/parser-scan.test.mjs",
-    "test:frontend": "node utility-tools/verify-frontend.mjs",
-    "test:chain": "node --test utility-tools/chain.test.mjs && node --test utility-tools/regenerate-env.test.mjs",
-    "test:watch": "nodemon --config nodemon.test.json",
-    "check:imports": "node utility-tools/check-imports.mjs --strict",
-    "check:workspaces": "node utility-tools/workspaces.mjs",
-    "check:unused": "node utility-tools/unused.js",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "env:regenerate": "node utility-tools/regenerate-env.js",
-    "env:push": "node utility-tools/env-sync.mjs push",
-    "env:check": "node utility-tools/env-sync.mjs check",
-    "env:pull": "node utility-tools/env-sync.mjs pull",
-    "prepare:prerelease": "npm run build && npm test && npm run test:chain && npm run check:imports && npm run lint && node utility-tools/clean.js backend && node utility-tools/clean.js frontend && node utility-tools/clean.js utility-tools && node utility-tools/clean.js Parsed/parser && npm test"
-  },
-  "engine": {
-    "node": "24.18.1-r3"
-  },
-  "dependencies": {
-    "better-sqlite3": "^13.0.3",
-    "cookie-parser": "^1.4.7",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "express-rate-limit": "^8.7.0",
-    "express-session": "^1.19.0",
-    "fs-extra": "^11.3.3",
-    "helmet": "^8.1.0",
-    "mammoth": "^1.13.0",
-    "morgan": "^1.10.1",
-    "multer": "^2.0.2"
-  },
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "eslint": "^10.8.0",
-    "eslint-config-prettier": "^10.1.8",
-    "jsdom": "^27.0.0",
-    "nodemon": "^3.1.14",
-    "prettier": "^3.6.2"
+    "build:wasm": "sh scraper/wasm/rebuild-box.sh"
   }
 }

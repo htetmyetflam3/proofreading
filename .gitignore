@@ -1,0 +1,15 @@
+# Local credentials, environments, caches
+.env
+.env.*
+!.env.example
+.venv/
+node_modules/
+__pycache__/
+*.py[cod]
+.cache/
+# WASM build intermediates; the rebuilt box.wasm and build-info.json ARE shipped.
+/scraper/wasm/box/engine.wasm
+/scraper/wasm/box/payload.bin
+# Tagger work copies and logs, never the original DOCX/master data.
+/output/tagger/.work/
+/output/tagger/logs/
