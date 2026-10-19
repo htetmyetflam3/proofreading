@@ -13,7 +13,7 @@
     "scraper/wasm/box/build-payload.mjs": "e6c21a92156b2f46f86c38bf64478802e6f27e996d75c65ec2a37d7bd77fedc4",
     "scraper/wasm/box/loader.mjs": "fc2f362de257bed6f00230d19b6a6d1e53b2cc38dfb13b149e1dfab8c554bffb"
   },
-  "box_sha256": "9258e0a8564f755ff329a068b9b1fd31e6bcaffc36884c4355333a6bb3f0423a",
+  "box_sha256": "c1799927409dcb511afc9d5140fa62c3905991a72ef695a8a7ceed6e001eb4d1",
   "node": "v22.22.3",
   "zig": "0.17.0",
   "quickjs_commit": "6d46d07d04041b40f4f49eaa7fdebe44c314c699"

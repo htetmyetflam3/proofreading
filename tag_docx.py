@@ -135,7 +135,7 @@ def main():
     original_hash = digest(docx)
     counts = extract(docx, source, index, args.max_paragraphs)
     print(f'[docx] {counts["prose_paragraphs"]:,} paragraphs extracted; original DOCX unchanged', flush=True)
-    subprocess.run(['node', str(ROOT/'engine/tag-text.mjs'), str(source), str(work), str(result)], cwd=ROOT, check=True)
+    subprocess.run(['node', '--import', str(ROOT/'scraper/wasm/box/runtime-guard.mjs'), str(ROOT/'engine/tag-text.mjs'), str(source), str(work), str(result)], cwd=ROOT, check=True)
     stats = json.loads(result.read_text())
     if digest(docx) != original_hash: raise ValueError('Original DOCX was modified')
     outputs = {'source':out/f'{stem}.source.txt', 'paragraphs':out/f'{stem}.paragraphs.jsonl', 'raw_pos':out/f'{stem}.raw_pos.txt'}

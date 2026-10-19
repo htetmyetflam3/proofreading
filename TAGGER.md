@@ -16,6 +16,12 @@ artifact is committed; rebuilding it is documented in
 The four `engine/MonoSyllabism/mapbuilder/base/` files are build/stage-test inputs
 only, never Node runtime implementations.
 
+The production command preloads `scraper/wasm/box/runtime-guard.mjs` before
+loading the Engine. It rejects imports and file reads of the four plain map
+modules and rejects JSC/bytenode. The internal worker refuses to start without
+that guard and boots the shared WASM box before tagging. Build and explicitly
+separate stage-test processes do not preload this production guard.
+
 ## What runs
 
 1. Read the hand-built DOCX directly as ZIP/XML, preserving prose characters,

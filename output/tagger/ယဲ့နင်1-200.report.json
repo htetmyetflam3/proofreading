@@ -1,10 +1,12 @@
 {
   "runtime": "required rebuilt scraper WASM",
+  "runtime_guard": "scraper/wasm/box/runtime-guard.mjs",
+  "plain_source_runtime_blocked": true,
   "wasm_box": "scraper/wasm/box/box.wasm",
   "wasm_host": "scraper/wasm/box/host.mjs",
   "wasm_instance_scope": "shared module instance",
   "input_pipeline": "WASM mapperNormalize; English/digit blocks masked before segmentation",
-  "wasm_sha256": "9258e0a8564f755ff329a068b9b1fd31e6bcaffc36884c4355333a6bb3f0423a",
+  "wasm_sha256": "c1799927409dcb511afc9d5140fa62c3905991a72ef695a8a7ceed6e001eb4d1",
   "master_sha256": "14f8e544d67fe1f287cf18212dfe6acb867879d09881771464fbf8b0ebf5bb2e",
   "scraper_cache_commit": "8914406feef263443a34aba9a0bc189e10b824af",
   "source_sha256": "5f046cf05c48431c35c67d6d88c2f491b175f49df5dac5005b96e94b926cd365",

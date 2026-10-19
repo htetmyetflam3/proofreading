@@ -9,9 +9,14 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const [sourceArg, workArg, resultArg] = process.argv.slice(2);
 if (!sourceArg || !workArg || !resultArg) {
-  console.error('usage: node engine/tag-text.mjs SOURCE_TEXT WORK_DIR RESULT_JSON');
+  console.error('usage: node --import ./scraper/wasm/box/runtime-guard.mjs engine/tag-text.mjs SOURCE_TEXT WORK_DIR RESULT_JSON');
   process.exit(2);
 }
+if (globalThis[Symbol.for('proofreading.scraper.wasm-only')] !== true) {
+  throw new Error('Required WASM-only production guard is missing; run uv run tag_docx.py');
+}
+const { getBox } = await import('../scraper/wasm/box/host.mjs');
+getBox(); // Require the actual shared WASM box before any tagging work.
 const source = path.resolve(sourceArg), work = path.resolve(workArg);
 const masterPath = path.join(ROOT, 'engine/knowledge/isTreasure/master.json');
 const masterBytes = fs.readFileSync(masterPath), masterHash = hash(masterBytes);
@@ -53,6 +58,8 @@ const raw = fs.readFileSync(result.rawPosPath, 'utf8');
 const failFile = path.join(treeDir, 'pos-fail.txt');
 const stats = {
   runtime:'required rebuilt scraper WASM',
+  runtime_guard:'scraper/wasm/box/runtime-guard.mjs',
+  plain_source_runtime_blocked:true,
   wasm_box:'scraper/wasm/box/box.wasm',
   wasm_host:'scraper/wasm/box/host.mjs',
   wasm_instance_scope:'shared module instance',
