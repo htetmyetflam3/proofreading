@@ -1,5 +1,8 @@
 {
   "runtime": "required rebuilt scraper WASM",
+  "wasm_box": "scraper/wasm/box/box.wasm",
+  "wasm_host": "scraper/wasm/box/host.mjs",
+  "wasm_instance_scope": "shared module instance",
   "input_pipeline": "WASM mapperNormalize; English/digit blocks masked before segmentation",
   "wasm_sha256": "a4ca7d361b2abe9d94021d08bb967a1d5ff84842b0cc3adee4e840d96b75d846",
   "master_sha256": "14f8e544d67fe1f287cf18212dfe6acb867879d09881771464fbf8b0ebf5bb2e",

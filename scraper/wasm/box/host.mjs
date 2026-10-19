@@ -4,8 +4,8 @@ import crypto from 'node:crypto';
 import { WASI } from 'node:wasi';
 
 export class WasmBox {
-  constructor(file = new URL('../../../scraper/wasm/box/box.wasm', import.meta.url),
-    manifest = new URL('../../../scraper/wasm/box/build-info.json', import.meta.url)) {
+  constructor(file = new URL('./box.wasm', import.meta.url),
+    manifest = new URL('./build-info.json', import.meta.url)) {
     if (!fs.existsSync(file) || !fs.existsSync(manifest)) {
       throw new Error('Required rebuilt WASM is missing. Run the scraper WASM build; there is no JS/JSC fallback.');
     }
@@ -73,4 +73,10 @@ export class WasmBox {
     }
     return JSON.parse(this.run(3, JSON.stringify({method, args})));
   }
+}
+
+// One shared instance per process; consumers never create an Engine-local box.
+let sharedBox;
+export function getBox() {
+  return sharedBox ??= new WasmBox();
 }

@@ -53,6 +53,9 @@ const raw = fs.readFileSync(result.rawPosPath, 'utf8');
 const failFile = path.join(treeDir, 'pos-fail.txt');
 const stats = {
   runtime:'required rebuilt scraper WASM',
+  wasm_box:'scraper/wasm/box/box.wasm',
+  wasm_host:'scraper/wasm/box/host.mjs',
+  wasm_instance_scope:'shared module instance',
   input_pipeline:'WASM mapperNormalize; English/digit blocks masked before segmentation',
   wasm_sha256:build.box_sha256, master_sha256:masterHash,
   scraper_cache_commit:cacheSource.commit,

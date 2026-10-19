@@ -338,3 +338,10 @@
 - Parsed the original hand-built DOCX directly via ZIP/XML. Processed all 59,681 prose paragraphs after excluding observed export wrappers, producing 12,096 tagger units / 625,428 tag occurrences. Retained 106,612 unknown and 270,880 ambiguous occurrences as raw candidates, not claimed accuracy or resolved grammar.
 - Created and included the requested tagged DOCX companion plus raw-POS text, report and rejected-entry list. The original DOCX and knowledge master hashes are unchanged. Source extraction/index are reproducible local support files; work copies, pilots and logs are ignored.
 - Verification: the full actual book ran with Node plaintext-source reads/imports and bytenode blocked. Five temporary DOCX/offset/atomic-write tests and 834 WASM stage/build/failure checks passed; compilation/help checks passed. The tagged DOCX ZIP/XML and exact tagged-text round-trip passed. Test scripts remain outside the repo. Microsoft Word rendering and tag linguistic accuracy were not verified; exact phrase alignment and MT remain pending.
+
+
+## 2026-10-19 — Engine reuses the shared scraper WASM box
+- Moved the Node WASM host into `scraper/wasm/box/host.mjs`, alongside the canonical `box.wasm` and its build manifest. The Engine now imports shared `getBox()` directly; no Engine-local host or compatibility wrapper remains.
+- `getBox()` reuses one module instance. The existing rebuilt scraper box, its manifest and all four base algorithm files are unchanged; no second box or separate build was introduced. Production remains WASM-only with no plaintext/JSC fallback.
+- Added explicit shared-box/host paths to the tagger report. Verified shared-instance identity and that the Engine's table, normalization, inverse-mapping and predicate calls reach it; missing-box failure and exception recovery passed. The 834 existing WASM checks also passed after the host move.
+- Reran the complete DOCX with plaintext-source reads/imports and bytenode denied. Tagged DOCX and raw-POS hashes are identical to the previous outputs; original DOCX/master remain unchanged. Tests stayed in `/tmp`; MT remains paused.

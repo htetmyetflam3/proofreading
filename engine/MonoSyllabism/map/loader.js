@@ -1,7 +1,7 @@
 // Production map API: EVERY algorithm call goes into the rebuilt scraper WASM.
 // The four mapbuilder/base files are build/test inputs only. No JSC/JS fallback.
-import { WasmBox } from './wasm-host.mjs';
-const box = new WasmBox();
+import { getBox } from '../../../scraper/wasm/box/host.mjs';
+const box = getBox();
 const tables = box.call('tables');
 export const MMap = tables.MMap;
 export const NewMap = tables.NewMap;

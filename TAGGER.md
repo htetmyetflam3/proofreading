@@ -9,7 +9,8 @@ uv run tag_docx.py --input "input/ယဲ့နင်1-200.docx"
 ```
 
 The default selects the sole DOCX under `input/`. No translation API, API key,
-Burmese NLP package or network request is part of tagging. The rebuilt WASM
+Burmese NLP package or network request is part of tagging. The tagger directly reuses `scraper/wasm/box/host.mjs` (`getBox()`) and
+`scraper/wasm/box/box.wasm`; there is no Engine-local host or box. The rebuilt WASM
 artifact is committed; rebuilding it is documented in
 `scraper/wasm/box/README.md`. Missing/tampered WASM fails instead of falling back.
 The four `engine/MonoSyllabism/mapbuilder/base/` files are build/stage-test inputs

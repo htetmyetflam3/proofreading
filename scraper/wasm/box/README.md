@@ -1,6 +1,9 @@
 # Required Engine WASM
 
-Production uses `box.wasm` through `engine/MonoSyllabism/map/loader.js`.
+Production reuses this directory’s `box.wasm` and shared `host.mjs`.
+`engine/MonoSyllabism/map/loader.js` imports `getBox()` from that host; it
+does not maintain its own box, host, or build path. `getBox()` returns one
+WASM instance per process for all consumers.
 There is **no plaintext-JS or JSC fallback**. The four files in
 `engine/MonoSyllabism/mapbuilder/base/` are build/stage-test inputs only.
 Their algorithm bodies were not rewritten.
