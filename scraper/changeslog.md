@@ -314,3 +314,9 @@
 - Added browser-style User-Agent/Accept/Accept-Language headers and a previous-page Referer using the existing HTTPX session. An actual chapter 403 stops immediately with a clear message rather than retrying the same forbidden request three times or marking the book complete. This does not claim to bypass a site challenge.
 - Missing navigation is an error unless the page title identifies the final chapter; unfinished pagination, backward links, external-book navigation and redirect guards remain checked. Existing output and pre-fix zero-byte resume journals remain usable without deleting progress.
 - Verification: 19 offline HTTPX-fixture checks passed, including a forbidden directory that is never requested, request headers/Referer, chapter-403 stop/resume, and pre-fix journal reuse. Python compilation and diff whitespace checks passed. Tests remain in `/tmp`, not the repository. The live site response cannot be verified from this sandbox; owner must rerun. MT files were not changed or included in this fix.
+
+
+## 2026-10-19 — Import owner's grammar reference; audit tagger runtime before wiring
+- Merged owner's `mainrules.js` from `origin/main` (`a377701`) into the session branch without altering the supplied tagger logic. MT remains paused; its untracked draft files are not included in this change.
+- Verified unresolved imports in the supplied `bridge.js`, `build.js`, `traverser.js` and `phoneme/` exports, including formatter/generator helpers, map/tree loaders and the rule-engine entry point. Examined corresponding support files in the owner's `lingux` repository in scratch space only; that runtime uses different module paths, so it has not silently replaced this export.
+- No tagged DOCX output has been produced yet. Wiring requires either the matching runtime/support files or the owner's confirmation to reuse support files from `lingux`; no third-party Burmese NLP was installed.
