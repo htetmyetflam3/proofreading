@@ -10,8 +10,23 @@ import time
 import urllib.parse
 from pathlib import Path
 
-BIN_DIR = Path(__file__).resolve().parent / "python" / "bin"
-sys.path.insert(0, str(BIN_DIR))
+# Flat-import module folders inside scraper/, deepest first, so the existing
+# module names keep working from the new init/ location.
+_MODULE_DIRS = (
+    "scraper/modules/crawler",
+    "scraper/modules/download",
+    "scraper/modules/guard/disk",
+    "scraper/modules/guard/helper",
+    "scraper/modules/platform",
+    "scraper/modules/platform/scribdl",
+    "scraper/modules/url",
+    "scraper/support",
+)
+_ROOT = Path(__file__).resolve().parent.parent
+for _relative in reversed(_MODULE_DIRS):
+    _path = str(_ROOT / _relative)
+    if _path not in sys.path:
+        sys.path.insert(0, _path)
 
 from Dcrawler import ENTRY_FILE, OUTPUT_DIR, download_entries, note_pause, retry_line  # noqa: E402
 from disk_floor import DiskTight  # noqa: E402
@@ -52,7 +67,7 @@ examples:
   uv run main.py --scribd my-scribd-links.txt
   uv run main.py --phatmal
   uv run main.py --phatmal https://phatmal.com/ebook/<slug>
-  uv run main.py --Hcrawler https://www.novel543.com/0511241012/8011_93.html
+  uv run init/main.py --Hcrawler https://www.novel543.com/0511241012/8011_93.html
 
 HTML (--Hcrawler): include the supplied chapter and continue to the book's end;
 each chapter title is preceded by a numbered HCrawler marker;
@@ -75,12 +90,12 @@ right away, with the problems so far.
 
 upload (--upload, --process): a file that fails is retried after 15 s, 30 s,
 45 s, 1 min, 1 min 30 s, 2 min, 2 min 30 s and 3 min (UPLOAD_WAITS in
-python/bin/save_remote.py); then uploading stops instead of looping: with an
+scraper/modules/download/save_remote.py); then uploading stops instead of looping: with an
 error when under 5 GB is free, else the files stay in python/pdfs.
 
 disk: 5 GB is kept free for the system. Every download command (--main,
 --download, --process, --scribd, --phatmal, --Hcrawler) checks it before each file and
-quits with an error under it; free space (e.g. uv run main.py --upload), then
+quits with an error under it; free space (e.g. uv run init/main.py --upload), then
 rerun to resume.
 """
 

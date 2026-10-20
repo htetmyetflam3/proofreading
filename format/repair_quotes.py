@@ -15,7 +15,7 @@ Default output is a new file next to the input:
 Use --in-place explicitly to overwrite the input. The original remains recoverable
 from Git in this repository.
 
-The state machine is shared with HCrawler (`scraper/python/bin/quote_text.py`);
+The state machine is shared with HCrawler (`format/quote_text.py`);
 HCrawler uses it while writing each page, so new crawls do not need a later repair.
 """
 from __future__ import annotations
@@ -29,7 +29,7 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(ROOT / "scraper" / "python" / "bin"))
+sys.path.insert(0, str(ROOT))
 from quote_text import Change, repair_text  # noqa: E402
 
 

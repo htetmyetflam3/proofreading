@@ -32,7 +32,7 @@ import tempfile
 from xml.etree import ElementTree as ET
 from zipfile import ZipFile
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 # Same marker contract as HCrawler. The number is a chapter-unit counter, not
 # the chapter number printed in the text.

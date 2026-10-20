@@ -23,7 +23,7 @@ import httpx
 from bs4 import BeautifulSoup
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from disk_floor import DiskTight, check_disk, size_text
-from domain_guard import excluded_site_reason
+from domain import excluded_site_reason
 from download_rate import client_options as _rate_client_options, limit_downloads
 from download_links import FILE_EXTENSION, extract_file_links, guard_download_url
 from mediafire import (

@@ -2,7 +2,7 @@
 
 ## Exactly three routes
 
-For each selected Chinese source unit, `mt.py` runs:
+For each selected Chinese source unit, `init/initmt.py` runs:
 
 1. Chinese → Burmese (`zh_my`): the direct candidate.
 2. Chinese → English (`zh_en`): the actual intermediate English.
@@ -30,10 +30,10 @@ credentials. The default is an offline plan.
 
 ```sh
 # No MT API call, key, output file or cache creation:
-uv run mt.py --input input/chinese-0511241012-from-8011_93.txt --max-units 3 --plan
+uv run init/initmt.py --input input/chinese-0511241012-from-8011_93.txt --max-units 3 --plan
 
 # After configuring your credentials locally:
-uv run mt.py --input input/chinese-0511241012-from-8011_93.txt --max-units 3 --run
+uv run init/initmt.py --input input/chinese-0511241012-from-8011_93.txt --max-units 3 --run
 ```
 
 The three-unit uncached plan has an upper bound of **nine requests**. The default
@@ -88,26 +88,26 @@ alignment offsets. No OCR repair or Traditional/Simplified conversion is applied
 
 ## Approved phrase memory (backend only)
 
-`mt_memory.py` is a local SQLite translation memory. There is **no GUI** and no
+`mt/mt_memory.py` is a local SQLite translation memory. There is **no GUI** and no
 automatic promotion of machine output. An entry is either `suggested` (draft) or
 `approved` (may be reused), and either a normal `phrase` or a glossary `term`.
 Entries are route-specific: a Chinese→English entry is not a Chinese→Burmese hit.
 
 ```sh
 # Draft, then approve explicitly:
-uv run mt_memory.py add --source '你們在幹什麼？' --target "YOUR_APPROVED_BURMESE" \
+uv run mt/mt_memory.py add --source '你們在幹什麼？' --target "YOUR_APPROVED_BURMESE" \
   --from zh-Hant --to my
-uv run mt_memory.py approve 1
+uv run mt/mt_memory.py approve 1
 
 # A reviewed glossary term (still needs approval to be a glossary hit):
-uv run mt_memory.py add --source '葉寧' --target "YOUR_APPROVED_NAME" \
+uv run mt/mt_memory.py add --source '葉寧' --target "YOUR_APPROVED_NAME" \
   --from zh-Hant --to my --kind term
-uv run mt_memory.py approve 2
+uv run mt/mt_memory.py approve 2
 
-uv run mt_memory.py list --status approved
-uv run mt_memory.py suggest '你們在幹什麼' --from zh-Hant --to my
-uv run mt_memory.py glossary --from zh-Hant --to my
-uv run mt_memory.py stats
+uv run mt/mt_memory.py list --status approved
+uv run mt/mt_memory.py suggest '你們在幹什麼' --from zh-Hant --to my
+uv run mt/mt_memory.py glossary --from zh-Hant --to my
+uv run mt/mt_memory.py stats
 ```
 
 Default store: `output/mt/memory.sqlite3` (ignored in Git). Export reviewed JSONL
@@ -116,8 +116,8 @@ versioned. Import validates every line before writing and will not downgrade an
 approved entry to `suggested`:
 
 ```sh
-uv run mt_memory.py export --output output/mt/memory-export.jsonl
-uv run mt_memory.py import --input output/mt/memory-export.jsonl
+uv run mt/mt_memory.py export --output output/mt/memory-export.jsonl
+uv run mt/mt_memory.py import --input output/mt/memory-export.jsonl
 ```
 
 Matching normalizes NFKC and whitespace **for lookup only**; the approved text is
@@ -126,7 +126,7 @@ billed leg. Similar entries are shown with a similarity score but are never appl
 Approved phrases and glossary terms that occur inside a larger unit are reported as
 `direct_phrase_hits` / `glossary_hits`; they are context, not automatic replacement.
 
-`mt.py --run` writes a `memory` block per unit with suggestions, phrase hits and
+`init/initmt.py --run` writes a `memory` block per unit with suggestions, phrase hits and
 glossary hits. Every leg records `origin`: `provider`, `provider_cache` or
 `translation_memory`. `--suggestions 0` disables similar-phrase suggestions but
 keeps phrase/glossary reporting. There is no verified inline glossary parameter in
@@ -137,7 +137,7 @@ Repeated source phrases can be ranked without any Burmese tokenizer. This report
 does not create or approve entries:
 
 ```sh
-uv run mt_memory.py frequent --input input/chinese-0511241012-from-8011_93.txt --top 30
+uv run mt/mt_memory.py frequent --input input/chinese-0511241012-from-8011_93.txt --top 30
 ```
 
 It splits on Chinese sentence/dialogue punctuation, ignores literal HTML-entity
@@ -146,7 +146,7 @@ The source text is not modified.
 
 ### Quote repair script
 
-`repair_quotes.py` repairs the literal quote entities without changing any other
+`format/repair_quotes.py` repairs the literal quote entities without changing any other
 character. It understands `&quot;`, `&amp;quot;`, `&amp;amp;quot;`, `&#34;` and
 `&#x22;`, chooses `“`/`”` from local context, preserves CRLF/BOM/line count, and
 can write a TSV audit. `--include-straight-quotes` also normalizes bare `"`;
@@ -155,11 +155,11 @@ so new crawls do not need a later repair pass:
 
 ```sh
 # Safe default: writes <input>.quotes-repaired.txt
-uv run repair_quotes.py input/chinese-0511241012-from-8011_93.txt \
+uv run format/repair_quotes.py input/chinese-0511241012-from-8011_93.txt \
   --report /tmp/quote-report.tsv
 
 # Explicit in-place rewrite:
-uv run repair_quotes.py input/chinese-0511241012-from-8011_93.txt --in-place
+uv run format/repair_quotes.py input/chinese-0511241012-from-8011_93.txt --in-place
 ```
 
 The conversion is context-aware rather than a blind alternating replace: it handles
@@ -205,15 +205,15 @@ This is the next stage, **not an already implemented grammar resolver**:
    offered to AI, with small context and relevant rules/glossary/tone examples.
    No full-chapter AI call or automatic rewriting is enabled here.
 
-The actual rule data is in `engine/knowledge/isTreasure/mainrules.js` (JSON),
+The actual rule data is in `Engine/knowledge/isTreasure/mainrules.js` (JSON),
 with the data-only sequence/compound table in root `mainrules.js`. `top` and
 `resolution` belong to comparison, not the pass-through POS kernel.
 
 ## Optional raw evidence (not grammar resolution)
 
 ```sh
-uv run mt_compare.py --profile
-uv run mt_compare.py --input output/mt/chinese-0511241012-from-8011_93-zh-Hant-azure-candidates.jsonl
+uv run mt/mt_compare.py --profile
+uv run mt/mt_compare.py --input output/mt/chinese-0511241012-from-8011_93-zh-Hant-azure-candidates.jsonl
 ```
 
 This audits the supplied catalog and can tag **both** Burmese candidates through

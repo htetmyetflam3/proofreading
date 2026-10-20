@@ -19,7 +19,7 @@ from difflib import SequenceMatcher
 
 import json5
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 VERSION = 2
 REFERENCE = ROOT/'output/tagger/ယဲ့နင်1-200.raw_pos.txt'
 WORK = ROOT/'output/mt/comparison'
@@ -45,7 +45,7 @@ def atomic_json(path, value):
     finally:
         if os.path.exists(tmp): os.unlink(tmp)
 
-def sequence_catalog(path=ROOT/'mainrules.js'):
+def sequence_catalog(path=ROOT/'Engine/knowledge/isTreasure/mainrules.js'):
     """Extract only the supplied data array, never eval/import JavaScript."""
     text=Path(path).read_text(encoding='utf-8')
     marker=re.search(r'\bconst\s+MYANMAR_GRAMMAR_SEQUENCES\s*=\s*\[',text)
@@ -81,9 +81,9 @@ def sequence_catalog(path=ROOT/'mainrules.js'):
 def knowledge(work=WORK):
     rules=sequence_catalog()
     extra=sorted({r['particle'] for r in rules if 'particle' in r})
-    sources=['engine/knowledge/isTreasure/master.json','engine/knowledge/isTreasure/mainrules.js',
-        'mainrules.js','engine/export-comparison-data.mjs','engine/MonoSyllabism/graph/disassembler.js',
-        'scraper/wasm/box/build-info.json','engine/MonoSyllabism/map/loader.js',
+    sources=['Engine/knowledge/isTreasure/master.json','Engine/knowledge/isTreasure/mainrules.js',
+        'Engine/export-comparison-data.mjs','Engine/MonoSyllabism/graph/disassembler.js',
+        'scraper/wasm/box/build-info.json','Engine/MonoSyllabism/map/loader.js',
         'scraper/wasm/box/host.mjs','scraper/wasm/box/runtime-guard.mjs','scraper/wasm/box/runtime-loader.mjs']
     key=identity({'version':VERSION,'sources':{name:file_hash(ROOT/name) for name in sources},'extra':extra})
     destination=Path(work)/'metadata'/f'{key}.json'
@@ -92,7 +92,7 @@ def knowledge(work=WORK):
         destination.parent.mkdir(parents=True,exist_ok=True)
         temporary=destination.with_suffix('.tmp')
         try:
-            subprocess.run(['node','--import',str(GUARD),str(ROOT/'engine/export-comparison-data.mjs'),str(temporary),str(extra_file)],cwd=ROOT,check=True)
+            subprocess.run(['node','--import',str(GUARD),str(ROOT/'Engine/export-comparison-data.mjs'),str(temporary),str(extra_file)],cwd=ROOT,check=True)
             os.replace(temporary,destination)
         finally: temporary.unlink(missing_ok=True)
     obj=json.loads(destination.read_text())
@@ -101,7 +101,7 @@ def knowledge(work=WORK):
         'sequences':rules,'wasm':obj['wasm_sha256'],'policy':obj['policy'],
         'pos_codes':obj['pos_codes'],'evaluator':file_hash(Path(__file__))})
     obj['sources']['sequence_notes']='mainrules.js'
-    obj['sources']['sequence_notes_sha256']=file_hash(ROOT/'mainrules.js')
+    obj['sources']['sequence_notes_sha256']=file_hash(ROOT/'Engine/knowledge/isTreasure/mainrules.js')
     return obj
 
 def read_tagged(text):
@@ -233,9 +233,9 @@ def surface_diff(left,right):
 
 def tag_burmese(text,data,work=WORK):
     # Rule/top/resolution edits invalidate comparison, not translations or POS cache.
-    scripts=['engine/tag-text.mjs','scraper/Engine/CACHE-SOURCE.json',
+    scripts=['Engine/tag-text.mjs','Engine/CACHE-SOURCE.json',
         'scraper/wasm/box/host.mjs','scraper/wasm/box/runtime-guard.mjs','scraper/wasm/box/runtime-loader.mjs']
-    scripts += sorted(str(p.relative_to(ROOT)) for folder in ('engine/Bridge','engine/MonoSyllabism')
+    scripts += sorted(str(p.relative_to(ROOT)) for folder in ('Engine/Bridge','Engine/MonoSyllabism')
         for p in (ROOT/folder).rglob('*.js') if '/mapbuilder/' not in str(p))
     key=identity({'text':text,'tag_data':data['tag_data_sha256'],'wasm':data['wasm_sha256'],
         'scripts':{name:file_hash(ROOT/name) for name in scripts},'version':VERSION})
@@ -247,7 +247,7 @@ def tag_burmese(text,data,work=WORK):
     folder=Path(work)/'.work'/key;folder.mkdir(parents=True,exist_ok=True)
     source=folder/'burmese.txt';source.write_text(text,encoding='utf-8')
     stats=folder/'result.json'
-    subprocess.run(['node','--import',str(GUARD),str(ROOT/'engine/tag-text.mjs'),str(source),str(folder),str(stats)],cwd=ROOT,check=True)
+    subprocess.run(['node','--import',str(GUARD),str(ROOT/'Engine/tag-text.mjs'),str(source),str(folder),str(stats)],cwd=ROOT,check=True)
     metadata=json.loads(stats.read_text());raw=Path(metadata['raw_pos_path']).read_text()
     value={'key':key,'raw_pos':raw,'wasm_sha256':metadata['wasm_sha256'],
         'runtime_guard':metadata['runtime_guard'],'rejected_dictionary_entries':metadata['rejected_dictionary_entries']}
@@ -295,7 +295,7 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     source=parser.add_mutually_exclusive_group(required=True)
     source.add_argument('--profile',action='store_true',help='Audit the reference and supplied rule data; this is not compound/sentence resolution')
-    source.add_argument('--input',type=Path,help='Three-route direct/pivot MT JSONL from mt.py')
+    source.add_argument('--input',type=Path,help='Three-route direct/pivot MT JSONL from init/initmt.py')
     parser.add_argument('--reference',type=Path,default=REFERENCE)
     parser.add_argument('--reference-profile',type=Path,default=PROFILE)
     parser.add_argument('--output',type=Path)
@@ -303,8 +303,8 @@ def main(argv=None):
     args=parser.parse_args(argv)
     temporary=None
     try:
-        protected={args.reference.resolve(),ROOT/'mainrules.js',ROOT/'master.json',
-            ROOT/'engine/knowledge/isTreasure/mainrules.js',ROOT/'engine/knowledge/isTreasure/master.json'}
+        protected={args.reference.resolve(),
+            ROOT/'Engine/knowledge/isTreasure/mainrules.js',ROOT/'Engine/knowledge/isTreasure/master.json'}
         protected.update(p.resolve() for p in (ROOT/'input').glob('*') if p.is_file())
         if args.input:protected.add(args.input.resolve())
         proposed=(args.output or args.reference_profile) if args.profile else (args.output or ROOT/'output/mt'/f'{args.input.stem}-comparison.jsonl')
@@ -313,7 +313,7 @@ def main(argv=None):
         data=knowledge(args.work)
         if args.profile:
             output=(args.output or args.reference_profile).resolve()
-            protected=[args.reference.resolve(),ROOT/'mainrules.js',ROOT/'engine/knowledge/isTreasure/mainrules.js',ROOT/'engine/knowledge/isTreasure/master.json']
+            protected=[args.reference.resolve(),ROOT/'Engine/knowledge/isTreasure/mainrules.js',ROOT/'Engine/knowledge/isTreasure/master.json']
             if output in protected:raise ComparisonError('Profile output must not replace source data')
             result=build_profile(data,args.reference,output)
             print(f'[profile] {output}')

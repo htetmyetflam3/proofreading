@@ -21,7 +21,7 @@ import shutil
 import subprocess
 import tempfile
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_INPUT = ROOT / "input" / "ယဲ့နင်1-200.txt"
 CHAPTER_MARKER = re.compile(r"^\[\[HCRAWLER MARKER \d+\]\]$")
 
@@ -121,7 +121,7 @@ def main():
 
     subprocess.run(
         ["node", "--import", str(ROOT / "scraper/wasm/box/runtime-guard.mjs"),
-         str(ROOT / "engine/tag-text.mjs"), str(source), str(work), str(result)],
+         str(ROOT / "Engine/tag-text.mjs"), str(source), str(work), str(result)],
         cwd=ROOT, check=True,
     )
     stats = json.loads(result.read_text())

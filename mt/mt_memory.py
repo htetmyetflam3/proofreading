@@ -24,7 +24,7 @@ import sys
 import tempfile
 import unicodedata
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_MEMORY = ROOT / "output" / "mt" / "memory.sqlite3"
 STATUSES = ("suggested", "approved")
 KINDS = ("phrase", "term")
@@ -103,7 +103,7 @@ class Memory:
         if readonly:
             columns = {row[1] for row in self.db.execute("PRAGMA table_info(memory)")}
             if "kind" not in columns:
-                raise MemoryError_("Old phrase-memory schema; run a writable mt_memory.py command to migrate it")
+                raise MemoryError_("Old phrase-memory schema; run a writable mt/mt_memory.py command to migrate it")
         if not readonly:
             self.db.execute(
                 """CREATE TABLE IF NOT EXISTS memory (

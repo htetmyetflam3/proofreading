@@ -28,7 +28,7 @@ import urllib.parse
 
 import httpx
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_ENDPOINT = "https://api.cognitive.microsofttranslator.com"
 DEFAULT_CACHE = ROOT / "output" / "mt" / "cache.sqlite3"
 DEFAULT_MEMORY = ROOT / "output" / "mt" / "memory.sqlite3"
@@ -36,7 +36,7 @@ SCHEMA_VERSION = 2
 SECTION = re.compile(r"^={5}\s+(.+?)\s+={5}\s*$", re.MULTILINE)
 SENTENCE_END = re.compile(r"[。！？!?]+[\"'”’』」]*")
 API_VERSION = "3.0"
-sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "mt"))
 from mt_memory import Memory, MemoryError_ as MemoryStoreError  # noqa: E402
 
 

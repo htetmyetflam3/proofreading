@@ -9,16 +9,16 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const [sourceArg, workArg, resultArg] = process.argv.slice(2);
 if (!sourceArg || !workArg || !resultArg) {
-  console.error('usage: node --import ./scraper/wasm/box/runtime-guard.mjs engine/tag-text.mjs SOURCE_TEXT WORK_DIR RESULT_JSON');
+  console.error('usage: node --import ./scraper/wasm/box/runtime-guard.mjs Engine/tag-text.mjs SOURCE_TEXT WORK_DIR RESULT_JSON');
   process.exit(2);
 }
 if (globalThis[Symbol.for('proofreading.scraper.wasm-only')] !== true) {
-  throw new Error('Required WASM-only production guard is missing; run uv run tag_docx.py');
+  throw new Error('Required WASM-only production guard is missing; run uv run format/tag_docx.py');
 }
 const { getBox, assertMapData } = await import('../scraper/wasm/box/host.mjs');
 getBox(); // Require the actual shared WASM box before any tagging work.
 const source = path.resolve(sourceArg), work = path.resolve(workArg);
-const masterPath = path.join(ROOT, 'engine/knowledge/isTreasure/master.json');
+const masterPath = path.join(ROOT, 'Engine/knowledge/isTreasure/master.json');
 const masterBytes = fs.readFileSync(masterPath), masterHash = hash(masterBytes);
 const build = JSON.parse(fs.readFileSync(path.join(ROOT, 'scraper/wasm/box/build-info.json')));
 // top/resolution belong to comparison. Only actual normalizer-table changes
@@ -28,8 +28,8 @@ assertMapData(masterData.mapData);
 const treeDir = path.join(work, 'tree'), dataDir = path.join(work, 'data');
 const outputDir = path.join(work, 'out'), logDir = path.join(work, 'log');
 for (const dir of [treeDir, dataDir, outputDir, logDir]) fs.mkdirSync(dir, {recursive:true});
-const cacheRoot = path.join(ROOT, 'scraper/Engine/.cache-tree');
-const cacheSource = JSON.parse(fs.readFileSync(path.join(ROOT, 'scraper/Engine/CACHE-SOURCE.json')));
+const cacheRoot = path.join(ROOT, 'Engine/.cache-tree');
+const cacheSource = JSON.parse(fs.readFileSync(path.join(ROOT, 'Engine/CACHE-SOURCE.json')));
 for (const [name, expected] of Object.entries(cacheSource.sha256)) {
   const bytes = fs.readFileSync(path.join(cacheRoot, name));
   if (hash(bytes) !== expected) throw new Error(`Original scraper cache hash mismatch: ${name}`);

@@ -1,7 +1,7 @@
 """Remote saving over SSH: push saved files to a host instead of keeping them.
 
 Used by main.py --upload (the watch loop over python/pdfs) and main.py
---process (python/bin/night.py's upload thread). A download is written
+--process (support/night.py's upload thread). A download is written
 locally first; then this
 module pushes it over plain ``ssh``, verifies the remote sha256 against the
 *local* bytes, appends a line to scan/uploaded-host.txt, and only after that

@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
 import time
 import urllib.parse
 from pathlib import Path
@@ -21,9 +22,13 @@ from bs4 import BeautifulSoup
 
 from disk_floor import check_disk
 from download_rate import client_options, limit_downloads
-from quote_text import repair_text
 from Scrawler import HTML_CONTENT_TYPES, _normalized_page_url, _site_key
 from site_login import ensure_logged_in_sync
+
+# The shared quote state machine lives in the repository's format/ folder.
+REPO_DIR = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO_DIR / "format"))
+from quote_text import repair_text  # noqa: E402
 
 SCRAPER_DIR = Path(__file__).resolve().parents[2]
 INPUT_DIR = SCRAPER_DIR.parent / "input"

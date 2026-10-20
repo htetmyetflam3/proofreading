@@ -3,9 +3,9 @@
 From the repository root, with Python 3.10+ and Node 22+:
 
 ```sh
-uv run tag_docx.py
+uv run format/tag_docx.py
 # Or select a text explicitly:
-uv run tag_docx.py --input "input/ယဲ့နင်1-200.txt"
+uv run format/tag_docx.py --input "input/ယဲ့နင်1-200.txt"
 ```
 
 The default reads `input/ယဲ့နင်1-200.txt`. The tagger reads UTF-8 text line by
@@ -16,7 +16,7 @@ package or network request is part of tagging. The tagger directly reuses `scrap
 `scraper/wasm/box/box.wasm`; there is no Engine-local host or box. The rebuilt WASM
 artifact is committed; rebuilding it is documented in
 `scraper/wasm/box/README.md`. Missing/tampered WASM fails instead of falling back.
-The four `engine/MonoSyllabism/mapbuilder/base/` files are build/stage-test inputs
+The four `Engine/MonoSyllabism/mapbuilder/base/` files are build/stage-test inputs
 only, never Node runtime implementations.
 
 The production command preloads `scraper/wasm/box/runtime-guard.mjs` before
@@ -62,7 +62,7 @@ The one-time DOCX-to-text conversion is a separate tool; the tagger does not cal
 it:
 
 ```sh
-uv run docx_text.py          # first run, or --force to regenerate
+uv run format/docx_text.py          # first run, or --force to regenerate
 ```
 
 Default: `input/ယဲ့နင်1-200.docx` → `input/ယဲ့နင်1-200.txt`. It reads the DOCX

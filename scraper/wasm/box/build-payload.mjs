@@ -5,8 +5,8 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { assembleKey, decryptToLoad } from "./loader.mjs";
 
-const BASE = path.resolve(import.meta.dirname, "../../../engine/MonoSyllabism/mapbuilder/base");
-const KNOWLEDGE = path.resolve(import.meta.dirname, "../../../engine/knowledge/isTreasure/master.json");
+const BASE = path.resolve(import.meta.dirname, "../../../Engine/MonoSyllabism/mapbuilder/base");
+const KNOWLEDGE = path.resolve(import.meta.dirname, "../../../Engine/knowledge/isTreasure/master.json");
 
 export function buildPack() {
   const pack = {};

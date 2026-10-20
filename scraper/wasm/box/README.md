@@ -1,14 +1,14 @@
 # Required Engine WASM
 
 Production reuses this directory’s `box.wasm` and shared `host.mjs`.
-`engine/MonoSyllabism/map/loader.js` imports `getBox()` from that host; it
+`Engine/MonoSyllabism/map/loader.js` imports `getBox()` from that host; it
 does not maintain its own box, host, or build path. `getBox()` returns one
 WASM instance per process for all consumers.
 There is **no plaintext-JS or JSC fallback**. Production tagging installs the
 `runtime-guard.mjs` preload / `runtime-loader.mjs` import hook; the worker
 requires it. Plain base-module reads/imports and JSC/bytenode are rejected.
 Build/stage-test commands remain separate from this production launch. The four files in
-`engine/MonoSyllabism/mapbuilder/base/` are build/stage-test inputs only.
+`Engine/MonoSyllabism/mapbuilder/base/` are build/stage-test inputs only.
 Their algorithm bodies were not rewritten.
 
 ## Rebuild from the repository root
@@ -28,7 +28,7 @@ externally managed. Only the isolated WASM build package's npm dependencies
 are installed, not the old site's dependencies. No Burmese NLP library is used.
 
 The build compiles QuickJS and the C shim, packs the four sources with the
-`mapData` section from `engine/knowledge/isTreasure/master.json`, encrypts the
+`mapData` section from `Engine/knowledge/isTreasure/master.json`, encrypts the
 payload, then embeds it and the obfuscated bootstrap into the WASM capsule.
 It writes `build-info.json` with input hashes, tool versions and the final
 WASM SHA-256. The production host checks that hash before booting.
@@ -46,5 +46,5 @@ production check denied reads/imports of all four source files and denied
 `bytenode`, while the real Engine bridge/POS builder imported and its map
 functions still ran successfully. Missing or modified WASM fails closed.
 
-DOCX extraction/tagging is wired through `uv run tag_docx.py`; see the
+DOCX extraction/tagging is wired through `uv run format/tag_docx.py`; see the
 repository root `TAGGER.md` for outputs and the raw-POS limitations.

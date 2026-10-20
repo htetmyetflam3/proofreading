@@ -6,8 +6,8 @@ const box = path.resolve(import.meta.dirname, '..');
 const root = path.resolve(box, '../../..');
 const hash = name => crypto.createHash('sha256').update(fs.readFileSync(path.join(root, name))).digest('hex');
 const files = [
-  ...['function.js', 'normalize.js', 'sourceMap.js', 'sourceMapper.js'].map(name => 'engine/MonoSyllabism/mapbuilder/base/' + name),
-  'engine/knowledge/isTreasure/master.json',
+  ...['function.js', 'normalize.js', 'sourceMap.js', 'sourceMapper.js'].map(name => 'Engine/MonoSyllabism/mapbuilder/base/' + name),
+  'Engine/knowledge/isTreasure/master.json',
   'scraper/wasm/box/c/shim.c', 'scraper/wasm/box/engine-api.mjs',
   'scraper/wasm/box/build-payload.mjs', 'scraper/wasm/box/loader.mjs',
 ];

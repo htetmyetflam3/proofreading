@@ -9,7 +9,7 @@ from pathlib import Path
 
 import httpx
 from bs4 import BeautifulSoup
-from domain_guard import excluded_site_reason
+from domain import excluded_site_reason
 from download_links import FILE_EXTENSION, extract_file_links, guard_download_url
 from scribd import SCRIBD_LINKS_FILE
 from site_login import ensure_logged_in_sync
