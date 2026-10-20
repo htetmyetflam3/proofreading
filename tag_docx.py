@@ -2,8 +2,14 @@
 # requires-python = ">=3.10"
 # dependencies = []
 # ///
-"""Tag DOCX text using the owner's Engine and required rebuilt scraper WASM."""
+"""Tag plain UTF-8 Burmese text using the owner's Engine and required rebuilt scraper WASM.
+
+The input is the chapter text itself, one paragraph per line. No DOCX is read and
+no DOCX is written. The tagged output is a UTF-8 text file with one tagger unit
+per line.
+"""
 from __future__ import annotations
+
 import argparse
 from collections import Counter
 import hashlib
@@ -14,156 +20,150 @@ import re
 import shutil
 import subprocess
 import tempfile
-from xml.etree import ElementTree as ET
-from zipfile import ZipFile, ZIP_DEFLATED
-from xml.sax.saxutils import escape
 
 ROOT = Path(__file__).resolve().parent
-W = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
+DEFAULT_INPUT = ROOT / "input" / "ယဲ့နင်1-200.txt"
+CHAPTER_MARKER = re.compile(r"^\[\[HCRAWLER MARKER \d+\]\]$")
+
 
 def digest(path):
-    with Path(path).open('rb') as stream:
-        return hashlib.file_digest(stream, 'sha256').hexdigest() if hasattr(hashlib, 'file_digest') else hashlib.sha256(stream.read()).hexdigest()
+    with Path(path).open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest() if hasattr(
+            hashlib, "file_digest"
+        ) else hashlib.sha256(stream.read()).hexdigest()
+
 
 def atomic_copy(source, destination):
-    fd, temporary = tempfile.mkstemp(prefix='.tagged-', dir=destination.parent)
+    fd, temporary = tempfile.mkstemp(prefix=".tagged-", dir=destination.parent)
     try:
-        with os.fdopen(fd, 'wb') as out, Path(source).open('rb') as stream:
+        with os.fdopen(fd, "wb") as out, Path(source).open("rb") as stream:
             shutil.copyfileobj(stream, out)
         os.replace(temporary, destination)
     finally:
-        if os.path.exists(temporary): os.unlink(temporary)
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
-def extract(docx, text_path, index_path, limit):
+
+def prepare_text(text_path, source_path, limit):
+    """Copy prose to the engine and leave HCrawler chapter markers out of tagging."""
+    original = text_path.read_bytes()
+    original_text = original.decode("utf-8")
+    if "\x00" in original_text:
+        raise ValueError("Input text contains a NUL character")
+
+    prose_lines = []
+    markers = 0
+    for line in original_text.splitlines(keepends=True):
+        if CHAPTER_MARKER.fullmatch(line.rstrip("\r\n")):
+            markers += 1
+            continue
+        prose_lines.append(line)
+    if limit is not None:
+        prose_lines = prose_lines[:limit]
+    text = "".join(prose_lines)
+    raw = text.encode("utf-8")
+    if not text.strip():
+        raise ValueError("Input text contains no nonempty prose")
+    source_path.write_bytes(raw)
+
     counts = Counter()
-    char_offset = byte_offset = 0
-    pdf_page = None
-    with ZipFile(docx) as archive, archive.open('word/document.xml') as xml, text_path.open('w', encoding='utf-8', newline='\n') as text_out, index_path.open('w', encoding='utf-8') as index_out:
-        for _, element in ET.iterparse(xml, events=('end',)):
-            if element.tag != W+'p': continue
-            counts['xml_paragraphs'] += 1
-            parts = []
-            for node in element.iter():
-                if node.tag == W+'t': parts.append(node.text or '')
-                elif node.tag in (W+'br', W+'cr'): parts.append('\n')
-                elif node.tag == W+'tab': parts.append('\t')
-            value = ''.join(parts)
-            element.clear()
-            if not value.strip(): continue
-            counts['nonempty_paragraphs_seen'] += 1
-            stripped = value.strip()
-            page = re.fullmatch(r'--- Page (\d+) ---', stripped)
-            if page:
-                pdf_page = int(page[1]); counts['page_wrappers_removed'] += 1; continue
-            if stripped.startswith(('# Source:', '# Pages:', '# Detection:')) or re.fullmatch(r'#+', stripped):
-                counts['metadata_wrappers_removed'] += 1; continue
-            if re.fullmatch(r'[-\s]{4,}', value):
-                counts['separator_wrappers_removed'] += 1; continue
-            if limit is not None and counts['prose_paragraphs'] >= limit: break
-            encoded = value.encode('utf-8')
-            record = {'docx_paragraph':counts['xml_paragraphs'], 'pdf_page':pdf_page,
-                'char_start':char_offset, 'char_end':char_offset+len(value),
-                'byte_start':byte_offset, 'byte_end':byte_offset+len(encoded)}
-            text_out.write(value+'\n')
-            index_out.write(json.dumps(record, ensure_ascii=False)+'\n')
-            counts['prose_paragraphs'] += 1
-            char_offset += len(value)+1
-            byte_offset += len(encoded)+1
-    if not counts['prose_paragraphs']: raise ValueError('DOCX contains no nonempty prose')
+    counts["input_bytes"] = len(original)
+    counts["input_chars"] = len(original_text)
+    counts["input_lines"] = len(original_text.splitlines())
+    counts["input_markers"] = markers
+    counts["input_prose_lines"] = len(text.splitlines())
+    counts["input_blank_lines"] = sum(1 for line in text.splitlines() if not line.strip())
+    counts["source_bytes"] = len(raw)
     return dict(counts)
 
-def tagged_docx(template, raw_text, target):
-    """New OOXML companion; raw tagger units become paragraphs, not source layout."""
-    font = None
-    with ZipFile(template) as original, original.open('word/document.xml') as stream:
-        for _, node in ET.iterparse(stream, events=('end',)):
-            if node.tag == W+'rFonts':
-                font = dict(node.attrib)
-                break
-    ET.register_namespace('w', W[1:-1])
-    props = ET.Element(W+'rPr')
-    if font:
-        ET.SubElement(props, W+'rFonts', font)
-    run_properties = ET.tostring(props, encoding='utf-8')
-    count = 0
-    with ZipFile(template) as original, ZipFile(target, 'w', compression=ZIP_DEFLATED) as tagged:
-        for info in original.infolist():
-            if info.filename != 'word/document.xml':
-                tagged.writestr(info, original.read(info.filename))
-                continue
-            with tagged.open(info, 'w') as xml, Path(raw_text).open(encoding='utf-8') as lines:
-                xml.write(('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-                    '<w:document xmlns:w="'+W[1:-1]+'"><w:body>').encode())
-                for line in lines:
-                    value = line.removesuffix('\n')
-                    xml.write(b'<w:p><w:r>'+run_properties+b'<w:t xml:space="preserve">')
-                    xml.write(escape(value).encode('utf-8'))
-                    xml.write(b'</w:t></w:r></w:p>')
-                    count += 1
-                xml.write(b'<w:sectPr/></w:body></w:document>')
-    # Verify ZIP integrity and exact text round-trip against the tagged stream.
-    with ZipFile(target) as package:
-        if package.testzip() is not None: raise ValueError('Generated tagged DOCX ZIP failed integrity check')
-        with package.open('word/document.xml') as stream, Path(raw_text).open(encoding='utf-8') as expected:
-            for _, node in ET.iterparse(stream, events=('end',)):
-                if node.tag != W+'p': continue
-                value = ''.join(n.text or '' for n in node.iter() if n.tag == W+'t')
-                if value != next(expected).removesuffix('\n'): raise ValueError('Tagged DOCX text round-trip failed')
-                node.clear()
-            if next(expected, None) is not None: raise ValueError('Tagged DOCX is truncated')
-    return count
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--input', type=Path)
-    parser.add_argument('--output-dir', type=Path, default=ROOT/'output/tagger')
-    parser.add_argument('--max-paragraphs', type=int, help='Explicit small pilot; uses a separate output name')
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("--input", type=Path, default=None,
+                        help="Plain UTF-8 text; default: input/ယဲ့နင်1-200.txt")
+    parser.add_argument("--output-dir", type=Path, default=ROOT / "output/tagger")
+    parser.add_argument("--max-paragraphs", type=int,
+                        help="Explicit small pilot; uses a separate output name")
     args = parser.parse_args()
-    if args.max_paragraphs is not None and args.max_paragraphs <= 0: parser.error('--max-paragraphs must be positive')
-    docx = args.input
-    if docx is None:
-        candidates = list((ROOT/'input').glob('*.docx'))
-        if len(candidates) != 1: parser.error('Specify --input (there is not exactly one DOCX in input/)')
-        docx = candidates[0]
-    docx = docx.resolve()
-    if not docx.is_file(): parser.error(f'Input does not exist: {docx}')
-    if shutil.which('node') is None: parser.error('Node 22+ is required for the supplied Engine/WASM')
-    out = args.output_dir.resolve(); out.mkdir(parents=True, exist_ok=True)
-    stem = docx.stem + (f'-first-{args.max_paragraphs}' if args.max_paragraphs else '')
-    work = out/'.work'/stem; work.mkdir(parents=True, exist_ok=True)
-    source = work/'source.txt'; index = work/'paragraphs.jsonl'; result = work/'result.json'
-    original_hash = digest(docx)
-    counts = extract(docx, source, index, args.max_paragraphs)
-    print(f'[docx] {counts["prose_paragraphs"]:,} paragraphs extracted; original DOCX unchanged', flush=True)
-    subprocess.run(['node', '--import', str(ROOT/'scraper/wasm/box/runtime-guard.mjs'), str(ROOT/'engine/tag-text.mjs'), str(source), str(work), str(result)], cwd=ROOT, check=True)
-    stats = json.loads(result.read_text())
-    if digest(docx) != original_hash: raise ValueError('Original DOCX was modified')
-    outputs = {'source':out/f'{stem}.source.txt', 'paragraphs':out/f'{stem}.paragraphs.jsonl', 'raw_pos':out/f'{stem}.raw_pos.txt'}
-    for key, origin in [('source',source),('paragraphs',index),('raw_pos',Path(stats.pop('raw_pos_path')))]:
-        atomic_copy(origin, outputs[key])
-    word_work = work/'tagged.docx'
-    word_paragraphs = tagged_docx(docx, outputs['raw_pos'], word_work)
-    outputs['tagged_docx'] = out/f'{stem}.tagged.docx'
-    atomic_copy(word_work, outputs['tagged_docx'])
-    rejected = work/'tree/pos-fail.txt'
-    if rejected.exists():
-        outputs['rejected_dictionary'] = out/f'{stem}.pos-rejected.txt'
-        atomic_copy(rejected, outputs['rejected_dictionary'])
-    report = {**stats, 'input_docx':str(docx.relative_to(ROOT)) if docx.is_relative_to(ROOT) else str(docx),
-        'docx_sha256':original_hash, 'original_docx_unchanged':True,
-        'tagged_docx_sha256':digest(outputs['tagged_docx']), 'tagged_docx_text_roundtrip':True,
-        'tagged_docx_paragraphs':word_paragraphs,
-        'tagged_docx_layout':'raw tagger units, not the original DOCX paragraph/page layout; Word rendering not tested',
-        'extraction':counts, 'partial_pilot':args.max_paragraphs is not None,
-        'paragraph_offsets':'Python Unicode code points and UTF-8 bytes in .source.txt, before WASM normalization; not tagged-text offsets',
-        'outputs':{key:str(value.relative_to(out)) for key,value in outputs.items() if key not in ('source','paragraphs')},
-        'generated_local_support':{key:str(value.relative_to(out)) for key,value in outputs.items() if key in ('source','paragraphs')}}
-    report_work = work/'report.json'; report_work.write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
-    report_path = out/f'{stem}.report.json'; atomic_copy(report_work, report_path)
-    print(f'[done] {outputs["raw_pos"]}', flush=True)
-    print(f'[report] {report_path}', flush=True)
+    if args.max_paragraphs is not None and args.max_paragraphs <= 0:
+        parser.error("--max-paragraphs must be positive")
 
-if __name__ == '__main__':
-    try: main()
+    text_path = args.input or DEFAULT_INPUT
+    if args.input is None and not text_path.is_file():
+        candidates = list((ROOT / "input").glob("*.txt"))
+        if len(candidates) != 1:
+            parser.error("Specify --input (no default text file was found)")
+        text_path = candidates[0]
+    text_path = text_path.resolve()
+    if not text_path.is_file():
+        parser.error(f"Input does not exist: {text_path}")
+    if shutil.which("node") is None:
+        parser.error("Node 22+ is required for the supplied Engine/WASM")
+
+    out = args.output_dir.resolve()
+    out.mkdir(parents=True, exist_ok=True)
+    stem = text_path.stem + (f"-first-{args.max_paragraphs}" if args.max_paragraphs else "")
+    work = out / ".work" / stem
+    work.mkdir(parents=True, exist_ok=True)
+    source = work / "source.txt"
+    result = work / "result.json"
+
+    original_hash = digest(text_path)
+    counts = prepare_text(text_path, source, args.max_paragraphs)
+    print(
+        f'[text] {counts["input_lines"]:,} lines; '
+        f'{counts["input_markers"]} chapter markers skipped; original text unchanged',
+        flush=True,
+    )
+
+    subprocess.run(
+        ["node", "--import", str(ROOT / "scraper/wasm/box/runtime-guard.mjs"),
+         str(ROOT / "engine/tag-text.mjs"), str(source), str(work), str(result)],
+        cwd=ROOT, check=True,
+    )
+    stats = json.loads(result.read_text())
+    if digest(text_path) != original_hash:
+        raise ValueError("Original text was modified")
+
+    raw_pos = Path(stats.pop("raw_pos_path"))
+    if not raw_pos.is_file() or not raw_pos.stat().st_size:
+        raise ValueError("No tagged text output produced")
+
+    outputs = {"raw_pos": out / f"{stem}.raw_pos.txt"}
+    atomic_copy(raw_pos, outputs["raw_pos"])
+    rejected = work / "tree/pos-fail.txt"
+    if rejected.exists():
+        outputs["rejected_dictionary"] = out / f"{stem}.pos-rejected.txt"
+        atomic_copy(rejected, outputs["rejected_dictionary"])
+
+    with outputs["raw_pos"].open(encoding="utf-8") as stream:
+        tagged_lines = sum(1 for _ in stream)
+    report = {
+        **stats,
+        "input_text": str(text_path.relative_to(ROOT)) if text_path.is_relative_to(ROOT) else str(text_path),
+        "input_text_sha256": original_hash,
+        "original_text_unchanged": True,
+        "input_text_stats": counts,
+        "tagged_text_sha256": digest(outputs["raw_pos"]),
+        "tagged_text_bytes": outputs["raw_pos"].stat().st_size,
+        "tagged_text_lines": tagged_lines,
+        "tagged_text_layout": "one line per tagger unit; UTF-8 text, no DOCX output",
+        "partial_pilot": args.max_paragraphs is not None,
+        "outputs": {key: str(value.relative_to(out)) for key, value in outputs.items()},
+    }
+    report_work = work / "report.json"
+    report_work.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+    report_path = out / f"{stem}.report.json"
+    atomic_copy(report_work, report_path)
+    print(f'[done] {outputs["raw_pos"]}', flush=True)
+    print(f"[report] {report_path}", flush=True)
+
+
+if __name__ == "__main__":
+    try:
+        main()
     except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as error:
-        raise SystemExit(f'error: {error}') from error
+        raise SystemExit(f"error: {error}") from error

@@ -2,7 +2,9 @@
 
 Uses the scraper's HTTP/domain/login/disk plumbing. Chapter names come from
 headings inside the text, not the site's sometimes misleading numeric labels.
-A small journal under scan/ makes the single output resumable; no uploads.
+Each chapter title is preceded by an HCrawler-owned marker such as
+[[HCRAWLER MARKER 1]]; its number is a section counter, not the Chinese chapter
+number. A small journal under scan/ makes the single output resumable; no uploads.
 """
 
 from __future__ import annotations
@@ -42,6 +44,8 @@ CHAPTER = re.compile(r"^(第\s*[零〇一二三四五六七八九十百千萬万
 PAGINATION = re.compile(r"[（(]\s*(\d+)\s*[/／]\s*(\d+)\s*[）)]")
 RUNNING_PAGE = re.compile(r"\s+\d+\s*[/／]\s*\d+\s*$")
 NEXT_LABELS = {"下一章", "下章", "下一頁", "下一页", "下頁", "下页", "next", "nextchapter", "nextpage"}
+# HCrawler-owned marker, deliberately unrelated to the Chinese chapter number.
+MARKER = "[[HCRAWLER MARKER {number}]]"
 
 
 def _address(url: str):
@@ -161,7 +165,8 @@ def _heading(line: str) -> tuple[str, str] | None:
     return re.sub(r"\s+", "", match[1]), name
 
 
-def _text(soup: BeautifulSoup, current: str, previous: str) -> tuple[str, str, int]:
+def _text(soup: BeautifulSoup, current: str, previous: str,
+          marker_base: int = 0) -> tuple[str, str, int]:
     title_tag = soup.find("h1") or soup.find("title")
     raw_title = title_tag.get_text(" ", strip=True) if title_tag else ""
     title = PAGINATION.sub("", raw_title).strip()
@@ -195,7 +200,10 @@ def _text(soup: BeautifulSoup, current: str, previous: str) -> tuple[str, str, i
     def section(name: str, key: str) -> None:
         nonlocal previous, last_key, sections
         if key != last_key:
-            output.append(f"\n\n===== {name} =====\n\n")
+            number = marker_base + sections + 1
+            output.append(
+                f"\n\n{MARKER.format(number=number)}\n===== {name} =====\n\n"
+            )
             previous, last_key = name, key
             sections += 1
 
@@ -287,7 +295,9 @@ def crawl_html(start_url: str, *, output_dir: Path = INPUT_DIR, scan_dir: Path =
                 seen.add(url)
                 soup = _get(client, url, start, destination.parent)
                 following = _next_url(soup, url, start)
-                text, heading, sections = _text(soup, url, state["heading"])
+                text, heading, sections = _text(
+                    soup, url, state["heading"], state["sections"]
+                )
                 output.write(text.encode("utf-8"))
                 output.flush()
                 os.fsync(output.fileno())

@@ -1,6 +1,6 @@
 # Reference data audit — not a grammar resolver
 
-`reference-data-audit.json` records observations from the actual tagged DOCX and
+`reference-data-audit.json` records observations from the actual tagged text and
 loads the supplied `top`, `resolution` and rule catalogs. It is **not** a parsed
 compound/sentence result or an MT-quality score.
 

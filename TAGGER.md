@@ -1,15 +1,18 @@
-# DOCX tagging — owner Engine, mandatory WASM
+# TXT tagging — owner Engine, mandatory WASM
 
 From the repository root, with Python 3.10+ and Node 22+:
 
 ```sh
 uv run tag_docx.py
-# Or select a document explicitly:
-uv run tag_docx.py --input "input/ယဲ့နင်1-200.docx"
+# Or select a text explicitly:
+uv run tag_docx.py --input "input/ယဲ့နင်1-200.txt"
 ```
 
-The default selects the sole DOCX under `input/`. No translation API, API key,
-Burmese NLP package or network request is part of tagging. The tagger directly reuses `scraper/wasm/box/host.mjs` (`getBox()`) and
+The default reads `input/ယဲ့နင်1-200.txt`. The tagger reads UTF-8 text line by
+line and does not read or write DOCX. Lines matching `[[HCRAWLER MARKER N]]`
+are skipped before the engine, so the markers stay in the source text for
+chapter-by-chapter automation but are not tagged. No translation API, API key, Burmese NLP
+package or network request is part of tagging. The tagger directly reuses `scraper/wasm/box/host.mjs` (`getBox()`) and
 `scraper/wasm/box/box.wasm`; there is no Engine-local host or box. The rebuilt WASM
 artifact is committed; rebuilding it is documented in
 `scraper/wasm/box/README.md`. Missing/tampered WASM fails instead of falling back.
@@ -24,14 +27,13 @@ separate stage-test processes do not preload this production guard.
 
 ## What runs
 
-1. Read the hand-built DOCX directly as ZIP/XML, preserving prose characters,
-   tabs, explicit breaks and chapter headings. Remove only the observed export
-   wrappers: source/pages/detection headers, page labels and separator-only lines.
+1. Read the UTF-8 prose text directly, preserving characters, tabs and line
+   breaks. One input line is one paragraph; the tagger no longer parses a DOCX.
 2. Reuse the original scraper syllable cache. Its 2,525 reference rows were
    verified against the supplied builder using the real master's 2,483 Burmese
    syllables (including its 37 injected roots and 5 standalones).
 3. Rebuild POS with the owner's `runBuildPos`. Its cleanup operates on a work
-   copy; the original master and DOCX are not changed.
+   copy; the original master and input text are not changed.
 4. Encode through the complete WASM `mapperNormalize` entrypoint, then run the
    owner's segmentor, POS walker, pass-through kernel and raw-POS formatter.
    Using raw `normalize` followed by `mapperStr` did not protect English from
@@ -41,43 +43,45 @@ separate stage-test processes do not preload this production guard.
 
 Under `output/tagger/`:
 
-- `ယဲ့နင်1-200.tagged.docx` — tagged Word companion, one paragraph per tagger unit.
-- `ယဲ့နင်1-200.raw_pos.txt` — the same tagged text for downstream processing.
+- `ယဲ့နင်1-200.raw_pos.txt` — the tagged text, one tagger unit per line.
 - `ယဲ့နင်1-200.report.json` — counts, input/runtime hashes and limitations.
 - `ယဲ့နင်1-200.pos-rejected.txt` — dictionary entries rejected by the supplied builder.
 
-Extraction text (`.source.txt`) and its paragraph index (`.paragraphs.jsonl`)
-are generated locally and ignored in Git; the command regenerates them.
-Offsets reference that extracted text **before WASM normalization**, not the
-normalized/tagged output. Work copies and logs stay under ignored `.work/`.
-An explicit `--max-paragraphs 20` produces a separately named pilot, not the full
-output. Source layout is not reproduced: the supplied holder groups text into
-its tagger units. The tagged DOCX's ZIP/XML and exact text round-trip are checked;
-rendering in Microsoft Word has not been tested.
+The tagger writes **no DOCX**. The prose part of the input is copied to ignored
+`.work/` for the engine; chapter-marker lines are skipped. Work copies and logs
+stay there. An explicit
+`--max-paragraphs 20` produces a separately named pilot, not the full output.
+Output layout is not the source layout: the supplied holder groups the 59,681
+prose paragraphs into 12,096 tagger units. The 197 chapter markers are omitted
+from the tagged text. The text output is the engine's direct result, not a DOCX
+round-trip.
 
 ## Plain Burmese text copy
 
-The DOCX can be read as plain UTF-8 text without running the tagger:
+The one-time DOCX-to-text conversion is a separate tool; the tagger does not call
+it:
 
 ```sh
 uv run docx_text.py          # first run, or --force to regenerate
 ```
 
-Default: `input/ယဲ့နင်1-200.docx` → `input/ယဲ့နင်1-200.txt`. It reuses the
-same ZIP/XML extractor as `tag_docx.py`, removes only the observed export wrappers
-and page labels, and preserves the translator's existing quote characters. It does
+Default: `input/ယဲ့နင်1-200.docx` → `input/ယဲ့နင်1-200.txt`. It reads the DOCX
+ZIP/XML directly, removes only the observed export wrappers and page labels, and
+preserves the translator's existing quote characters. It does
 not add tags or normalize Burmese text, and trims only trailing spaces left by the
 PDF-to-DOCX export. The original DOCX remains unchanged.
-Current extraction: **59,681 prose paragraphs**, 6,354,087 bytes, 59,681 lines;
-59,425 lines had trailing spaces trimmed. The text is a working copy, not a
-replacement of the original DOCX.
+Current extraction: **59,681 prose paragraphs** plus **197 chapter markers**,
+6,358,707 bytes, 59,878 lines; 59,425 lines had trailing spaces trimmed. Each
+marker is `[[HCRAWLER MARKER N]]` immediately above the detected chapter title;
+`N` is sequential and independent of the printed chapter number. The text is a
+working copy, not a replacement of the original DOCX.
 
 ## These are candidates, not resolved grammar
 
 The current supplied kernel is pass-through. Raw ambiguity (`{n,v,...}`) and
 unknowns (`{?}`) are retained; English can remain `{?}` without changing its
 surface. No tags are invented and no third-party classifier is substituted.
-The completed full run processed 59,681 prose paragraphs into 12,096 units,
+The completed full run processed 59,681 prose lines (197 markers skipped) into 12,096 units,
 with 625,428 tag occurrences, 106,612 unknown-tag occurrences and 270,880
 ambiguous-tag occurrences. These counts are **not an accuracy score**.
 The POS builder rejected 1,214 dictionary entries; the originals remain intact.

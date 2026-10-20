@@ -55,6 +55,7 @@ examples:
   uv run main.py --Hcrawler https://www.novel543.com/0511241012/8011_93.html
 
 HTML (--Hcrawler): include the supplied chapter and continue to the book's end;
+each chapter title is preceded by a numbered HCrawler marker;
 one UTF-8 text in ../input/ with actual chapter names as section headers.
 Starts at CHAPTER_URL, with no directory preflight; follows its next-page
 links within the same book. Rerun the same command to resume.

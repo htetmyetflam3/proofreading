@@ -10,7 +10,7 @@
   "master_sha256": "14f8e544d67fe1f287cf18212dfe6acb867879d09881771464fbf8b0ebf5bb2e",
   "tag_data_sha256": "24586f32f027daf1713a48745a8efb05a214f2285275d7e5681dddbb19a95e98",
   "scraper_cache_commit": "8914406feef263443a34aba9a0bc189e10b824af",
-  "source_sha256": "5f046cf05c48431c35c67d6d88c2f491b175f49df5dac5005b96e94b926cd365",
+  "source_sha256": "ad1b27d2e915f92fd34d6b281cde3ac86c9f7f10929fdd9e24aabae0dad64bd9",
   "raw_pos_sha256": "51e55fafbd4e1458aab64a02d426adeba2403aaad28c9af5fc55ea7bcf22e0ea",
   "raw_pos_bytes": 10355654,
   "output_units": 12096,
@@ -22,30 +22,25 @@
   "rule_engine": "owner pass-through; raw POS candidates retained, not grammar-disambiguated",
   "phrase_alignment": "not established",
   "original_master_unchanged": true,
-  "input_docx": "input/ယဲ့နင်1-200.docx",
-  "docx_sha256": "0b21e13e98c26f822b3208339da94bf3c909b9396b61f0f66b2c1ec49b00e73e",
-  "original_docx_unchanged": true,
-  "tagged_docx_sha256": "0d82de228aea197ac51f473194d2ce43df56711a29e15aa9a0298eba157bcb9d",
-  "tagged_docx_text_roundtrip": true,
-  "tagged_docx_paragraphs": 12096,
-  "tagged_docx_layout": "raw tagger units, not the original DOCX paragraph/page layout; Word rendering not tested",
-  "extraction": {
-    "xml_paragraphs": 88001,
-    "nonempty_paragraphs_seen": 64495,
-    "metadata_wrappers_removed": 4,
-    "page_wrappers_removed": 4414,
-    "prose_paragraphs": 59681,
-    "separator_wrappers_removed": 396
+  "input_text": "input/ယဲ့နင်1-200.txt",
+  "input_text_sha256": "fc8283eab935c056ec4c5f7693cb2bf8d4656a0b465c7f291a3178f2b4a8d093",
+  "original_text_unchanged": true,
+  "input_text_stats": {
+    "input_bytes": 6358707,
+    "input_chars": 2230007,
+    "input_lines": 59878,
+    "input_markers": 197,
+    "input_prose_lines": 59681,
+    "input_blank_lines": 0,
+    "source_bytes": 6354087
   },
+  "tagged_text_sha256": "51e55fafbd4e1458aab64a02d426adeba2403aaad28c9af5fc55ea7bcf22e0ea",
+  "tagged_text_bytes": 10355654,
+  "tagged_text_lines": 12096,
+  "tagged_text_layout": "one line per tagger unit; UTF-8 text, no DOCX output",
   "partial_pilot": false,
-  "paragraph_offsets": "Python Unicode code points and UTF-8 bytes in .source.txt, before WASM normalization; not tagged-text offsets",
   "outputs": {
     "raw_pos": "ယဲ့နင်1-200.raw_pos.txt",
-    "tagged_docx": "ယဲ့နင်1-200.tagged.docx",
     "rejected_dictionary": "ယဲ့နင်1-200.pos-rejected.txt"
-  },
-  "generated_local_support": {
-    "source": "ယဲ့နင်1-200.source.txt",
-    "paragraphs": "ယဲ့နင်1-200.paragraphs.jsonl"
   }
 }

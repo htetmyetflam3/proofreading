@@ -393,3 +393,26 @@
 - Added `docx_text.py`, reusing `tag_docx.py`'s DOCX ZIP/XML extractor to produce `input/ယဲ့နင်1-200.txt` from the supplied Burmese DOCX. Result: 59,681 prose paragraphs, 6,354,087 bytes, 59,681 lines; 4 metadata wrappers, 4,414 page wrappers and 396 separators removed; 59,425 lines had export trailing spaces trimmed. The original DOCX hash is unchanged and no tags or Burmese normalization were added.
 - Applied the explicit straight-quote pass to the existing Chinese text: 6 bare `"` closers became `”`; the file now has 2,486 opening and 342 closing quotes, no ASCII double quotes and no quote entities. Non-quote text is unchanged.
 - Verification: 18 temporary repair/CLI tests; synthetic HCrawler `_text()` extraction (no HTTP) covering entity, straight and nested quotes; scraper `main.py --help`; DOCX extraction counts/hash; MT offline plan still 0 requests. No live MT, AI or billable request was made. Tests stay in `/tmp`.
+
+
+## 2026-10-20 — Tagger reads plain text and writes text only
+- `tag_docx.py` now reads `input/ယဲ့နင်1-200.txt` directly, one paragraph per line, and no longer parses the DOCX or writes a tagged DOCX. The old `*.tagged.docx` path and its OOXML helpers were removed.
+- Removed the previous tagger output and reran the full 59,681-line text: 12,096 units, 625,428 tag occurrences, 106,612 unknown and 270,880 ambiguous. `raw_pos.txt` is byte-identical to the previous tagged text (`51e55faf…`), so switching the input from extracted DOCX text to the committed text copy did not change tagging.
+- Outputs are now `*.raw_pos.txt`, `*.report.json` and `*.pos-rejected.txt`; no DOCX is produced. Input text hash `ad1b27d2…` is unchanged after the run. No live MT/AI request.
+
+
+## 2026-10-20 — HCrawler chapter markers
+- Added `[[HCRAWLER MARKER N]]` immediately above every new `===== chapter title =====` section. `N` is HCrawler's own section counter stored in the resume journal, not the site's chapter number or title.
+- Marker numbering continues correctly across pagination and resumed runs; continuation pages without a new chapter title get no duplicate marker. Existing chapter headings and text content are otherwise unchanged.
+- Verification: synthetic `_text()` checks for first chapter, continuation page, next chapter and title-only page; `python3 -m py_compile`; no live HTTP or MT request.
+
+
+## 2026-10-20 — Burmese text chapter markers
+- `docx_text.py` now inserts `[[HCRAWLER MARKER N]]` immediately above each detected Burmese chapter heading while generating `input/ယဲ့နင်1-200.txt`. The marker is the same format used by HCrawler; `N` is a sequential chapter-unit counter, not the printed chapter number.
+- Detected 197 headings across the mixed title styles (`Chapter 1:`, `Chapter N`, `အခန်း (...)`, `အပိုင်း ...`, and split parts such as `အခန်း (၅၉) ၁`). The original DOCX is untouched.
+- Regenerated the text: 59,681 prose paragraphs + 197 marker lines = 59,878 lines, 6,358,707 bytes. `tag_docx.py` skips marker lines before tagging, so the tagged text remains byte-identical (`51e55faf…`) and does not contain markers.
+- Verification: marker numbering is 1..197 with each marker directly above a detected heading; DOCX hash unchanged; full tagger rerun 12,096 units; `py_compile` and diff checks pass. No live HTTP or MT request.
+
+
+## 2026-10-20 — Removed the unused duplicate scraper/crawler tree
+- Deleted `scraper/crawler/`; `scraper/main.py` sets `BIN_DIR` to `scraper/python/bin`, and no repository reference used the `crawler` copies. The `python` tree is the active one and also contains `HCrawler.py`, `quote_text.py` and `dedup_pdfs.py`.
