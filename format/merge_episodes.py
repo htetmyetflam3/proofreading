@@ -36,6 +36,17 @@ here because the two files barely overlap -- pairing is either positional
 
     uv run format/merge_episodes.py                      # order, all episodes
     uv run format/merge_episodes.py --pair map --map pairs.json
+
+Machine columns (`--with`, repeatable). They are read from `output/mt/<route>/`:
+
+    zh-en   machine English of the Chinese chapter -- the intermediate the
+            translator actually used before restyling into Burmese
+    my-en   back-translation of the published Burmese into English -- a drift
+            check, not a source
+    my-zh   back-translation of the published Burmese into Chinese -- drift check
+
+A column whose output does not exist is printed as `(not run: ...)`; nothing is
+invented and no column changes the pairing.
 """
 from __future__ import annotations
 
@@ -51,6 +62,12 @@ ROOT = HERE.parent
 CHINESE = ROOT / "input" / "chinese-0511241012-from-8011_93.txt"
 BURMESE = ROOT / "input" / "ယဲ့နင်1-200.txt"
 OUTPUT = ROOT / "output" / "merged"
+MT = ROOT / "output" / "mt"
+COLUMNS = {
+    "zh-en": ("Machine English (Chinese to English)", "ch{:04d}.en.txt"),
+    "my-en": ("Burmese to English back-translation (drift check)", "m{:04d}.en.txt"),
+    "my-zh": ("Burmese to Chinese back-translation (drift check)", "m{:04d}.zh.txt"),
+}
 
 _DIGITS = {"〇": 0, "零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
 _BURMESE_DIGITS = {chr(0x1040 + index): str(index) for index in range(10)}
@@ -109,8 +126,25 @@ def burmese_episodes(path: Path = BURMESE) -> list[Episode]:
     return episodes
 
 
+def mt_text(route: str, number: int | None) -> tuple[str | None, str]:
+    """Text of one MT column for one chapter, or (None, reason)."""
+    if number is None:
+        return None, "no chapter on this side"
+    label, pattern = COLUMNS[route]
+    path = MT / route / "chapters" / pattern.format(number)
+    if path.is_file():
+        body = path.read_text(encoding="utf-8").split("\n")
+        if len(body) > 1 and body[1] and set(body[1]) == {"="}:
+            body = body[2:]          # chapter title and its underline
+        else:
+            body = body[1:]
+        return "\n".join(body).strip(), str(path.relative_to(ROOT))
+    return None, f"{path.relative_to(ROOT)} not produced yet"
+
+
 def render(pairs: list[tuple[int | None, int | None]], chinese: list[Episode],
-           burmese: list[Episode], mode: str, caution: str) -> str:
+           burmese: list[Episode], mode: str, caution: str,
+           columns: list[str] | None = None) -> str:
     chunks = [f"# Bilingual episode merge\n# pairing: {mode}\n# {caution}\n"]
     for number, (c_index, b_index) in enumerate(pairs, 1):
         c_episode = chinese[c_index] if c_index is not None else None
@@ -125,6 +159,12 @@ def render(pairs: list[tuple[int | None, int | None]], chinese: list[Episode],
             chunks.append("(" + " | ".join(bits) + ")\n")
         chunks.append("\nChinese original\n----------------\n")
         chunks.append((c_episode.body if c_episode else "(no counterpart)") + "\n")
+        for route in columns or []:
+            heading, _pattern = COLUMNS[route]
+            number = c_episode.label if route == "zh-en" else b_episode.label
+            text, note = mt_text(route, number)
+            chunks.append(f"\n{heading}\n{'-' * len(heading)}\n")
+            chunks.append((text if text else f"(not run: {note})") + "\n")
         chunks.append("\nBurmese version\n---------------\n")
         chunks.append((b_episode.body if b_episode else "(no counterpart)") + "\n")
     return "".join(chunks)
@@ -141,6 +181,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--first", type=int, default=None, help="write only the first N episodes")
     parser.add_argument("--only-matched", action="store_true",
                         help="omit chapters that have no counterpart")
+    parser.add_argument("--with", dest="columns", action="append", choices=sorted(COLUMNS),
+                        default=[], help="add an MT column; repeatable")
     args = parser.parse_args(argv)
 
     chinese = chinese_episodes(args.chinese)
@@ -183,7 +225,8 @@ def main(argv: list[str] | None = None) -> int:
         pairs = pairs[:args.first]
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(render(pairs, chinese, burmese, args.pair, caution), encoding="utf-8")
+    args.output.write_text(render(pairs, chinese, burmese, args.pair, caution, args.columns),
+                           encoding="utf-8")
 
     matched = sum(1 for c, b in pairs if c is not None and b is not None)
     report = {
@@ -196,6 +239,10 @@ def main(argv: list[str] | None = None) -> int:
         "matched_pairs": matched,
         "unmatched_chinese": sum(1 for c, b in pairs if b is None),
         "unmatched_burmese": sum(1 for c, b in pairs if c is None),
+        "mt_columns": args.columns,
+        "mt_present": {route: sum(1 for _ in (MT / route / "chapters").glob("*"))
+                       if (MT / route / "chapters").is_dir() else 0
+                       for route in args.columns},
     }
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

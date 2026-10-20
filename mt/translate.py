@@ -308,6 +308,7 @@ class Report:
     chapters: int = 0
     sentences: int = 0
     empty: int = 0
+    skipped: int = 0
     tokens: int = 0
     unresolved: int = 0
     started: float = 0.0
@@ -318,7 +319,7 @@ class Report:
 
 
 def run_route(route: str, engine_name: str, limit: int | None, out_dir: Path,
-              chapters: list[Chapter]) -> Report:
+              chapters: list[Chapter], resume: bool = False) -> Report:
     source, target = ROUTES[route]
     engine = resolve(engine_name, source, target)
     ok, detail = engine.available()
@@ -334,6 +335,13 @@ def run_route(route: str, engine_name: str, limit: int | None, out_dir: Path,
     book: list[str] = []
     report.started = time.time()
     for chapter in chosen:
+        name = f"ch{chapter.number:04d}.{target}.txt"
+        existing = out_dir / "chapters" / name
+        if resume and existing.is_file() and existing.stat().st_size > 0:
+            report.chapters += 1
+            report.skipped += 1
+            book.append("\n\n===== " + chapter.title + " =====\n" + existing.read_text(encoding="utf-8").split("\n", 2)[-1])
+            continue
         lines = sentences(chapter.body)
         translated = engine.translate(lines, source, target)
         report.chapters += 1
@@ -345,7 +353,6 @@ def run_route(route: str, engine_name: str, limit: int | None, out_dir: Path,
         title = chapter.title if not hasattr(chapter, "marker") else f"[HCRAWLER MARKER {chapter.marker}] {chapter.title}"
         body = "\n".join(translated)
         text = f"{title}\n{'=' * len(title)}\n{body}\n"
-        name = f"ch{chapter.number:04d}.{target}.txt"
         (out_dir / "chapters").mkdir(parents=True, exist_ok=True)
         (out_dir / "chapters" / name).write_text(text, encoding="utf-8")
         try:
@@ -374,6 +381,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--only", action="append", default=[], help="chapter number to include")
     parser.add_argument("--out-dir", type=Path, default=OUTPUT)
     parser.add_argument("--list", action="store_true", help="show route availability and exit")
+    parser.add_argument("--resume", action="store_true", help="skip chapters that already have output")
     args = parser.parse_args(argv)
 
     if args.list:
@@ -391,7 +399,11 @@ def main(argv: list[str] | None = None) -> int:
 
     chapters = chinese_chapters(args.source_file or CHINESE)
     if args.only:
-        wanted = {int(item) for item in args.only}
+        wanted = set()
+        for item in args.only:
+            for piece in str(item).replace(" ", "").split(","):
+                if piece:
+                    wanted.add(int(piece))
         chapters = [chapter for chapter in chapters if chapter.number in wanted]
     if not chapters:
         print("[mt] no chapters selected", file=sys.stderr)
@@ -401,7 +413,7 @@ def main(argv: list[str] | None = None) -> int:
     reports = []
     for route in routes:
         out_dir = args.out_dir / route
-        reports.append(run_route(route, args.engine, args.limit, out_dir, chapters))
+        reports.append(run_route(route, args.engine, args.limit, out_dir, chapters, args.resume))
 
     summary = {
         "engine": args.engine,

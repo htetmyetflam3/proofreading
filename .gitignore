@@ -20,7 +20,9 @@ __pycache__/
 /output/tagger/*-first-*
 
 # Paid MT results and derived comparison/annotation caches stay local.
-/output/mt/
+/output/mt/*
+# ...except the Chinese->English run, which is the reviewed reference column.
+!/output/mt/zh-en/
 
 # Generated repair copy; the DOCX and its plain text stay the sources.
 /input/*.damage-repaired.txt
