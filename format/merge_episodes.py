@@ -64,9 +64,13 @@ BURMESE = ROOT / "input" / "ယဲ့နင်1-200.txt"
 OUTPUT = ROOT / "output" / "merged"
 MT = ROOT / "output" / "mt"
 COLUMNS = {
-    "zh-en": ("Machine English (Chinese to English)", "ch{:04d}.en.txt"),
-    "my-en": ("Burmese to English back-translation (drift check)", "m{:04d}.en.txt"),
-    "my-zh": ("Burmese to Chinese back-translation (drift check)", "m{:04d}.zh.txt"),
+    "zh-en": ("Chinese to English (machine)", "ch{:04d}.en.txt", None),
+    "en-zh": ("English to Chinese (machine back-translation)", "ch{:04d}.zh.txt", None),
+    "zh-my": ("Chinese to Burmese (dictionary gloss, not MT)", "ch{:04d}.my.txt",
+              "CC-CEDICT glosses mapped through the English-Myanmar dictionary; "
+              "no Chinese-Burmese translation model exists offline"),
+    "my-en": ("Burmese to English back-translation (drift check)", "m{:04d}.en.txt", None),
+    "my-zh": ("Burmese to Chinese back-translation (drift check)", "m{:04d}.zh.txt", None),
 }
 
 _DIGITS = {"〇": 0, "零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
@@ -130,7 +134,7 @@ def mt_text(route: str, number: int | None) -> tuple[str | None, str]:
     """Text of one MT column for one chapter, or (None, reason)."""
     if number is None:
         return None, "no chapter on this side"
-    label, pattern = COLUMNS[route]
+    label, pattern, _note = COLUMNS[route]
     path = MT / route / "chapters" / pattern.format(number)
     if path.is_file():
         body = path.read_text(encoding="utf-8").split("\n")
@@ -160,10 +164,13 @@ def render(pairs: list[tuple[int | None, int | None]], chinese: list[Episode],
         chunks.append("\nChinese original\n----------------\n")
         chunks.append((c_episode.body if c_episode else "(no counterpart)") + "\n")
         for route in columns or []:
-            heading, _pattern = COLUMNS[route]
-            number = c_episode.label if route == "zh-en" else b_episode.label
+            heading, _pattern, caveat = COLUMNS[route]
+            number = c_episode.label if route in ("zh-en", "zh-my") else (
+                b_episode.label if route.startswith("my-") else c_episode.label)
             text, note = mt_text(route, number)
             chunks.append(f"\n{heading}\n{'-' * len(heading)}\n")
+            if caveat:
+                chunks.append(f"({caveat})\n\n")
             chunks.append((text if text else f"(not run: {note})") + "\n")
         chunks.append("\nBurmese version\n---------------\n")
         chunks.append((b_episode.body if b_episode else "(no counterpart)") + "\n")

@@ -1,0 +1,21 @@
+{
+  "pairing": "order",
+  "caution": "positional pairing: episode N is Chinese chapter N of the Chinese file and Burmese chapter N of the Burmese file -- not verified as a translation pair",
+  "output": "output/merged/episodes-5col.txt",
+  "chinese_chapters": 210,
+  "burmese_chapters": 197,
+  "episodes_written": 197,
+  "matched_pairs": 197,
+  "unmatched_chinese": 0,
+  "unmatched_burmese": 0,
+  "mt_columns": [
+    "zh-en",
+    "en-zh",
+    "zh-my"
+  ],
+  "mt_present": {
+    "zh-en": 210,
+    "en-zh": 210,
+    "zh-my": 210
+  }
+}

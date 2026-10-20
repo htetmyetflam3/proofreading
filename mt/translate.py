@@ -49,6 +49,7 @@ OUTPUT = ROOT / "output" / "mt"
 
 ROUTES = {
     "zh-en": ("zh", "en"),
+    "en-zh": ("en", "zh"),
     "en-my": ("en", "my"),
     "my-en": ("my", "en"),
     "zh-my": ("zh", "my"),
@@ -81,6 +82,20 @@ def chinese_chapters(path: Path = CHINESE) -> list[Chapter]:
 @dataclass
 class BurmeseChapter(Chapter):
     marker: int = 0
+
+
+def english_chapters(route_dir: Path) -> list[Chapter]:
+    """Chapters of an earlier zh-en run, used as the source for en-zh."""
+    chapters: list[Chapter] = []
+    for path in sorted((route_dir / "chapters").glob("ch*.en.txt")):
+        match = re.match(r"ch(\d+)\.en\.txt$", path.name)
+        if not match:
+            continue
+        lines = path.read_text(encoding="utf-8").split("\n")
+        title = lines[0].strip() if lines else ""
+        body = "\n".join(lines[2:]).strip()
+        chapters.append(Chapter(int(match.group(1)), title, body, "english"))
+    return chapters
 
 
 def burmese_chapters(path: Path = BURMESE) -> list[Chapter]:
@@ -382,6 +397,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out-dir", type=Path, default=OUTPUT)
     parser.add_argument("--list", action="store_true", help="show route availability and exit")
     parser.add_argument("--resume", action="store_true", help="skip chapters that already have output")
+    parser.add_argument("--cascade", action="store_true",
+                        help="run zh-en, then en-zh (which reads zh-en), then zh-my")
     args = parser.parse_args(argv)
 
     if args.list:
@@ -398,22 +415,40 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     chapters = chinese_chapters(args.source_file or CHINESE)
+    wanted_filters: list[set[int]] = []
+    filters = wanted_filters
+    feeds = {"en-zh": lambda: english_chapters(args.out_dir / "zh-en")}
     if args.only:
         wanted = set()
         for item in args.only:
             for piece in str(item).replace(" ", "").split(","):
                 if piece:
                     wanted.add(int(piece))
-        chapters = [chapter for chapter in chapters if chapter.number in wanted]
+        filters.append(wanted)
     if not chapters:
         print("[mt] no chapters selected", file=sys.stderr)
         return 2
 
-    routes = args.route or sorted(ROUTES)
+    if args.cascade:
+        routes = ["zh-en", "en-zh", "zh-my"]
+    else:
+        routes = args.route or sorted(ROUTES)
+    # zh-my has no translation model; --cascade uses the documented dictionary walk
+    # for that leg unless an API engine was asked for explicitly.
+    route_engine = {"zh-my": args.engine if args.engine != "offline" else "glossary"}
     reports = []
     for route in routes:
         out_dir = args.out_dir / route
-        reports.append(run_route(route, args.engine, args.limit, out_dir, chapters, args.resume))
+        route_chapters = feeds[route]() if route in feeds else chapters
+        if wanted_filters:
+            route_chapters = [c for c in route_chapters if c.number in wanted_filters[0]]
+        if route in feeds and not route_chapters:
+            print(f"[mt] {route}: no input yet — run --route zh-en first")
+            reports.append(Report(route=route, engine=args.engine, status="no_input",
+                                  detail="run --route zh-en first"))
+            continue
+        engine_for_route = route_engine.get(route, args.engine)
+        reports.append(run_route(route, engine_for_route, args.limit, out_dir, route_chapters, args.resume))
 
     summary = {
         "engine": args.engine,
@@ -421,6 +456,7 @@ def main(argv: list[str] | None = None) -> int:
                                   "chapters": report.chapters, "sentences": report.sentences,
                                   "seconds": report.seconds} for report in reports},
     }
+    args.out_dir.mkdir(parents=True, exist_ok=True)
     (args.out_dir / "manifest.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n",
                                                 encoding="utf-8")
     print(json.dumps(summary, indent=2, ensure_ascii=False))

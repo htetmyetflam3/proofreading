@@ -1,94 +1,100 @@
-# What goes into the merge, and which MT to feed the translator
+# The five-column merge
 
-## The translator's actual chain
-
-The published Burmese was produced like this:
+## What goes into each episode
 
 ```
-Chinese original  ->  machine English  ->  human rewrite/restyle into Burmese
+[episode N]
+
+Chinese original              the source, as downloaded
+Chinese to English (machine)  offline Marian/OPUS-MT checkpoint (zh-en)
+English to Chinese (machine back-translation)
+                              the Chinese output re-translated back (en-zh)
+Chinese to Burmese            dictionary glosses -- see the warning below
+Burmese version               the published human translation
 ```
 
-The middle step is the one that carries the tone. That means the useful machine
-column is **Chinese → English**, not English → Burmese: it reconstructs the
-intermediate the translator actually read. Machine English → Burmese would
-rebuild the *final* product by machine and compete with the human text.
+Every episode is the same five columns, in that order, for as long as the
+Burmese translation exists: **197 episodes** (the Chinese file has 210 chapters,
+the Burmese 197, so the merge stops where the Burmese stops).
 
-## Columns, and what each one is for
+## The Chinese → Burmese column is a dictionary gloss, not MT
 
-| column | what it is | include in the prompt? | why |
+There is no downloadable Chinese-Burmese translation model. Argos publishes 100
+packages and none contains `my`; no `translate-zh_my` or `translate-en_my` file
+exists on GitHub; Hugging Face is unreachable from this machine. The column is
+therefore CC-CEDICT word lookup mapped through the English-Myanmar dictionary:
+
+```
+这些→∅ 人口→လူဦးရေ/ဦးရေ 底子→အောက်ခြေ/အခံ 若是→လျှင် 流民→ဒုက္ခသည် …
+```
+
+Coverage over the whole book: **143,364 of 213,334 terms resolved (67.2 %)**,
+69,970 left as `∅`. It is a crib for a translation agent, not Burmese prose. The
+column heading and a caveat line inside the file both say so.
+
+A real Chinese → Burmese column needs an API engine:
+
+```sh
+export AZURE_TRANSLATOR_KEY=...      # your key, never committed
+export AZURE_TRANSLATOR_REGION=...
+python3 mt/translate.py --route zh-my --engine azure
+python3 format/merge_episodes.py --pair order --only-matched \
+        --with zh-en --with en-zh --with zh-my
+```
+
+The merge picks up whatever exists; a column that has not been produced prints
+`(not run: …)` and is never faked.
+
+## Generating the three machine columns
+
+One command, in dependency order (`en-zh` reads the `zh-en` output):
+
+```sh
+python3 mt/translate.py --cascade            # zh-en -> en-zh -> zh-my
+python3 mt/translate.py --cascade --resume   # continue an interrupted run
+```
+
+| route | model | chapters | time |
 |---|---|---|---|
-| Chinese original | source | **yes** | the text being translated |
-| `zh-en` machine English | the translator's own intermediate, regenerated (offline model) | **yes** | tone and sentence-splitting decisions live here |
-| published Burmese | the target the human actually wrote | **yes** | the only ground truth for voice |
-| `my-en` Burmese → English | back-translation of the human text | **no** — drift report only | it is derived from the reference; showing it lets the model copy its errors |
-| `my-zh` Burmese → Chinese | back-translation into the source language | **no** — weakest column | it invites the model to "correct" the Chinese original to match a back-translation |
-| `en-my` English → Burmese | a competing machine hypothesis | **no** | it would teach the model to imitate weak MT instead of the human voice |
+| `zh-en` | `translate-zh_en-1_0` (83 MB) | 210 | ~13 min ×2 processes |
+| `en-zh` | `translate-en_zh-1_0` (82 MB) | 210 | ~13 min ×2 processes |
+| `zh-my` | none — dictionary gloss | 210 | 24 s |
 
-So: **`zh-en` is the pivot. `my-en` is a measuring stick. `my-zh` is not worth
-carrying.**
+Outputs: `output/mt/<route>/chapters/chNNNN.<ext>.txt`, `book.<ext>.txt`,
+`report.json`.
 
-## Why not Chinese ↔ Burmese directly
+## Why the back-translation is useful despite being machine-made
 
-| route | model available offline | note |
+`en-zh` closes the loop: Chinese → English → Chinese. Where the round trip returns
+something close to the original, the English leg preserved the meaning. Where it
+returns nonsense, the English leg lost it. Examples from chapter 193:
+
+| Chinese | zh-en | en-zh |
 |---|---|---|
-| `zh-en` | **yes**, 83 MB Marian/OPUS checkpoint | runs here, ~30 sentences/s on CPU |
-| `en-my` | no | Argos has no Burmese package; no `translate-en_my` exists on GitHub |
-| `my-en` | no | same |
-| `zh-my` | no | direct model absent, pivot blocked by `en-my` |
+| 這些人口，可都是大周的底子 | These people, they're the bottom of the week. | 这些人,他们是下星期。 |
+| 所以蔡向高几乎毫不猶豫 | That's why Tsai was almost unsuspecting | 所以蔡<unk>几乎毫不怀疑, |
 
-So the Burmese legs need an API key (Azure Translator v3 supports `my` both ways).
-`mt/translate.py --engine azure` is wired and reads the key from the environment
-only.
+`底子` became "bottom of the week" and survived as 下星期; the name 蔡向高 collapsed
+to `<unk>`. That is exactly the drift a translation agent should be told about.
 
-## Cost, measured (`python3 mt/pivot.py --plan`)
+## Pairing
 
-```
-zh-en   210 chapters   47,189 sentences    893,770 Chinese characters   free (local)
-my-en   197 chapters   59,828 sentences  2,222,348 Burmese characters   Azure per character
-en-my                  input is the zh-en output (English characters)   Azure per character
-zh-my   210 chapters   47,189 sentences    893,770 Chinese characters   two calls if pivoted
-```
+`--pair order` maps episode N to Chinese chapter N and Burmese chapter N. The two
+files are **not** the same run of chapters — one pair is confirmed by content
+(Chinese 193 = Burmese marker 197) — so the header of every generated file states
+that positional pairing is unverified. Use `--pair map --map pairs.json` when you
+have a real mapping; `output/merged/episodes-verified.txt` is that file for the
+one confirmed pair.
 
-## The drift question
-
-If the goal is "did the Burmese drift from the Chinese?", the honest measurement
-is:
-
-```
-my-en  vs  zh-en      both in English, compared on the same chapter
-```
-
-Both sides then live in the same language, and the only difference is which text
-they came from. Comparing `my-zh` against the original Chinese instead puts two
-machine systems between the two texts and mixes the Chinese output style into the
-result, so a low score cannot be attributed to the Burmese.
-
-Only **one chapter** exists in both files, so drift can only be measured there:
-
-```
-Chinese 193  ==  Burmese marker 197   (title အခန်း ၁၉၅)
-opens  這些人口，可都是大周的底子   /  ဤလူများသည် မဟာကျိုးပြည်ထောင်၏
-ends   你們在幹什麼？                /  ခဗျားတို့ ဘာလိုပ်နေကတာဟာလဲ
-```
-
-`python3 mt/pivot.py --compare` prints the two English renderings side by side
-once `my-en` exists.
-
-## What is committed
+## Files
 
 | file | contents |
 |---|---|
-| `output/merged/episodes.txt` | all 210 episodes, Chinese + Burmese only, positional pairing (clearly labelled in the header) |
-| `output/merged/episodes-verified.txt` | the one verified pair, Chinese + Burmese only |
-| `output/merged/style-sample.txt` | the verified pair with the `zh-en` column added — the reference pack for a translation agent |
+| `output/merged/episodes-5col.txt` | 197 episodes × 5 columns, 9.7 MB |
+| `output/merged/pairs-5col.json` | how each episode was paired, which columns were present |
+| `output/merged/episodes.txt` | Chinese + Burmese only, all 210 episodes |
+| `output/merged/episodes-verified.txt` | the single content-verified pair |
+| `output/mt/zh-en/book.en.txt` | Chinese → English, 210 chapters |
+| `output/mt/en-zh/book.zh.txt` | English → Chinese back-translation, 210 chapters |
+| `output/mt/zh-my/book.my.txt` | Chinese → Burmese dictionary gloss, 210 chapters |
 
-Regenerate any of them:
-
-```sh
-python3 format/merge_episodes.py                                   # episodes.txt
-python3 format/merge_episodes.py --pair map --map pairs.json --only-matched
-python3 format/merge_episodes.py --pair map --map pairs.json --only-matched --with zh-en
-```
-
-`--with` accepts `zh-en`, `my-en`, `my-zh`; a column that has not been produced is
-printed as `(not run: …)` and never guessed.

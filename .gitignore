@@ -21,8 +21,12 @@ __pycache__/
 
 # Paid MT results and derived comparison/annotation caches stay local.
 /output/mt/*
-# ...except the Chinese->English run, which is the reviewed reference column.
+# ...except the finished runs, which the merge columns are built from.
 !/output/mt/zh-en/
+!/output/mt/en-zh/
+!/output/mt/zh-my/
+# per-chapter files stay local; the book files are the committed record
+/output/mt/*/chapters/
 
 # Generated repair copy; the DOCX and its plain text stay the sources.
 /input/*.damage-repaired.txt
