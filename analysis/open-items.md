@@ -144,11 +144,14 @@ are now settled, and the answers are in part 9:
   沈三變 in the ruined 煙雨樓 courtyard in the same chapter. The Burmese
   still spells both "မူ", so the two men stay fused for a Myanmar reader.
 - **Chapter headings are unreliable as an index** (this supersedes the
-  earlier note about missing titles for 中.84/87/88/89/90): chapters 84,
-  123-137 and 186 have no heading at all; 51-57, 66, 68, 100, 101, 117
-  and 162 are headed `အပိုင်း` instead of `အခန်း`; ch. 94 uses Latin
-  digits (`အခန်း94`); 59 and 60 appear twice. Any chapter count taken
-  from headings is off. The review's numbers come from content.
+  earlier note about missing titles for 中.84/87/88/89/90): chapters 84
+  and 186 have no heading at all; 51-57, 66, 68, 100, 101, 117 and 162
+  are headed `အပိုင်း` instead of `အခန်း`; ch. 94 uses Latin digits
+  (`အခန်း94`); 59 and 60 appear twice. **Correction (part 13): 123-137
+  were never missing** — all fifteen are headed in English (`Chapter –
+  123` … `Chapter 137`), with the dash varying between en dash, hyphen
+  and nothing at all (131 and 135 have no dash). The earlier "missing"
+  claim came from a regex that only accepted one dash form.
 
 ## 7. Part 11-12 (ch. 112-121) — open and closed
 
@@ -170,3 +173,60 @@ are now settled, and the answers are in part 9:
 - **`ကောင်းကင်နတ်ဆိုးကျင့်စဉ်` (ch. 119-120)** — 天魔功. Written
   consistently, and the comparison to 北冥神功 (`ပေမိန်နတ်သိုင်း`) is
   preserved, so this one is working.
+
+## 8. Part 13-14 (ch. 122-141) — open and closed
+
+- **`[[HCRAWLER MARKER n]]` is a boundary, not a chapter number.** From
+  marker 102 onward the marker index runs two ahead of the chapter
+  heading (marker 124 = ch. 122, marker 143 = ch. 141). Cause: chapters
+  59 and 60 are each split in two in the file ("အခန်း (၅၉) ၁", "(၅၉) ၂",
+  "(၆၀)", "(၆၀) ၂"). Read boundaries off the headings, or subtract 2.
+  Part 13 was first drafted from marker numbers as if they were chapter
+  numbers and had to be thrown away and rewritten from the right
+  offsets — don't repeat that.
+- **The file has glyph-level corruption independent of the translator.**
+  A regular `ကြ`/`ကြီ` ligature failure turns up as `ဆကီး` for `ကြီး`
+  and `ငကား` for `ကြား`, plus `ငြွေ်` for `မြွေ` and similar. So
+  `မယ်တော်ဘုရင်မကြီး` counts as 0 in a raw grep for that string over
+  ch. 122-131 while `မယ်တော်ဘုရင်မဆကီး` counts 113. Treat all such
+  forms as one word, and normalise them when quoting in the review (done
+  for parts 13-14; said so once in the text).
+- **`方清雪` / `ဖန်ကျင်းရွယ်` — continuity collision with part 9.** In
+  part 9 she is placed with 魏武侯's household (群玉閣 faction). Ch. 138
+  brings her out as the person who can say "if I say I did it", and ch.
+  140 states outright that the body of the empress-dowager now holds
+  `ဖန်ကျင်းရွယ်`. Same name, same spelling family (`ဖန်ချင်းရွှယ်` 3×
+  in these ten chapters), so either part 9's household note was wrong or
+  she has moved. Not settled from the Burmese; flagged in the review.
+- **皇翷's kinship is still open.** Ch. 124 says the dowager is childless
+  and not the reigning sovereign's birth mother; ch. 131 has 皇翷 at her
+  birthday as her son in all but name; ch. 141 says the late emperor's
+  death made her 姬明月's nominal mother. The review records this as
+  unresolved rather than guessing.
+- **`သားတော်` (ch. 140)** — 姬明月 refers to herself this way to the
+  dowager while the narration calls her `သူမ`. If the Chinese is 兒臣
+  the Burmese is defensible but reads male; if it is 兒/兒子 it is an
+  error. Needs the Chinese.
+- **`萬初` has three renderings inside ch. 129**: `ဝမ်းချူရှင်း` (1),
+  `ဝမ်ချူရှင်း` (3), and `ရှင်းကွမ်းယဲ့ယွဲ့` (1, glossed in brackets
+  as "ကြယ်ရောင်လသစ်ရွက်"). Written up in part 13 §3.4.
+- **冷十七 / `လန်ရှီချီ` — downgraded from a finding.** Ch. 110 glosses
+  the two as one person in the text itself:
+  `လန်ရှီချီ(အေးစက်ခြင်း ၁၇)`. So the reader is not meant to see two
+  people; the damage is only that `အေးစက်ခြင်း` reads as a mood. Part
+  12 §3.1 was corrected to say this. Which Chinese name sits behind
+  `လန်ရှီချီ` (冷十七 vs 藍十七) cannot be checked — no Chinese below 193.
+- **Translator's footnote in the body (ch. 141)**: `(မှတ်ချက်:
+  တော်ဝင်တရားရုံးတော်အကြောင်း အခန်း ၁၀၅ တွင် ရှု)`. First and only
+  such note in 141 chapters; worth keeping, and evidence that the
+  translator tracks the book's own continuity.
+- **Palace-office vocabulary is unstable**: `အထိန်းတော်ကြီး` (王世海,
+  head of the 內侍), `မိန်းမစိုး` (柳青), `အထိန်းတော်`. Ch. 136's whole
+  tension is about who may question whom, and the Burmese gives no
+  ranking between the three terms.
+- **`柳青` spelling**: `လျိုချင်း` 111× vs `လျှိုချင်း` 33× in ch.
+  132-141, plus one `ညီအစ်ကိုလျှို`. He dies in this stretch, so the
+  split falls on the worst possible chapters. `ဝမ်သဲ့ဟိုင်` 58× vs
+  `ဝမ်ဒဲ့ဟိုင်` 2×; `ပိုင်ဖန်ဥယျာဉ်` 16× vs `ဘိုင်ဖန်ဥယျာဉ်` 3×.
+- **`၄၈,၀၀၀` pores (ch. 120) and `ဘုရင်ဟွေ့`** stay open from §7 —
+  nothing in 122-141 resolves either.
