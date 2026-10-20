@@ -3,10 +3,11 @@
 # dependencies = ["httpx>=0.27"]
 # ///
 
-"""Chinese → Burmese and Chinese → English → Burmese candidates, cached per leg.
+"""Chinese → Burmese and Chinese → English → Burmese candidates, with approved phrase memory.
 
 Default is an offline plan. --run explicitly enables Azure NMT requests.
 API credentials are read from the environment only, never written by this tool.
+Machine translations are cached but are NEVER auto-approved into translation memory.
 """
 
 from __future__ import annotations
@@ -30,9 +31,13 @@ import httpx
 ROOT = Path(__file__).resolve().parent
 DEFAULT_ENDPOINT = "https://api.cognitive.microsofttranslator.com"
 DEFAULT_CACHE = ROOT / "output" / "mt" / "cache.sqlite3"
+DEFAULT_MEMORY = ROOT / "output" / "mt" / "memory.sqlite3"
+SCHEMA_VERSION = 2
 SECTION = re.compile(r"^={5}\s+(.+?)\s+={5}\s*$", re.MULTILINE)
 SENTENCE_END = re.compile(r"[。！？!?]+[\"'”’』」]*")
 API_VERSION = "3.0"
+sys.path.insert(0, str(ROOT))
+from mt_memory import Memory, MemoryError_ as MemoryStoreError  # noqa: E402
 
 
 class MTError(Exception):
@@ -156,8 +161,18 @@ class AzureMT:
         self.client, self.cache, self.url = client, cache, url
         self.requests = 0
         self.cache_hits = 0
+        self.memory_hits = 0
 
-    def translate(self, text: str, source: str, target: str) -> dict:
+    def translate(self, text: str, source: str, target: str, memory=None) -> dict:
+        if memory is not None:
+            remembered = memory.exact(text, source, target, count_use=True)
+            if remembered is not None:
+                self.memory_hits += 1
+                return {"source_language": source, "target_language": target,
+                        "text": remembered.target, "alignment_projection": None,
+                        "sentence_lengths": None,
+                        "one_to_one_status": "not_established",
+                        "origin": "translation_memory", "memory_id": remembered.id}
         key = cache_key(text, source, target, self.url)
         saved = self.cache.get(key)
         if saved is not None:
@@ -165,7 +180,7 @@ class AzureMT:
                     or not isinstance(saved.get("text"), str) or not saved["text"].strip()):
                 raise MTError("Cached translation does not match this leg; refusing an automatic paid replacement")
             self.cache_hits += 1
-            return saved
+            return {**saved, "origin": "provider_cache"}
         secret = os.environ.get("AZURE_TRANSLATOR_KEY", "").strip()
         if not secret:
             raise MTError("Set AZURE_TRANSLATOR_KEY locally before --run; see MT.md. No request was made")
@@ -213,47 +228,108 @@ class AzureMT:
         result = {"source_language": source, "target_language": target, "text": translated,
                   "alignment_projection": alignment,
                   "sentence_lengths": translation.get("sentLen"),
-                  "one_to_one_status": "not_established"}
+                  "one_to_one_status": "not_established",
+                  "origin": "provider"}
         self.cache.put(key, result)
         return result
 
 
-def translate_routes(unit: Unit, chinese: str, mt: AzureMT) -> dict:
-    direct = mt.translate(unit.text, chinese, "my")
-    english = mt.translate(unit.text, chinese, "en")
-    pivot = mt.translate(english["text"], "en", "my")
+def translate_routes(unit: Unit, chinese: str, mt: AzureMT, memory=None,
+                     *, suggestion_limit: int = 3) -> dict:
+    direct = mt.translate(unit.text, chinese, "my", memory)
+    english = mt.translate(unit.text, chinese, "en", memory)
+    pivot = mt.translate(english["text"], "en", "my", memory)
+    suggestions: dict[str, list] = {}
+    phrase_hits: list = []
+    glossary_hits: list = []
+    if memory is not None:
+        if suggestion_limit:
+            for leg, text, source, target in (
+                ("zh_my", unit.text, chinese, "my"),
+                ("zh_en", unit.text, chinese, "en"),
+                ("en_my", english["text"], "en", "my"),
+            ):
+                suggestions[leg] = [
+                    {"score": item["score"], "source": item["entry"].source,
+                     "target": item["entry"].target, "status": item["entry"].status,
+                     "memory_id": item["entry"].id, "uses": item["entry"].uses}
+                    for item in memory.suggestions(text, source, target,
+                                                   limit=suggestion_limit)
+                ]
+        phrase_hits = [
+            {"source": item["entry"].source, "target": item["entry"].target,
+             "memory_id": item["entry"].id, "occurrences": item["occurrences"]}
+            for item in memory.phrase_hits(unit.text, chinese, "my", limit=10)
+        ]
+        glossary_hits = [
+            {"source": item["entry"].source, "target": item["entry"].target,
+             "memory_id": item["entry"].id, "occurrences": item["occurrences"]}
+            for item in memory.phrase_hits(unit.text, chinese, "my", limit=10, kind="term")
+        ]
     return {"unit": asdict(unit), "provider": "azure-nmt", "api_version": API_VERSION,
+            "schema_version": SCHEMA_VERSION,
             "chinese_language": chinese, "pipeline": "direct-vs-english-pivot",
             "zh_my": direct, "zh_en": english, "en_my": pivot,
             "comparison_candidates": {"direct": "zh_my", "english_pivot": "en_my"},
+            "memory": {"suggestions": suggestions, "direct_phrase_hits": phrase_hits,
+                       "glossary_hits": glossary_hits,
+                       "policy": "only approved exact matches are reused; suggestions, phrases and glossary hits are review-only"},
             "compound_sentence_style_analysis": "not_implemented",
             "phrase_alignment_status": "not_established", "ai_rewrite": None}
 
 
-def plan(units: list[Unit], chinese: str, cache: Cache, url: str) -> dict:
-    direct_hits = english_hits = pivot_hits = known_pivot_misses = unknown_pivot_inputs = 0
+def plan(units: list[Unit], chinese: str, cache: Cache, url: str, memory=None) -> dict:
+    requests = 0
+    tm_reuses = direct_hits = english_hits = pivot_cache_hits = 0
+    known_pivot_misses = unknown_pivot_inputs = 0
     for unit in units:
-        direct = cache.get(cache_key(unit.text, chinese, "my", url))
-        english = cache.get(cache_key(unit.text, chinese, "en", url))
-        direct_hits += direct is not None
-        english_hits += english is not None
-        if english is None:
-            unknown_pivot_inputs += 1
-        elif cache.get(cache_key(english["text"], "en", "my", url)) is None:
-            known_pivot_misses += 1
+        remembered = memory.exact(unit.text, chinese, "my") if memory else None
+        if remembered is not None:
+            tm_reuses += 1
+        elif cache.get(cache_key(unit.text, chinese, "my", url)) is not None:
+            direct_hits += 1
         else:
-            pivot_hits += 1
-    return {"mode": "offline_plan", "provider_candidate": "azure-nmt",
+            requests += 1
+        remembered_en = memory.exact(unit.text, chinese, "en") if memory else None
+        english_text = None
+        if remembered_en is not None:
+            tm_reuses += 1
+            english_text = remembered_en.target
+        else:
+            cached_en = cache.get(cache_key(unit.text, chinese, "en", url))
+            if cached_en is not None:
+                english_hits += 1
+                english_text = cached_en["text"]
+            else:
+                requests += 1
+        if english_text is None:
+            unknown_pivot_inputs += 1
+            requests += 1  # conservative estimate: pivot request after English exists
+        else:
+            pivot_tm = memory.exact(english_text, "en", "my") if memory else None
+            if pivot_tm is not None:
+                tm_reuses += 1
+            elif cache.get(cache_key(english_text, "en", "my", url)) is not None:
+                pivot_cache_hits += 1
+            else:
+                known_pivot_misses += 1
+                requests += 1
+    return {"mode": "offline_plan", "schema_version": SCHEMA_VERSION,
+            "provider_candidate": "azure-nmt",
             "pipeline": "direct-vs-english-pivot", "units_selected": len(units),
             "source_utf16_units": sum(utf16_length(u.text) for u in units),
             "routes_per_unit": [f"{chinese}->my", f"{chinese}->en", "en->my"],
+            "translation_memory_reuses": tm_reuses,
             "direct_burmese_cache_hits": direct_hits,
             "chinese_english_cache_hits": english_hits,
-            "known_english_burmese_cache_hits": pivot_hits,
-            "http_requests_upper_bound": 2 * len(units) - direct_hits - english_hits + known_pivot_misses + unknown_pivot_inputs,
+            "known_english_burmese_cache_hits": pivot_cache_hits,
+            "known_english_burmese_cache_misses": known_pivot_misses,
+            "unknown_english_pivot_inputs": unknown_pivot_inputs,
+            "http_requests_upper_bound": requests,
             "english_pivot_input_length": "unknown until Chinese→English is available; no exact price/token estimate claimed",
             "requests_made": 0, "ai_requests": 0,
-            "one_to_one_alignment": "not yet established"}
+            "one_to_one_alignment": "not yet established",
+            "memory_policy": "approved exact only; machine MT never auto-approved"}
 
 
 @contextmanager
@@ -279,10 +355,16 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument("--plan", action="store_true", help="Offline plan (the default); no credentials or requests")
     mode.add_argument("--run", action="store_true", help="Explicitly enable billable MT requests")
     parser.add_argument("--cache", type=Path, default=DEFAULT_CACHE)
+    parser.add_argument("--memory", type=Path, default=DEFAULT_MEMORY,
+                        help="Approved phrase-memory SQLite store")
+    parser.add_argument("--suggestions", type=int, default=3,
+                        help="Similar-phrase suggestions per candidate leg; 0 disables")
     parser.add_argument("--output", type=Path, help="JSONL with the three MT legs and exact original Chinese spans")
     args = parser.parse_args(argv)
     if args.max_units < 1:
         parser.error("--max-units must be positive")
+    if args.suggestions < 0:
+        parser.error("--suggestions cannot be negative")
     temporary = None
     try:
         if args.input:
@@ -304,15 +386,22 @@ def main(argv: list[str] | None = None) -> int:
             raise MTError("MT output must use .jsonl; source/config files cannot be overwritten")
         if args.cache.suffix.lower() not in {".db", ".sqlite", ".sqlite3"}:
             raise MTError("MT cache must use .db, .sqlite or .sqlite3")
+        if args.memory.suffix.lower() not in {".db", ".sqlite", ".sqlite3"}:
+            raise MTError("Phrase memory must use .db, .sqlite or .sqlite3")
         if args.input and args.cache.resolve() == args.input.resolve():
             raise MTError("Cache must not replace the source input")
         if args.input and destination == args.input.resolve():
             raise MTError("Output must not replace the source input")
         if destination == args.cache.resolve():
             raise MTError("Output and cache must be different files")
-        with store(args.cache, readonly=not args.run) as cache:
+        reserved = {destination, args.cache.resolve(), args.memory.resolve()}
+        if args.input and args.input.resolve() in reserved:
+            raise MTError("Input, output, cache and memory must use different files")
+        if args.cache.resolve() == args.memory.resolve():
+            raise MTError("Cache and phrase memory must be different files")
+        with store(args.cache, readonly=not args.run) as cache, Memory(args.memory, readonly=not args.run) as memory:
             if not args.run:
-                report = plan(units, args.chinese, cache, url)
+                report = plan(units, args.chinese, cache, url, memory)
                 report["selection"] = "all" if args.all else f"first {args.max_units} unit(s), at most"
                 print(json.dumps(report, ensure_ascii=False, indent=2))
                 return 0
@@ -323,16 +412,19 @@ def main(argv: list[str] | None = None) -> int:
                                                  prefix=".mt-", suffix=".tmp", delete=False) as out:
                     temporary = Path(out.name)
                     for index, unit in enumerate(units, 1):
-                        out.write(json.dumps(translate_routes(unit, args.chinese, mt), ensure_ascii=False) + "\n")
+                        out.write(json.dumps(translate_routes(unit, args.chinese, mt, memory,
+                                                              suggestion_limit=args.suggestions),
+                                 ensure_ascii=False) + "\n")
                         out.flush()
                         print(f"[mt] {index}/{len(units)} {unit.chapter or unit.id}; "
-                              f"{mt.requests} request(s), {mt.cache_hits} cache hit(s)", file=sys.stderr, flush=True)
+                              f"{mt.requests} request(s), {mt.cache_hits} cache hit(s), "
+                              f"{mt.memory_hits} approved-memory reuse(s)", file=sys.stderr, flush=True)
                     os.fsync(out.fileno())
                 os.replace(temporary, destination)
                 temporary = None
                 print(f"[done] {destination}")
                 return 0
-    except (MTError, OSError, ValueError, sqlite3.Error) as error:
+    except (MTError, MemoryStoreError, OSError, ValueError, sqlite3.Error) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:
