@@ -149,3 +149,24 @@ are now settled, and the answers are in part 9:
   and 162 are headed `အပိုင်း` instead of `အခန်း`; ch. 94 uses Latin
   digits (`အခန်း94`); 59 and 60 appear twice. Any chapter count taken
   from headings is off. The review's numbers come from content.
+
+## 7. Part 11-12 (ch. 112-121) — open and closed
+
+- **冷十七 → `အေးစက်ခြင်း ၁၇`** (closed as a finding, open as a fix):
+  the assassin's code-name is rendered as a phrase meaning "coldness
+  seventeen" and repeated as such in ch. 121. Ch. 110's reveal — the
+  killer recognises his own teacher — depends on the reader hearing a
+  *name*, so the rendering does real damage there.
+- **`ဘုရင်ဟွေ့` (ch. 118)** — a mad royal who used to be crown prince,
+  now inviting Ye Ning. Cannot be tied to anyone in the Burmese cast:
+  the ruler in this book is `ကျီမင်းယွဲ့`, and the only other `ဟွေ့` is
+  the marquis `ဝေ့ဝူဟွေ့`. Whether the Burmese has flattened two
+  different characters (献/侯) into one syllable, or the Chinese
+  introduces a separate mad prince, needs the Chinese.
+- **`ချွေးပေါက်ပေါင်း ၄၈,၀၀၀` (ch. 120)** — the standard Buddhist
+  figure is 84,000 (八萬四千). The Burmese says 48,000, i.e. the digits
+  transposed. No Chinese for this chapter in the repo, so recorded as
+  probable, not proven.
+- **`ကောင်းကင်နတ်ဆိုးကျင့်စဉ်` (ch. 119-120)** — 天魔功. Written
+  consistently, and the comparison to 北冥神功 (`ပေမိန်နတ်သိုင်း`) is
+  preserved, so this one is working.
