@@ -126,3 +126,26 @@ are now settled, and the answers are in part 9:
 - Paragraph-level encoding damage (`သားအဖြကား`, `ဉပေဒေ`, `မြေပါ်ပစ်`,
   `အေဖ`) — same class as item 1. Not scored.
 - `ဝူစန်းစစ်` / `ဝူဆန်းစစ်` inside one chapter — same class. Not scored.
+
+## 6. Part 10 (ch. 92-101) — what the Burmese file cannot answer
+
+- **煙雨樓 capital branch leader.** In ch. 92 沈三變 reports to 木先生, but
+  the decisions are made by a second, older voice in the same room whom
+  沈三變 calls `အုပ်ချုပ်သူ` (the chief). No name, no second appearance in
+  this unit. Either a character the Chinese names and the Burmese drops,
+  or a deliberate anonymity. Cannot be settled from the Burmese alone.
+- **`နယ်စားရုန်` (ch. 101).** A marquis whose family has just been killed,
+  addressed by a name that appears nowhere else in the file. Almost
+  certainly the same man the Burmese elsewhere calls `ဝေ့ဝူဟွေ့`
+  (威武侯), but "ရုန်" has no source in anything visible here.
+- **`မူဖုချင်` / 沐倫 — resolved as a name collision, not a fix.** Ch. 87
+  establishes that the duke (開國公) is *not* 木先生 of 煙雨樓: the duke
+  returns to the 沐 mansion under the 開國公 plaque, while 木先生 receives
+  沈三變 in the ruined 煙雨樓 courtyard in the same chapter. The Burmese
+  still spells both "မူ", so the two men stay fused for a Myanmar reader.
+- **Chapter headings are unreliable as an index** (this supersedes the
+  earlier note about missing titles for 中.84/87/88/89/90): chapters 84,
+  123-137 and 186 have no heading at all; 51-57, 66, 68, 100, 101, 117
+  and 162 are headed `အပိုင်း` instead of `အခန်း`; ch. 94 uses Latin
+  digits (`အခန်း94`); 59 and 60 appear twice. Any chapter count taken
+  from headings is off. The review's numbers come from content.
