@@ -226,7 +226,55 @@ are now settled, and the answers are in part 9:
   ranking between the three terms.
 - **`柳青` spelling**: `လျိုချင်း` 111× vs `လျှိုချင်း` 33× in ch.
   132-141, plus one `ညီအစ်ကိုလျှို`. He dies in this stretch, so the
-  split falls on the worst possible chapters. `ဝမ်သဲ့ဟိုင်` 58× vs
+  split falls on the worst possible chapters. **Corrected after reading
+  ch. 142-145: he is not killed.** He is poisoned at the banquet, is
+  stabilised by 裴語涵's pills, and has a seven-day window (ch. 141);
+  ch. 142 says outright that his being alive is luck, and ch. 144 has
+  the dowager shouting that he is still alive. Part 14 §3.1 and part 15
+  ch. 145 were wrong to call this a death; both are fixed in the file. `ဝမ်သဲ့ဟိုင်` 58× vs
   `ဝမ်ဒဲ့ဟိုင်` 2×; `ပိုင်ဖန်ဥယျာဉ်` 16× vs `ဘိုင်ဖန်ဥယျာဉ်` 3×.
 - **`၄၈,၀၀၀` pores (ch. 120) and `ဘုရင်ဟွေ့`** stay open from §7 —
   nothing in 122-141 resolves either.
+
+## 9. Part 15-16 (ch. 142-161) — open and closed
+
+- **Closed: `柳倩` is alive.** See §8. Part 14 and part 15 both said he
+  died; the file now says poisoned and stabilised. No death scene exists
+  in 141-161.
+- **The tower and the court share one Burmese name.** `တော်ဝင်တရားရုံးတော်`
+  is 大理寺 in part 15 (ch. 149), the place one goes to fetch the
+  `သူခိုးတွင်း` water in ch. 141, and an entire world in ch. 158
+  (`တော်ဝင်တရားရုံးတော်လောကကေ ထွက်နိုင်တယ်`). Container and contained
+  carry the same string; nothing in the text marks the switch. Written
+  up in part 16 §3.1. Not fixable without the Chinese.
+- **`ခွေးဧကရာဇ်` (dog emperor), ch. 156 and 158, is never identified.**
+  In the trial world 葉寧 is himself the emperor, so the phrase may be
+  self-mockery or may point at 皇翷. The review leaves it open. If it is
+  皇翷, it is the only posthumous reference to him in these chapters.
+- **`姬明月`'s sex.** Ch. 156 has the two dead sages *deduce* from the
+  trial's construction that she must be a woman in male dress. The
+  narration never confirms it, but ch. 159-160 give her `ငါကိုယ်တော်`
+  (the imperial plural) as a reigning sovereign. Flagged in the review
+  as "twist or translation error". Note this is the second time the
+  book dangles a sex reveal without paying it (the first was the
+  dowager's body in ch. 132-147).
+- **`ကျီမင်းယွဲ့` / `ချီမင်းယွဲ့` in a single chapter.** Ch. 160: 6 vs 2.
+  The `ချီ` forms land on her angry lines. Same pattern as `ဖန်ကျင်းရွယ်`
+  and `လျိုချင်း`: the variant appears when the character is emotional.
+- **Quote convention flips per chapter, not per arc.** Ch. 152 uses
+  `' '` 59 times and `" "` zero times; ch. 155-156 use `' '` zero times.
+  Part 15 recorded a switch at ch. 147 from `" "` to `' '`; that is true
+  for 147-154 only. It is a per-chapter artefact, not a house style.
+- **Numbers are written two ways in one chapter.** Ch. 154 gives
+  16,650 as `၁၆၆၅၀` and again as `တစ်သောင်းခြောင့်ခြောက်ရာ့ငါးဆယ်`
+  ("ခြောင့်" for "ခြောက်"), and the tower total as
+  `သုံးသောင်းသုံးထောင့်သုံးရာသုံးဆယ့်သုံး` (33,333). The step count is
+  the only number the tower arc turns on.
+- **Sect names first appear in ch. 152-161 without a glossary**: `陳` and
+  `王` are only `အကိုချန်း` / `ဝမ်အစ်ကို` in ch. 152 and only become
+  `ဆရာသခင်ချန်` / `ဆရာသခင်ဝမ်` in ch. 161. A reader who skims 152 will
+  not connect the two bickering ghosts to the two blank pillars.
+- **`ညီမဖေး` (ch. 156)** — 葉寧 calls 裴語涵 "sister 裴" when he comes out
+  of the trial. Not attested earlier in the Burmese. Left as an open
+  question in the review; could be a kinship term of address, could be
+  the translator's slip.
