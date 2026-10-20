@@ -5,7 +5,8 @@ verdict on the translation; it is a list of things that are still open, plus
 one flag I am withdrawing.
 
 Status: written during part 9 of `output/review/burmese-overview.md`
-(Burmese chapters ၈၁–၉၀).
+(Burmese chapters ၈၁–၉၁, Chinese 80–90). Updated after part 9 was
+written, so that nothing here contradicts the review.
 
 ---
 
@@ -57,11 +58,29 @@ Chinese, it is worth keeping in mind that the offset may partly come from
 a dropped chapter rather than from the translation — I am not asserting
 that, only noting that both texts have a gap in the same region.
 
-**Consequence for the review.** Parts 1–8 were written with the Chinese in
-front of me; part 9 onward can be too, once the Chinese for 80–89 is pulled
-from that site. I have not pulled it yet, so nothing in the review for
-chapters ၈၁–၉၀ claims anything about the Chinese. Until then, any statement about the Chinese in this file or in
-the review is marked as unavailable rather than guessed.
+**Consequence for the review — updated.** This section used to say that
+nothing in the review for chapters ၈၁–၉၀ claimed anything about the
+Chinese. That is no longer true, and it should not be left standing:
+the pages for 中.78–90 have since been pulled, so part 9 does quote the
+Chinese where it matters (十二個時辰, 升仙丹, 孤忠劍, 玉簡, 都頭, the
+武戰 → 武三思 pun).
+
+What that means in practice, so the two files agree:
+
+- Where part 9 quotes Chinese, the quote came from page text pulled for
+  this unit, not from memory of an earlier part.
+- Where part 9 does *not* quote Chinese, it is because the point is
+  visible in the Burmese alone (name drift, the chapter headers, the
+  玉簡 → hairpin substitution at the object level).
+- The 目錄 offset is still a live trap. `8011_81.html` opens 中.152–154.
+  Never locate a chapter by the number in the URL.
+
+**One thing I can no longer check.** The pages pulled for 中.80–90 name
+the 開國公 沐倫. The Burmese is `မူဖုချင်`, which reads much closer to a
+「沐甫清」-type name than to 沐倫. Either the page text I recorded has the
+wrong characters, or the Burmese transliteration is loose. The review
+refers to him only as `မူဖုချင်` for that reason. Recorded here so it is
+not silently "settled" later.
 
 ## 3. Withdrawn: the "duplicated passages" flag
 
@@ -79,26 +98,28 @@ same quarrel continuing, not the same text twice.
 So there is nothing here for the parser to fix, and nothing to score. The
 flag is withdrawn.
 
-## 4. Still needs the Chinese before part 9 is written
+## 4. Part 9 questions that the Chinese has now answered
 
-These are questions that only the Chinese can settle. Listed so they are
-not answered by guessing:
+These were listed as unanswerable without the Chinese. Three of the four
+are now settled, and the answers are in part 9:
 
-- `တော်ဝင်သစ်တော စစ်တပ်` (ch. 81) — the name reads "royal forest army",
-  but the same passage describes the corps as palace guards and the
-  emperor's personal bodyguard. Is the original name a guard unit whose
-  characters were taken literally, or is it a forest corps? Plot effect:
-  none (backstory only).
-- `တည်ထောင်သူဖခင်မျိုးဆက်` (開國公, ch. 87–88) — the Burmese uses the same
-  phrase for the living duke and for his first-generation ancestor
-  (`ပထမမျိုးဆက်၏ တည်ထောင်သူဖခင်သည်`). Whether that ambiguity is in the
-  Chinese or introduced by the translation changes how the father–son
-  scene reads, and that scene is the strongest thing in the unit.
-- `ချင်းယွီနန်းတော်` / `ချွင်းယီ` / `ကျောက်စိမ်းနန်းတော်` (ch. 87) — the
-  women-only sect from part 7 appears under another name. This chapter
-  does gloss it (`ချင်းယွီ(ကျောက်စိမ်း)နန်းတော်`) and restates the
-  women-only rule, which is the only thing that lets a reader tie it back
-  to 群玉閣. Worth confirming the characters.
+- `တော်ဝင်သစ်တော စစ်တပ်` (ch. 81) — 御林軍. It is a palace guard corps,
+  not a forest corps. 林 here is part of the guard unit's name, and the
+  passage around it says plainly that these men are the emperor's
+  bodyguard and the keepers of palace discipline. So the Burmese reads
+  "royal forest army" where the text means the household guard.
+  Plot effect: none — backstory only — but it is the kind of name a
+  reader carries forward, because the same corps dismisses 武三思.
+- `ချင်းယွီနန်းတော်` / `ကျောက်စိမ်းနန်းတော်` (ch. 87) — 群玉閣. The
+  women-only sect from part 7, under a second and then a third Burmese
+  name. The chapter's own parenthesis `ချင်းယွီ(ကျောက်စိမ်း)နန်းတော်` is
+  the only thing that lets a reader tie the three together.
+- `တည်ထောင်သူဖခင်မျိုးဆက်` (開國公) — the Burmese does use one phrase for
+  the living duke and for the first-generation ancestor. The father–son
+  scene leans on exactly that ambiguity: the title is inherited, and the
+  son's argument is that inheriting it is not the same as deserving it.
+  So the ambiguity is load-bearing, not damage.
+- `မူဖုချင်` / 沐倫 — still open; see the note at the end of section 2.
 
 ## 5. Not open, just noted so it is not re-opened
 
