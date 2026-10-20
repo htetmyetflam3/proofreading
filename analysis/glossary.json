@@ -1,0 +1,388 @@
+{
+  "$comment": "Machine-readable companion to analysis/burmese-style-guide.md. Counts are from input/ယဲ့နင်.txt (ch 1-195). 'use' is the dominant Burmese form; 'variants' are printed forms that should be flagged, not rewritten.",
+  "source": {
+    "file": "input/ယဲ့နင်.txt",
+    "chapters": [
+      1,
+      195
+    ],
+    "pages": 4414,
+    "normalised": "input/ယဲ့နင်.normalised.txt"
+  },
+  "register": {
+    "narration": "formal literary (သည်/ပြီး/သော)",
+    "dialogue": "colloquial (တယ်/မယ်/ပဲ)",
+    "measured": {
+      "ဖြစ်သည်": 2891,
+      "ဖြစ်တယ်": 85,
+      "ခဲ့သည်": 1480,
+      "ခဲ့တယ်": 204
+    },
+    "narrator_pronoun_in_review": "ကျွန်တော်",
+    "forbidden_narrator_pronoun": "ငါ"
+  },
+  "terms": [
+    {
+      "zh": "監察院",
+      "my": "ကြီးကြပ်ရေးရုံး",
+      "variants": [
+        "ကကီးကပ်ရေးရိုံး"
+      ],
+      "status": "ok"
+    },
+    {
+      "zh": "監正",
+      "my": "ကြီးကြပ်ရေးမှူး",
+      "variants": [
+        "ကကီးကပ်ရေးမှူး"
+      ],
+      "status": "ok"
+    },
+    {
+      "zh": "聖院",
+      "my": "တရားရုံး",
+      "variants": [
+        "တော်ဝင်တရားရုံးတော်"
+      ],
+      "status": "wrong",
+      "note": "Academy of Sages, not a courthouse; changes ch 17 from examination to trial"
+    },
+    {
+      "zh": "太監",
+      "my": "အထိန်းတော်",
+      "variants": [
+        "မိန်းမစိုး"
+      ],
+      "status": "split",
+      "note": "one office, two renderings (97 vs 67)"
+    },
+    {
+      "zh": "文膽",
+      "my": "ပညာရှိသတ္တိ",
+      "variants": [],
+      "status": "ok"
+    },
+    {
+      "zh": "煙雨樓",
+      "my": "မြူမိုးစံအိမ်",
+      "variants": [],
+      "status": "ok"
+    },
+    {
+      "zh": "玉簡",
+      "my": "ကျောက်စည်းဆံထိုး",
+      "variants": [],
+      "status": "ok"
+    },
+    {
+      "zh": "赤焰軍",
+      "my": "မီးလျှံနီစစ်တပ်",
+      "variants": [],
+      "status": "ok"
+    },
+    {
+      "zh": "四大神將",
+      "my": "နတ်မင်းလေးပါး",
+      "variants": [],
+      "status": "ok"
+    },
+    {
+      "zh": "不朽宗",
+      "my": "အင်မော်တယ်ဂိုဏ်း",
+      "variants": [],
+      "status": "ok"
+    },
+    {
+      "zh": "大理寺",
+      "my": "တော်ဝင်တရားရုံးတော်",
+      "variants": [],
+      "status": "ok"
+    },
+    {
+      "zh": "藏經塔",
+      "my": "စာပေတာင်",
+      "variants": [],
+      "status": "ok"
+    },
+    {
+      "zh": "五體投地",
+      "my": "ဒြပ်စင်ငါးပါး",
+      "variants": [],
+      "status": "wrong",
+      "note": "prostration idiom, misread as the five elements"
+    }
+  ],
+  "names": [
+    {
+      "zh": "姬明月",
+      "use": "ကျီမင်းယွဲ့",
+      "variants": [
+        "ကျီမင်းယြွိုဲ့",
+        "ကျီမင်ယွဲ့"
+      ],
+      "counts": [
+        571,
+        197,
+        31
+      ]
+    },
+    {
+      "zh": "張承宗",
+      "use": "ချိုက်ရှန်ကောင်း",
+      "variants": [
+        "ချိက်ရှန်ကောင်း",
+        "ချိက်ရန်ကောင်း"
+      ],
+      "counts": [
+        447,
+        16,
+        30
+      ]
+    },
+    {
+      "zh": "柳慎",
+      "use": "လျိုရှမ်",
+      "variants": [
+        "လျိရမ်"
+      ],
+      "counts": [
+        99,
+        19
+      ],
+      "note": "variant confined to ch 181+"
+    },
+    {
+      "zh": "柳倩",
+      "use": "လျိုချင်း",
+      "variants": [
+        "လျိချင်း"
+      ],
+      "counts": [
+        220,
+        13
+      ],
+      "note": "variant confined to ch 181+; not the same person as 柳慎"
+    },
+    {
+      "zh": "裴語涵",
+      "use": "ဖေးယွီဟန်",
+      "variants": [
+        "ဖေးယွိဟန်",
+        "ဖေယွီဟန်"
+      ],
+      "counts": [
+        415,
+        14,
+        4
+      ]
+    },
+    {
+      "zh": "蕭淺淺",
+      "use": "ရှောင်ချန်းချန်း",
+      "variants": [
+        "ရောင်ချန်းချန်း",
+        "ရှောင်ချင်းချင်း"
+      ],
+      "counts": [
+        224,
+        23,
+        21
+      ]
+    },
+    {
+      "zh": "賀元一",
+      "use": "ဟဲရွမ်",
+      "variants": [
+        "ဟဲယွမ်"
+      ],
+      "counts": [
+        95,
+        3
+      ]
+    },
+    {
+      "zh": "皇翷",
+      "use": "ဟွေ့",
+      "variants": [
+        "ဘုရင်ဟွေ့"
+      ],
+      "counts": []
+    },
+    {
+      "zh": "范景睿",
+      "use": "ဖန်ကျင်းရွယ်",
+      "variants": [],
+      "counts": []
+    },
+    {
+      "zh": "開國公",
+      "use": "မူဖုချင်",
+      "variants": [],
+      "counts": []
+    },
+    {
+      "zh": "厲任",
+      "use": "လျိရမ်",
+      "variants": [],
+      "counts": [
+        19
+      ],
+      "note": "collides with the ch 181+ variant of 柳慎; flag, do not merge"
+    },
+    {
+      "zh": "李然",
+      "use": "လီရန်",
+      "variants": [],
+      "counts": [
+        33
+      ]
+    },
+    {
+      "zh": "姜華然",
+      "use": "ကျန်းဟွာရန်",
+      "variants": [],
+      "counts": [
+        13
+      ]
+    },
+    {
+      "zh": "旱魃",
+      "use": "မိုးခေါင်နတ်ဆိုး",
+      "variants": [],
+      "counts": []
+    },
+    {
+      "zh": "華清池",
+      "use": "ဟွာချင်းရေပူစမ်း",
+      "variants": [
+        "ဟွာချင်းရေကန်တော်"
+      ],
+      "counts": []
+    }
+  ],
+  "damage_families": [
+    {
+      "bad": "သ့",
+      "good": "သူ့"
+    },
+    {
+      "bad": "သတို့",
+      "good": "သူတို့"
+    },
+    {
+      "bad": "ဆကီး",
+      "good": "ကြီး"
+    },
+    {
+      "bad": "ိုံ",
+      "good": "ုံ"
+    },
+    {
+      "bad": "ငမွိ",
+      "good": "မြို့"
+    },
+    {
+      "bad": "ငက",
+      "good": "ကြ"
+    },
+    {
+      "bad": "ကကီး",
+      "good": "ကြီး"
+    },
+    {
+      "bad": "မေပြာ",
+      "good": "မပြော"
+    },
+    {
+      "bad": "တြွေ့",
+      "good": "တွေ့"
+    },
+    {
+      "bad": "မေတွ့",
+      "good": "မတွေ့"
+    },
+    {
+      "bad": "အနတရာယ်",
+      "good": "အန္တရာယ်"
+    },
+    {
+      "bad": "ပီ",
+      "good": "ပြီ"
+    }
+  ],
+  "traps": [
+    {
+      "rule": "ရိ → ရှိ",
+      "guard": "suffix lookahead only",
+      "breaks": [
+        "ကိရိယာ",
+        "ပရိသတ်"
+      ]
+    },
+    {
+      "rule": "ေကြာ → ကြော",
+      "guard": "never after a medial U+103B-103E",
+      "breaks": [
+        "တွေကြား",
+        "တွေကြောင့်"
+      ]
+    }
+  ],
+  "quote_style_by_band": [
+    {
+      "chapters": [
+        1,
+        60
+      ],
+      "curly": 1190,
+      "straight": 428
+    },
+    {
+      "chapters": [
+        61,
+        120
+      ],
+      "curly": 1923,
+      "straight": 2811
+    },
+    {
+      "chapters": [
+        121,
+        140
+      ],
+      "curly": 601,
+      "straight": 180
+    },
+    {
+      "chapters": [
+        141,
+        170
+      ],
+      "curly": 41,
+      "straight": 1949
+    },
+    {
+      "chapters": [
+        171,
+        195
+      ],
+      "curly": 93,
+      "straight": 1302
+    }
+  ],
+  "verification_boundary": {
+    "burmese": [
+      1,
+      195
+    ],
+    "chinese_in_repo": [
+      193,
+      408
+    ],
+    "checkable_overlap": [
+      193,
+      195
+    ],
+    "note": "Chinese-source claims for ch 1-192 cannot be verified from this repository"
+  }
+}

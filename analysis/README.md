@@ -27,3 +27,11 @@ That resolver and validated cross-language 1:1 phrase alignment remain pending.
 The current step obtains direct Chinese→Burmese and English-pivot Burmese MT
 candidates. `MT.md` has the commands and API setup guidance. No live MT or AI
 translation was used to create this audit, and no automatic correction is enabled.
+
+## Burmese house style
+
+`burmese-style-guide.md` is the reference for anything written in Burmese in this
+repo: register (formal narration, colloquial dialogue), the name and term tables,
+how to tell OCR damage from a translator error, and the list of edits that must
+never be done in bulk. `glossary.json` is the same data, machine-readable.
+
