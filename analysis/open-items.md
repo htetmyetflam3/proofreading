@@ -278,3 +278,31 @@ are now settled, and the answers are in part 9:
   of the trial. Not attested earlier in the Burmese. Left as an open
   question in the review; could be a kinship term of address, could be
   the translator's slip.
+
+## 10. Part 17 (ch. 162-171) — and a warning for every unit after it
+
+- **The text is damaged from ch. 166 onward.** Not glyph noise of the
+  122-141 kind (a stray `ကြီ`/`ကီ`), but a systematic substitution:
+  `သူတို့` -> `သတို့`, `လူ` -> `လ`, `မြို့` -> `ငမွိဲ့`, `ရုံး` -> `ရိုံး`,
+  `ကြည့်` -> `ကည့်`, `ဖြူ` -> `ဖျြူ`, `ဘူး` -> `ဘး`. Medial ြ is dropped or
+  displaced and ု/ူ is dropped or doubled.
+- **Measured onset** (`ိုံ` per chapter): 162-165 = 0, 166 = 46, 167 = 68,
+  168 = 73, 169 = 87, 170 = 71, 171 = 82, 172 = 65, 173 = 73. Likewise
+  `သူတို့` is 70 times in 162-165 and 0 from 166; `သတို့` is 0 then 83.
+  So the break is at exactly one chapter and it does not recover.
+- **Consequence for the review**: from ch. 166 no quotation is safe
+  without normalising, and counts (name variants, term frequencies)
+  cannot be taken raw. Unit 17 §3.1 says this in the file. Units 18+
+  must normalise or avoid quoting this stretch.
+- **`ဟဲယွမ်` (ch. 166, 2x)** for the immortal-sect elder earlier written
+  `ဟဲရွမ်`. Inside the damaged stretch, so it may be corruption rather
+  than a new name — not separable.
+- **Headings: `အပိုင်း ၁၆၂`** — the only chapter in 162-171 that uses
+  `အပိုင်း` instead of `အခန်း` (4 vs 9 in the unit).
+- **The four-line oath is printed 7 times** (ch. 163 once, ch. 164 six),
+  with punctuation variants — once comma-joined, otherwise one line per
+  quote. Repetition deflates the one speech the arc turns on.
+- **Still open from earlier**: what 葉寧 actually inherits at ch. 169
+  (the tower as an object? the tower inside him?), the names of three of
+  the four gods, and what 裴語涵 knows in ch. 168 when she says his time
+  is nearly up. None is answered by 171.
