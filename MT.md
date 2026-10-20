@@ -229,3 +229,39 @@ comparison-rule edits do not cause paid retranslations. POS inputs depend on the
 dictionary/map data; `top`/`resolution` remain comparison data. The code verifies
 that normalizer tables match the built WASM. AI eligibility stays false and exact
 1:1 phrase alignment is explicitly not established.
+
+## Installed dictionaries and engines (2026-10-20)
+
+Two dictionaries and one offline translation model are installed and verified:
+
+```sh
+python3 format/fetch_dicts.py --check        # 118,840 CC-CEDICT entries, 21,984 English-Myanmar headwords
+uv run mt/fetch_engine.py --check            # zh-en offline model, everything else unavailable
+```
+
+| what | data | where | committed |
+|---|---|---|---|
+| Chinese → English | CC-CEDICT, 118,840 entries, traditional + simplified | `Engine/knowledge/dicts/cc-cedict.tsv` | no (25 MB, rebuilds) |
+| English → Burmese | English-Myanmar dictionary, 21,984 headwords | `Engine/knowledge/dicts/en-my.sqlite` | no (16 MB, rebuilds) |
+| Chinese → English MT | Argos/OPUS-MT Marian checkpoint, 83 MB | `$XDG_DATA_HOME/argos-translate/packages` | no |
+
+`format/dicts.py` is the lookup API (`Cedict.lookup`, `Cedict.terms`, `EnMy.lookup`).
+The Chinese side accepts both scripts: OpenCC normalises the text and CC-CEDICT
+stores a traditional and a simplified form for every entry.
+
+Route availability, measured:
+
+| route | offline model | note |
+|---|---|---|
+| `zh-en` | **installed** | runs at about 30 sentences/second on CPU |
+| `en-my` | none | Argos publishes no Burmese package; GitHub has no `translate-en_my` model |
+| `my-en` | none | same |
+| `zh-my` | none | same, and the pivot needs `en-my` |
+
+So the Burmese routes are API routes. `mt/translate.py --engine azure` reads
+`AZURE_TRANSLATOR_KEY` and `AZURE_TRANSLATOR_REGION` from the environment and
+refuses to run without them; nothing is stored in the repository.
+
+`--engine glossary` is a dictionary walk, not MT: it reports how much of a
+chapter the two dictionaries can cover (`unresolved` / `tokens` in the report).
+On chapter 193 that is 295 unresolved of 786 terms.
