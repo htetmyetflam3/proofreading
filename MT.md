@@ -149,7 +149,9 @@ The source text is not modified.
 `repair_quotes.py` repairs the literal quote entities without changing any other
 character. It understands `&quot;`, `&amp;quot;`, `&amp;amp;quot;`, `&#34;` and
 `&#x22;`, chooses `“`/`”` from local context, preserves CRLF/BOM/line count, and
-can write a TSV audit:
+can write a TSV audit. `--include-straight-quotes` also normalizes bare `"`;
+HCrawler uses the same shared converter while writing, with that option enabled,
+so new crawls do not need a later repair pass:
 
 ```sh
 # Safe default: writes <input>.quotes-repaired.txt
@@ -166,9 +168,11 @@ ending in `。`, and short nested term pairs. It flags uncertain choices in the 
 it does not repair the substituted characters described below.
 
 The supplied Chinese file **originally** contained 2,824 literal `&quot;` sequences.
-The repair converted them to **2,486 opening quotes** and **336 closing quotes**,
-removed 2 duplicate openings, and flagged 116 conversions for review. The pre-repair
-text remains recoverable from commit `61b4b86`.
+The entity repair converted them to **2,486 opening quotes** and **336 closing
+quotes**, removed 2 duplicate openings, and flagged 116 conversions for review.
+A second explicit pass converted 6 bare `"` closers, so the current file has
+**2,486 opening** and **342 closing** quotes, with no entity or ASCII double quotes.
+The pre-repair text remains recoverable from commit `61b4b86`.
 
 ### Remaining source-quality caveat
 

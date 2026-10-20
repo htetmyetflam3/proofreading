@@ -55,6 +55,23 @@ output. Source layout is not reproduced: the supplied holder groups text into
 its tagger units. The tagged DOCX's ZIP/XML and exact text round-trip are checked;
 rendering in Microsoft Word has not been tested.
 
+## Plain Burmese text copy
+
+The DOCX can be read as plain UTF-8 text without running the tagger:
+
+```sh
+uv run docx_text.py          # first run, or --force to regenerate
+```
+
+Default: `input/ယဲ့နင်1-200.docx` → `input/ယဲ့နင်1-200.txt`. It reuses the
+same ZIP/XML extractor as `tag_docx.py`, removes only the observed export wrappers
+and page labels, and preserves the translator's existing quote characters. It does
+not add tags or normalize Burmese text, and trims only trailing spaces left by the
+PDF-to-DOCX export. The original DOCX remains unchanged.
+Current extraction: **59,681 prose paragraphs**, 6,354,087 bytes, 59,681 lines;
+59,425 lines had trailing spaces trimmed. The text is a working copy, not a
+replacement of the original DOCX.
+
 ## These are candidates, not resolved grammar
 
 The current supplied kernel is pass-through. Raw ambiguity (`{n,v,...}`) and

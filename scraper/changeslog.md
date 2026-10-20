@@ -385,3 +385,11 @@
 - Applied it in place to `input/chinese-0511241012-from-8011_93.txt`: 2,824 entities became 2,486 opening quotes, 336 closing quotes and 2 removed duplicate openings; 116 choices are flagged for review. Line count and every non-quote character are unchanged (44,114 lines, LF endings); no remaining quote entities.
 - Added 17 temporary tests for the entity encodings, line positions, existing/crossing quotes, nested pairs, BOM/CRLF, idempotence, CLI output protection, in-place and report behavior. Rechecked the full file: only quote characters differ; the glyph substitutions are untouched. The pre-repair file remains in commit `61b4b86`.
 - Tests stay in `/tmp`. No MT, AI or billable request was made.
+
+
+## 2026-10-20 — HCrawler writes normalized Chinese quotes; plain Burmese text copy
+- Added `scraper/python/bin/quote_text.py` as the single quote state machine shared by HCrawler and `repair_quotes.py`. It handles `&quot;`, `&amp;quot;`, `&amp;amp;quot;`, numeric entities and, when enabled, bare ASCII `"`, including existing curly quotes, narrative tags, nested short pairs and duplicate openings.
+- HCrawler now calls it in `_text()` with `include_ascii=True` before returning a page, so new crawls write `“`/`”` directly instead of needing a post-repair pass. It logs `[quotes] N token(s): …` when a page changes. The existing quote-repair CLI remains for older text and shares the same code.
+- Added `docx_text.py`, reusing `tag_docx.py`'s DOCX ZIP/XML extractor to produce `input/ယဲ့နင်1-200.txt` from the supplied Burmese DOCX. Result: 59,681 prose paragraphs, 6,354,087 bytes, 59,681 lines; 4 metadata wrappers, 4,414 page wrappers and 396 separators removed; 59,425 lines had export trailing spaces trimmed. The original DOCX hash is unchanged and no tags or Burmese normalization were added.
+- Applied the explicit straight-quote pass to the existing Chinese text: 6 bare `"` closers became `”`; the file now has 2,486 opening and 342 closing quotes, no ASCII double quotes and no quote entities. Non-quote text is unchanged.
+- Verification: 18 temporary repair/CLI tests; synthetic HCrawler `_text()` extraction (no HTTP) covering entity, straight and nested quotes; scraper `main.py --help`; DOCX extraction counts/hash; MT offline plan still 0 requests. No live MT, AI or billable request was made. Tests stay in `/tmp`.

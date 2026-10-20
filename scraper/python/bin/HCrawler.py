@@ -19,6 +19,7 @@ from bs4 import BeautifulSoup
 
 from disk_floor import check_disk
 from download_rate import client_options, limit_downloads
+from quote_text import repair_text
 from Scrawler import HTML_CONTENT_TYPES, _normalized_page_url, _site_key
 from site_login import ensure_logged_in_sync
 
@@ -213,6 +214,17 @@ def _text(soup: BeautifulSoup, current: str, previous: str) -> tuple[str, str, i
         elif line not in {title, raw_title}:
             output.append(line + "\n")
     text = "".join(output)
+    # The site mixes &quot;, &amp;quot; and bare " encodings. Normalize them
+    # while writing the page so a later repair pass is not required.
+    text, quote_changes, quote_counts = repair_text(text, include_ascii=True)
+    if quote_changes:
+        print(
+            f"[quotes] {quote_counts['entities']} token(s): "
+            f"{quote_counts['open']} open, {quote_counts['close']} close, "
+            f"{quote_counts['removed']} removed, "
+            f"{quote_counts['ambiguous']} flagged",
+            flush=True,
+        )
     if not text.strip():
         raise ValueError(f"Empty chapter body at {current}")
     return text, previous, sections
