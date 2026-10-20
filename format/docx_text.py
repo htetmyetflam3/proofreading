@@ -131,6 +131,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("-o", "--output", type=Path,
                         help="Text path; default: input/<stem>.txt")
     parser.add_argument("--force", action="store_true", help="Overwrite an existing text output")
+    parser.add_argument("--repair-damage", action="store_true",
+                        help="Repair PDF-conversion vowel displacement (see repair_damage.py)")
     args = parser.parse_args(argv)
 
     temporary = None
@@ -175,6 +177,11 @@ def main(argv: list[str] | None = None) -> int:
             cleaned_lines.append(cleaned)
         cleaned = "\n".join(cleaned_lines)
         marked, marker_count = mark_chapters(cleaned)
+        damage_summary = None
+        if args.repair_damage:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            from repair_damage import Dictionary, MASTER, repair  # noqa: PLC0415
+            marked, _details, damage_summary = repair(marked, Dictionary(MASTER))
         with temporary.open("w", encoding="utf-8", newline="") as stream:
             stream.write(marked)
         text = marked
@@ -195,6 +202,9 @@ def main(argv: list[str] | None = None) -> int:
             "curly_close_quotes": text.count("”"),
             "trailing_whitespace_lines_trimmed": trimmed_lines,
             "chapter_markers": marker_count,
+            "damage_repairs": (damage_summary or {}).get("repairs", 0),
+            "damage_skipped": (damage_summary or {}).get("skipped", {}),
+            "damage_changed": (damage_summary or {}).get("changed", {}),
             "chapter_marker_format": MARKER.replace("{number}", "N"),
             "marker_placement": "line immediately above each detected chapter heading",
             "docx_sha256": original_hash,

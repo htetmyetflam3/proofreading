@@ -76,6 +76,37 @@ marker is `[[HCRAWLER MARKER N]]` immediately above the detected chapter title;
 `N` is sequential and independent of the printed chapter number. The text is a
 working copy, not a replacement of the original DOCX.
 
+## PDF-export damage repair
+
+The DOCX came out of a PDF conversion with the vowel pair `ေ` + `ာ` attached one
+consonant to the left. `သဘော` never appears in the file; `သေဘာ` appears 254
+times, and the same shape hits `အတော်` (88), `သဘောထား` (67), `သလောက်` (40) and
+`အဖော်` (13). The dictionary is not missing these words: `သ  ဘော`,
+`သ  ဘော  ထား`, `သ  ဘော  တ  ရား` and `အ  တော်` are all entries.
+
+```sh
+uv run format/repair_damage.py input/ယဲ့နင်1-200.txt --dry-run
+uv run format/repair_damage.py input/ယဲ့နင်1-200.txt   # -> <stem>.damage-repaired.txt
+uv run format/docx_text.py --force --repair-damage       # repair during extraction
+```
+
+The repair never trusts the shape. It rewrites a four-character window only when
+all three hold:
+
+1. the shape does not occur inside any dictionary entry — this is what protects
+   `စေကာ`: it sits inside `စေ  ကာ  မူ` (CONJUNCTION and SPLIT), so
+   `ဖြစ်စေကာမူ` is left alone even where `စေကာမူ` does not follow;
+2. the text at that position is not already a dictionary word;
+3. the repaired text at that position is a dictionary word.
+
+Everything else is counted and skipped. On the 59,878-line file: 1,655 repairs,
+2,613 occurrences skipped because the shape is attested, 1,881 because no
+dictionary word backed the repair; `စေကာမူ` stays at 43. The tagger on the
+repaired copy drops `{?}` from 106,612 to 104,820, removes all 254
+`သေ{n}  ဘာ{aj,pn}` pairs and emits `သဘော{...}` instead. The 1,214 POS
+rejections do not change: those are Pali and stacked-consonant syllables absent
+from the syllable map, which is a different fault from this damage.
+
 ## These are candidates, not resolved grammar
 
 The current supplied kernel is pass-through. Raw ambiguity (`{n,v,...}`) and

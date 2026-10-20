@@ -21,3 +21,6 @@ __pycache__/
 
 # Paid MT results and derived comparison/annotation caches stay local.
 /output/mt/
+
+# Generated repair copy; the DOCX and its plain text stay the sources.
+/input/*.damage-repaired.txt
