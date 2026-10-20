@@ -33,7 +33,13 @@ DEFAULT_ENDPOINT = "https://api.cognitive.microsofttranslator.com"
 DEFAULT_CACHE = ROOT / "output" / "mt" / "cache.sqlite3"
 DEFAULT_MEMORY = ROOT / "output" / "mt" / "memory.sqlite3"
 SCHEMA_VERSION = 2
-SECTION = re.compile(r"^={5}\s+(.+?)\s+={5}\s*$", re.MULTILINE)
+# An HCrawler marker line belongs to the chapter header that follows it, so it
+# is consumed with the header and never becomes translatable chapter text.
+MARKER = r"\[\[HCRAWLER MARKER (?P<marker>\d+)\]\]"
+SECTION = re.compile(
+    r"^(?:" + MARKER + r"\s*\n)?=====\s+(?P<chapter>.+?)\s+=====\s*$", re.MULTILINE
+)
+MARKER_ONLY = re.compile(r"\s*(?:" + MARKER + r"\s*)+$")
 SENTENCE_END = re.compile(r"[。！？!?]+[\"'”’』」]*")
 API_VERSION = "3.0"
 sys.path.insert(0, str(ROOT / "mt"))
@@ -71,7 +77,20 @@ def source_units(text: str, max_chars: int = 2000) -> Iterator[Unit]:
     if not headers or text[:headers[0].start()].strip():
         spans.append(("", 0, headers[0].start() if headers else len(text)))
     for i, header in enumerate(headers):
-        spans.append((header[1], header.end(), headers[i + 1].start() if i + 1 < len(headers) else len(text)))
+        finish = headers[i + 1].start() if i + 1 < len(headers) else len(text)
+        spans.append((header.group("chapter"), header.end(), finish))
+    # Never leave a marker line inside chapter text, even at the very end of the
+    # file where there is no following header to absorb it.
+    trimmed = []
+    for name, begin, finish in spans:
+        segment = text[begin:finish]
+        while True:
+            tail = MARKER_ONLY.search(segment)
+            if not tail:
+                break
+            segment = segment[:tail.start()]
+        trimmed.append((name, begin, begin + len(segment)))
+    spans = trimmed
     for chapter, begin, finish in spans:
         cursor = begin
         while cursor < finish:
