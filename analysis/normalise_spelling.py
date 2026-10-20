@@ -61,6 +61,12 @@ PLAIN = [
     ("kya-e", "ငကေ", "ကြေ"),
     ("kya-an", "ငကံ", "ကြံ"),
     ("kya-um", "ငကု", "ကြု"),
+    # second sweep, from the residual census after the first run
+    ("kya-kya", "ကကီး", "ကြီး"),               # အကကီးအကဲ -> အကြီးအကဲ
+    ("ma-pyo", "မေပြာ", "မပြော"),               # မေပြာပါနဲ့ -> မပြောပါနဲ့
+    ("an-taraya", "အနတရာယ်", "အန္တရာယ်"),
+    ("twe-seen", "တြွေ့", "တွေ့"),               # တြွေ့ရှိ -> တွေ့ရှိ
+    ("ma-twe", "မေတွ့", "မတွေ့"),               # မေတွ့ရှိ -> မတွေ့ရှိ
     # the `ေ` that has slipped one consonant to the left, where the consonant
     # carries a medial the window rule cannot see
     ("a-shift-twa", "အေတွ", "အတွေ"),
@@ -76,6 +82,9 @@ REGEX = [
     # the `ေ` follows a consonant, never a medial (တွေကြား is correct already).
     ("kya-shift", re.compile(r"(?<![\u103B-\u103E])ေကြာ"), "ကြော"),
     ("kya-cons", re.compile(r"ငက(?=[\u1000-\u1021])"), "ကြ"),
+    # a stray င before an intact ကြ: ရှိငကြပြီး -> ရှိကြပြီး. Only after a
+    # vowel sign or medial, so ငကြောက်သာသာ is left alone.
+    ("kya-stray-nga", re.compile(r"(?<=[\u102B-\u103E])ငကြ"), "ကြ"),
     ("kya-end", re.compile(r"ငက(?![\u1000-\u103F])"), "ကြ"),
     # ရိ is only ever damaged where it is not one of the ရိပ်/ရိမ်/ရိက္ခာ/ရိတ္တ/ရိစ္ဆ words
     # `ရိ` only ever stands for `ရှိ` where the verb is doing verb work; the

@@ -371,3 +371,35 @@ are now settled, and the answers are in part 9:
   the normalised source. Three were rewritten after the check
   (`ဘာမှတ်နေကတာလဲ`, the pagoda offer, the poem's second line, which is
   printed as `မစမ်းသပ်ရေသး` and is left out of the quote).
+
+## §12. Units 19–20 (ch. 182–195) — closed 2026-10-21
+
+The two units were written against `input/ယဲ့နင်.normalised.txt` after the
+rule pass, and every block quote was re-checked against the file with a
+longest-common-substring probe (not by eye). Result: 161 quote blocks, 8
+below the 12-character confidence line, and all 8 are accounted for —
+three are count tables, one is the document's own prose in a `>` block,
+three are short lines I repaired from damage (`ငါ့အရိုးတွေ ကြေပါပြီ`,
+`နှောက်စရာပဲ၊ အရက်မရှိဘူး`, `ငါ မလုပ်ခဲ့တဲ့ ကိစ္စကို …`), one is
+`ငါ ဘာလုပ်လိုက်မိတာလဲ`, which the file prints in full.
+
+Open questions left in the file's own `မသဲကွဲ` sections:
+
+- **`အရင်မင်းကြီး` again, now in 189.** `ဒေါ်ကျန်း` quotes it as an
+  instruction; ch. 124 had 太后 treating Ye Ning as an enemy. Is the plan
+  the dead emperor's, 太后's, or 姜清婉's?
+- **The middle-aged cultivator in 184 vs 姜華然 in 194.** Same person or
+  two? 184 gives no name.
+- **`ဝေ့ပြည်`** — province of 大周 that has broken away, or a separate
+  state? 185 says six of nine provinces split; it never says which six.
+- **柳慎's return.** An earlier working note claimed he reappears as 左相
+  in 182. The file does not carry his name in that chapter; 劉/柳 confusion
+  is likely. Row removed from the character table.
+
+Damage census after the extended rule pass (ch. 1–195):
+
+    rules        7,874 replacements (22 families, was 6,709 / 15)
+    chain          900 (the ေ/ာ window family + digits)
+    residual       0 for သ့, ဆကီး, ိုံ, ငမွိ, သတို့, ကကီး, မေပြာ,
+                   အနတရာယ်, တြွေ့, မေတွ့; 7 stray ငက left, all in
+                   ငကြောက်သာသာ-type words

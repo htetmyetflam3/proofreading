@@ -1,6 +1,6 @@
 {
  "input_chars": 2426228,
- "output_chars": 2426369,
+ "output_chars": 2426314,
  "rules": {
   "i-dot-below-then-oo": 1846,
   "kya-ligature": 448,
@@ -12,6 +12,11 @@
   "kya-e": 78,
   "kya-an": 41,
   "kya-um": 21,
+  "kya-kya": 734,
+  "ma-pyo": 245,
+  "an-taraya": 38,
+  "twe-seen": 73,
+  "ma-twe": 55,
   "a-shift-twa": 327,
   "a-shift-ye": 384,
   "a-shift-nge": 37,
@@ -20,10 +25,11 @@
   "a-shift-thaw": 7,
   "kya-shift": 263,
   "kya-cons": 371,
+  "kya-stray-nga": 20,
   "kya-end": 6,
   "rhi": 331,
   "pri": 1677
  },
- "repaired_total": 6709,
+ "repaired_total": 7874,
  "rejected": {}
 }
