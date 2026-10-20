@@ -4,7 +4,8 @@ Uses the scraper's HTTP/domain/login/disk plumbing. Chapter names come from
 headings inside the text, not the site's sometimes misleading numeric labels.
 Each chapter title is preceded by an HCrawler-owned marker such as
 [[HCRAWLER MARKER 1]]; its number is a section counter, not the Chinese chapter
-number. A small journal under scan/ makes the single output resumable; no uploads.
+number. A small journal under modules/result/ makes the single output resumable;
+no uploads.
 """
 
 from __future__ import annotations
@@ -32,7 +33,7 @@ from quote_text import repair_text  # noqa: E402
 
 SCRAPER_DIR = Path(__file__).resolve().parents[2]
 INPUT_DIR = SCRAPER_DIR.parent / "input"
-SCAN_DIR = SCRAPER_DIR / "scan"
+SCAN_DIR = SCRAPER_DIR / "modules" / "result"
 REQUEST_TIMEOUT = 30.0
 REQUEST_DELAY = 0.5
 HTTP_HEADERS = {
@@ -271,8 +272,17 @@ def crawl_html(start_url: str, *, output_dir: Path = INPUT_DIR, scan_dir: Path =
         state = json.loads(journal.read_text(encoding="utf-8"))
         if state.get("start_url") != start:
             raise ValueError(f"Journal belongs to another start URL: {journal}")
-        if not destination.exists() or destination.stat().st_size < state["bytes"]:
-            raise ValueError(f"Output is missing or shorter than its journal: {destination}")
+        if not destination.exists():
+            raise ValueError(f"Output is missing: {destination}")
+        # A finished crawl is not appended to, so its file may legitimately have
+        # been edited after the fact (for example a quote pass that changes the
+        # byte count). Only an unfinished crawl needs the byte floor that keeps
+        # the append position honest.
+        if not state["complete"] and destination.stat().st_size < state["bytes"]:
+            raise ValueError(
+                f"Output is shorter than its unfinished journal: {destination}; "
+                "restore the original bytes before resuming"
+            )
         if state["complete"]:
             print(f"[done] Already complete: {destination}", flush=True)
             return destination, state["pages"]

@@ -76,7 +76,7 @@ TIMELINE_NAME = "timeline.log"
 
 def repo_scan_dir() -> Path:
     """Same resolution as Dcrawler: <repo>/scan, one level above python/."""
-    return Path(__file__).resolve().parents[2] / "scan"
+    return Path(__file__).resolve().parents[1] / "result"
 
 
 def canonical(url: str) -> str | None:
