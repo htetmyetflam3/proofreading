@@ -306,3 +306,68 @@ are now settled, and the answers are in part 9:
   (the tower as an object? the tower inside him?), the names of three of
   the four gods, and what 裴語涵 knows in ch. 168 when she says his time
   is nearly up. None is answered by 171.
+## 11. Unit 18 (ch. 172-181) — the network, the thirteen, and the spliced tail
+
+- **Thirteen, not sixteen.** The file prints `တစ်ဆယ့်သုံးဂိုဏ်း` as
+  `တစ်ဆယ့်သိုံးဂိုဏ်း` (`သိုံး` = `သုံး`), and the eye reads
+  "sixteen". Ch. 174 settles it with a digit: `ဂိုဏ်းကြီး ၁၃ ခု`.
+  Thirteen palms, thirteen 閣主, thirteen head-rank leaders. There is no
+  sixteen anywhere in 172-181.
+- **Rank collision inside the unit.** The four attackers are
+  `နတ်မင်းလေးပါး` (神將). 葉寧's new level is `သေတာ်စင်` (`…တစ်ပိုင်း`)
+  — 162 occurrences file-wide, never explained. A reader cannot tell
+  whether 神將道 is above, beside or identical to 神將. Left as an open
+  translation question; the review names both forms rather than picking.
+- **The mandala has a true name and a false one.** 監察院 calls it
+  `အင်မော်တယ်တားဆီးမန္တာန်စက်ဝန်း`; its real name is
+  `လူသားတို့၏ လောက ကွန်ရက်`. It converts distributed belief into
+  power: soldiers, officials, 文膽, a woodcutter, a farmer, the hungry,
+  wounded children, and the unmarked graves outside the wall. Keepers:
+  皇翷 (ကျိးထိုက်ကျူ) -> the 監正 (`ကြီးကြပ်ရေးမှူး`) -> a gap of
+  ~2,000 years -> 葉寧. **Why the gap**: no successor appeared, so the
+  post lapsed. This is the arc's central mechanism and it is stated
+  twice (ch. 175 and ch. 177) in nearly the same words.
+- **The curse is 裴語涵's, not 葉寧's.** Ch. 179: `ကျိန်စာတိုက်တာက
+  သူမဟုတ်ဘူး၊ ငါပဲ`. 范景睿 has spent the whole book blaming the
+  wrong person; her ruined face is 裴語涵's work. The reversal lands
+  after her unmasking, not before — do not pre-empt it in any summary.
+- **范景睿's sect is gone.** She is the only survivor of 玉石殿
+  (ch. 175), which is why she reads 葉寧's mercy as humiliation. Her
+  final request is to be killed (ch. 179); she is handed to 裴語涵
+  (ch. 180) and does not appear again in the unit.
+- **阮庭 (`ယွမ်တိုင်`) appears exactly once in the whole file** — ch.
+  178, as the mountain schoolmaster who hands his fishing rod to a pupil
+  and leaves on a letter. Because the name occurs once, a reader who
+  searches for him later finds nothing; everywhere else he is `အဖိုးအို`
+  or `ဆရာ`. The letter's sender is unnamed.
+- **The four shells + the pagoda promise.** Ch. 180: four 軀殼 of
+  焰焰山 (လောင်မီးချိုင့်ဝှမ်း) masters, holding 火種; 裴語涵 gives them
+  to 監察院 and takes 范景睿. 葉寧 offers the waist-hung `ကျောက်စေတီလေး`
+  (3 occurrences, all ch. 180, given by 師傅 王) — she refuses the object
+  and takes the promise instead: bring it to her when she needs it. That
+  promise is the arc's forward hook.
+- **Ch. 181 changes register mid-chapter.** First half is scene; second
+  half is a where-are-we-now montage (武學 ladder: 先天 -> 武魂 nine
+  layers -> 武皇 -> 武… ; 皇翷's over-reach drained the path; 吳三思's
+  cycle theory; nine 聖人-half 文膽, 3 to the university, 5 to the
+  palace). Treat as the author's own time-skip unless contradicted;
+  flag in the review as "twist or translation error".
+- **`အရင်မင်းကြီး` is used for two different people in ch. 181.**
+  Once as the dead emperor (with 太后, "both passed away"), once as a
+  living man who "was only pretending" and is now a clean emperor. Same
+  surface form, two referents — this is the single most confusing
+  sentence in the unit and it is flagged in the file.
+- **Corruption at 181 is a second system.** `ရှိ` 1 / `ရိ` 68,
+  `မမြို့` 13, `မပီ` 53, `သ့` 0, and `သူမ` returns 17 times after
+  172-180 use `သမ` exclusively. Quote marks also flip back from `" "`
+  to `“ ”` (3 vs 8). Working conclusion: two source passes were merged at
+  181, not one text decaying.
+- **Term corruption that breaks search.** 監察院 prints as
+  `ကကီးကပ်ရေးရိုံး` 59 times from ch. 174 on (normal form 757 in the
+  file). Name variants: `ချိက်ရှန်ကောင်း` 16 and `ချိက်ရန်ကောင်း` 30
+  against 447 normal; `လျိချင်း` 13 and `လျိရမ်း` 3, both confined to
+  the 181+ stretch.
+- **Quote fidelity.** Every block quote in part 18 was checked against
+  the normalised source. Three were rewritten after the check
+  (`ဘာမှတ်နေကတာလဲ`, the pagoda offer, the poem's second line, which is
+  printed as `မစမ်းသပ်ရေသး` and is left out of the quote).
