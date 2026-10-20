@@ -144,16 +144,42 @@ It splits on Chinese sentence/dialogue punctuation, ignores literal HTML-entity
 fragments, and shows a translation only when an approved exact entry already exists.
 The source text is not modified.
 
-### Source-quality caveat
+### Quote repair script
 
-The supplied Chinese file contains **2,824** literal `&quot;` sequences and repeated
-substituted characters. For example, the recurring `實不讓教死，教就點無教了`
-appears 53 times, where the novel's title is 《再不讓我死，我就真無敵了》. The same
-characters appeared on the sampled corresponding live page, so this is **not
-introduced by HCrawler or by this tool**. The supplied DOCX is a Burmese
-translation, so it was not used to rewrite the Chinese. No repair, glyph remapping or OCR cleanup is applied.
-The corruption affects both phrase counts and any paid translation; validate or
-obtain a correct Chinese source before a full-book MT run.
+`repair_quotes.py` repairs the literal quote entities without changing any other
+character. It understands `&quot;`, `&amp;quot;`, `&amp;amp;quot;`, `&#34;` and
+`&#x22;`, chooses `“`/`”` from local context, preserves CRLF/BOM/line count, and
+can write a TSV audit:
+
+```sh
+# Safe default: writes <input>.quotes-repaired.txt
+uv run repair_quotes.py input/chinese-0511241012-from-8011_93.txt \
+  --report /tmp/quote-report.tsv
+
+# Explicit in-place rewrite:
+uv run repair_quotes.py input/chinese-0511241012-from-8011_93.txt --in-place
+```
+
+The conversion is context-aware rather than a blind alternating replace: it handles
+existing `“`/`”`, a closing quote before a narrative tag, a new quote after narrative
+ending in `。`, and short nested term pairs. It flags uncertain choices in the report;
+it does not repair the substituted characters described below.
+
+The supplied Chinese file **originally** contained 2,824 literal `&quot;` sequences.
+The repair converted them to **2,486 opening quotes** and **336 closing quotes**,
+removed 2 duplicate openings, and flagged 116 conversions for review. The pre-repair
+text remains recoverable from commit `61b4b86`.
+
+### Remaining source-quality caveat
+
+The file still contains repeated substituted characters. For example, the recurring
+`實不讓教死，教就點無教了` appears 53 times, where the novel's title is
+《再不讓我死，我就真無敵了》. The same characters appeared on the sampled
+corresponding live page, so this is **not introduced by HCrawler or by this tool**.
+The supplied DOCX is a Burmese translation, so it was not used to rewrite the
+Chinese. No glyph remapping or OCR cleanup is applied. The corruption affects both
+phrase counts and any paid translation; validate or obtain a correct Chinese source
+before a full-book MT run.
 
 ## Comparison design agreed with the owner
 
