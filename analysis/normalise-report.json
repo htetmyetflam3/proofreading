@@ -1,0 +1,29 @@
+{
+ "input_chars": 2426228,
+ "output_chars": 2426369,
+ "rules": {
+  "i-dot-below-then-oo": 1846,
+  "kya-ligature": 448,
+  "myo-doubled": 104,
+  "myo-nga-dot": 204,
+  "thu-doh": 208,
+  "thu-poss": 94,
+  "kya-a": 242,
+  "kya-e": 78,
+  "kya-an": 41,
+  "kya-um": 21,
+  "a-shift-twa": 327,
+  "a-shift-ye": 384,
+  "a-shift-nge": 37,
+  "a-shift-paw": 15,
+  "a-shift-lya": 5,
+  "a-shift-thaw": 7,
+  "kya-shift": 263,
+  "kya-cons": 371,
+  "kya-end": 6,
+  "rhi": 331,
+  "pri": 1677
+ },
+ "repaired_total": 6709,
+ "rejected": {}
+}

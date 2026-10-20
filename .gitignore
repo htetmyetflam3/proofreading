@@ -30,6 +30,7 @@ __pycache__/
 
 # Generated repair copy; the DOCX and its plain text stay the sources.
 /input/*.damage-repaired.txt
+/input/*.normalised.txt
 
 # Installed dictionary data (25 MB); rebuild with: python3 format/fetch_dicts.py
 /Engine/knowledge/dicts/
