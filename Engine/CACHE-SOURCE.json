@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/htetmyetflam3/scraper",
+  "commit": "8914406feef263443a34aba9a0bc189e10b824af",
+  "sha256": {
+    "ref-syllables.json": "c21cdd6e58d202aaab65fe150cf59a2c7df262c3747e715bf0513f0b0090f36d",
+    "rtl-tree.json": "a9853eb07825e08cc8ebb6f72c9de78586115cfdb89769505da91562f9cc2832",
+    "syllable.mapped.txt": "e25c47e86abef1d5806767d2de2cf64209e6a96be6d094595b7c8a12d36624fd",
+    "syllable.tree.json": "d481904dcdc7acb967f7361258baf1d306264ca418ff1099ab9bae7073d88f75"
+  }
+}

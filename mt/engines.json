@@ -1,0 +1,25 @@
+{
+  "package_dir": "/home/user/.local/share/argos-translate/packages",
+  "routes": {
+    "zh-en": {
+      "state": "installed",
+      "path": "/home/user/.local/share/argos-translate/packages/translate-zh_en-1_0"
+    },
+    "zt-en": {
+      "state": "no_model",
+      "path": null
+    },
+    "en-my": {
+      "state": "no_model",
+      "path": null
+    },
+    "my-en": {
+      "state": "no_model",
+      "path": null
+    },
+    "zh-my": {
+      "state": "no_model",
+      "path": null
+    }
+  }
+}

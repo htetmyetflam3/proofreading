@@ -1,0 +1,11 @@
+{
+  "pairing": "map",
+  "caution": "explicit map supplied by --map",
+  "output": "output/merged/episodes-verified.txt",
+  "chinese_chapters": 210,
+  "burmese_chapters": 197,
+  "episodes_written": 1,
+  "matched_pairs": 1,
+  "unmatched_chinese": 0,
+  "unmatched_burmese": 0
+}
