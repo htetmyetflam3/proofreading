@@ -789,6 +789,21 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(entry["command"][-2:], ["--env-file", str(env_file)])
         self.assertNotIn("environment", entry)
 
+    def test_install_config_refuses_a_missing_env_file(self):
+        target = self._temp() / "kilo.json"
+        output = self.run_server("--install-config", "--client", "kilo",
+                                 "--config", str(target),
+                                 "--env-file", str(self._temp() / "nope.env"))
+        self.assertEqual(output.returncode, 2)
+        self.assertIn("no env file", output.stderr)
+        self.assertFalse(target.exists())
+
+    def test_print_config_refuses_a_missing_env_file(self):
+        output = self.run_server("--print-config", "--client", "kilo",
+                                 "--env-file", str(self._temp() / "nope.env"))
+        self.assertEqual(output.returncode, 2)
+        self.assertIn("no env file", output.stderr)
+
     def test_install_config_for_gemini_uses_env_expansion(self):
         target = self._temp() / "settings.json"
         self.run_server("--install-config", "--client", "gemini", "--config", str(target))

@@ -523,6 +523,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--attempts", type=int, default=3)
     args = parser.parse_args(argv)
 
+    if args.env_file is not None:
+        args.env_file = Path(args.env_file).expanduser()
+        if not args.env_file.is_file():
+            print(f"[mcp] no env file at {args.env_file} — create it first, e.g.\n"
+                  f"      printf 'RAPIDAPI_KEY=your-key\\n' > {args.env_file}",
+                  file=sys.stderr)
+            return 2
+
     if args.print_config:
         print(config_snippet(args.client, args.env_file))
         return 0
