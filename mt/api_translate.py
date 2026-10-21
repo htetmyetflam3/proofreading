@@ -1,0 +1,422 @@
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
+"""Translate Chinese chapters with the RapidAPI translator and compare them with
+the existing human Burmese.
+
+    python3 mt/api_translate.py --chapters 1-2 --plan     # offline plan, no key
+    RAPIDAPI_KEY=... python3 mt/api_translate.py --chapters 1-2 --run
+
+Default is the plan: it reads the source, counts paragraphs and predicts the
+number of billed requests, and makes no network call. `--run` is required to
+spend quota.
+
+Units are paragraphs, not sentences: a web-novel paragraph is one line in the
+crawled source, and a paragraph keeps the context the translator needs. Crawler
+markers, `--- Page N ---` lines, site promo lines, author `PS:` notes, dotted
+rules and the PDF watermark are dropped before translation (`--keep-notes`
+keeps the notes). Nothing else in the source is changed.
+
+Outputs go to `content/mtranslate/rapidapi/` by default:
+
+    ch0001.my.jsonl          one record per paragraph: zh, my, cache flag
+    ch0001.my.txt            the chapter in Burmese
+    book.my.txt              every selected chapter
+    compare-ch001-ch002.md   Chinese and new Burmese side by side, plus the
+                             existing human Burmese chapter as a reference
+    report.json              counts, detected language, request count, files
+
+The comparison does not claim paragraph-level alignment with the human
+translation: that alignment has never been verified, and the human text comes
+from a PDF with its own line wrapping.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parent
+sys.path.insert(0, str(HERE))
+
+from rapidapi_translator import (  # noqa: E402
+    MAX_REQUEST_CHARS,
+    MAX_REQUEST_ITEMS,
+    CachedTranslator,
+    TranslatorError,
+    chunk_texts,
+    parse_chapters,
+    split_text,
+)
+from translate import BurmeseChapter, Chapter, burmese_chapters, chinese_chapters  # noqa: E402
+
+CHINESE = ROOT / "content" / "source" / "chinese-0511241012-from-8011_1.txt"
+BURMESE = ROOT / "content" / "source" / "ယဲ့နင်.txt"
+OUTPUT = ROOT / "content" / "mtranslate" / "rapidapi"
+
+_MARKER = re.compile(r"^\[\[[A-Z]*CRAWLER[^\]]*\]\]$")
+_PAGE = re.compile(r"^---\s*Page\s+\d+\s*---$")
+_PROMO = re.compile(r"^\(?\s*(?:活動時間|活动时间|活動期間|活动期间)\s*[:：].*$")
+_NOTE = re.compile(r"^PS\s*[:：].*$", re.IGNORECASE)
+_RULE = re.compile(r"^[.·•…\-—_=*~\s]{6,}$")
+_WATERMARK = re.compile(r"^(?:wunzinnosp|https?://\S+|www\.\S+)$", re.IGNORECASE)
+
+
+def chapter_paragraphs(chapter: Chapter, *, keep_notes: bool = False) -> list[str]:
+    """Translatable paragraphs, in source order, with crawler junk removed."""
+    paragraphs: list[str] = []
+    for raw in chapter.body.split("\n"):
+        line = raw.strip()
+        if not line:
+            continue
+        if _MARKER.match(line) or _PAGE.match(line) or _WATERMARK.match(line):
+            continue
+        if not keep_notes and (_PROMO.match(line) or _NOTE.match(line) or _RULE.match(line)):
+            continue
+        paragraphs.append(line)
+    return paragraphs
+
+
+def reference_lines(chapter: BurmeseChapter) -> list[str]:
+    """The existing human chapter with PDF furniture removed, lines kept as-is."""
+    lines: list[str] = []
+    for raw in chapter.body.split("\n"):
+        line = raw.strip()
+        if not line:
+            continue
+        if _MARKER.match(line) or _PAGE.match(line) or _WATERMARK.match(line) or _RULE.match(line):
+            continue
+        lines.append(line)
+    return lines
+
+
+def select(chapters: list[Chapter], wanted: list[int]) -> list[Chapter]:
+    by_number = {chapter.number: chapter for chapter in chapters}
+    return [by_number[number] for number in wanted if number in by_number]
+
+
+def _pieces(paragraphs: list[str], max_chars: int) -> list[str]:
+    return [piece for paragraph in dict.fromkeys(paragraphs)
+            for piece in split_text(paragraph, max_chars)]
+
+
+def build_plan(chapters: list[Chapter], *, target: str, source: str,
+               max_chars: int, max_items: int, keep_notes: bool = False) -> dict:
+    rows = []
+    total = {"paragraphs": 0, "characters": 0, "requests": 0}
+    for chapter in chapters:
+        paragraphs = chapter_paragraphs(chapter, keep_notes=keep_notes)
+        requests = sum(1 for _ in chunk_texts(_pieces(paragraphs, max_chars),
+                                              max_chars, max_items))
+        row = {
+            "chapter": chapter.number,
+            "title": chapter.title,
+            "paragraphs": len(paragraphs),
+            "characters": sum(len(p) for p in paragraphs),
+            "requests": requests,
+        }
+        rows.append(row)
+        for name in total:
+            total[name] += row[name]
+    return {
+        "mode": "plan",
+        "target": target,
+        "source": source,
+        "max_chars": max_chars,
+        "max_items": max_items,
+        "chapters": rows,
+        "totals": total,
+        "note": "Upper bound measured on this source; retries and rate-limit "
+                "responses can add requests.",
+    }
+
+
+def _relative(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
+def _existing_chapters(path: Path) -> dict[int, BurmeseChapter]:
+    try:
+        return {chapter.number: chapter for chapter in burmese_chapters(path)}
+    except Exception:
+        return {}
+
+
+def write_compare(path: Path, chapters: list[Chapter], results: dict,
+                  report: dict, existing: dict[int, BurmeseChapter]) -> None:
+    lines: list[str] = [
+        f"# {report['source_requested']} → {report['target']} — chapter "
+        f"{chapters[0].number}–{chapters[-1].number}",
+        "",
+        "| field | value |",
+        "|---|---|",
+        f"| API | `{report['host']}` (RapidAPI) |",
+        f"| target | `{report['target']}` |",
+        f"| requested source | `{report['source_requested']}` |",
+        f"| detected source | {report['detected'] or '—'} |",
+        f"| chapters | {len(chapters)} |",
+        f"| paragraphs | {report['totals']['paragraphs']} |",
+        f"| characters | {report['totals']['characters']} |",
+        f"| requests (this run) | {report['totals']['requests']} |",
+        f"| cache hits | {report['totals']['cached']} / {report['totals']['paragraphs']} |",
+        f"| generated | {report['generated']} |",
+        "",
+        "Each numbered paragraph below is one source line and its translation, in "
+        "the order the API returned them. The human Burmese under *reference* is "
+        "the existing translation of the same chapter; it is **not** paragraph-"
+        "aligned with the Chinese, because that alignment has never been verified.",
+        "",
+    ]
+    for chapter in chapters:
+        result = results[chapter.number]
+        reference = existing.get(chapter.number)
+        lines.append(f"## Chapter {chapter.number} — {chapter.title}")
+        lines.append("")
+        lines.append(f"{len(result['source'])} paragraphs · "
+                     f"{sum(len(p) for p in result['source'])} characters · "
+                     f"{result['requests']} request(s) · "
+                     f"detected `{result['source_language'] or '—'}`")
+        lines.append("")
+        for index, (source, translated) in enumerate(
+                zip(result["source"], result["target"]), 1):
+            lines.append(f"**{index}.** {source}")
+            lines.append("")
+            lines.append(f"> {translated}" if translated else "> _(empty)_")
+            lines.append("")
+        if reference is not None:
+            body = "\n".join(reference_lines(reference))
+            lines.extend([
+                "<details>",
+                f"<summary>Existing human Burmese — chapter {chapter.number} "
+                f"({len(reference_lines(reference))} lines, reference only)</summary>",
+                "",
+                body,
+                "",
+                "</details>",
+                "",
+            ])
+        else:
+            lines.extend(["_No existing human Burmese chapter for this number._", ""])
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+
+
+def run(chapters: list[Chapter], *, target: str = "my", source: str = "auto",
+        out_dir: Path | str = OUTPUT, cache_path: Path | str | None = None,
+        enabled_cache: bool = True, keep_notes: bool = False,
+        max_chars: int = MAX_REQUEST_CHARS, max_items: int = MAX_REQUEST_ITEMS,
+        timeout: float = 60.0, max_attempts: int = 3, compare: bool = True,
+        existing_path: Path | str | None = BURMESE,
+        log=None) -> dict:
+    """Translate the given chapters and write the files described in the module doc."""
+    out_dir = Path(out_dir)
+    started = time.time()
+    generated = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+    report: dict = {
+        "provider": "RapidAPI multi-format AI translator",
+        "host": "",
+        "target": target,
+        "source_requested": source,
+        "detected": "",
+        "generated": generated,
+        "chapters": [],
+        "totals": {"chapters": 0, "paragraphs": 0, "characters": 0,
+                   "requests": 0, "cached": 0},
+        "elapsed_seconds": 0.0,
+        "files": [],
+    }
+    results: dict[int, dict] = {}
+    book: list[str] = []
+
+    with CachedTranslator(cache_path=cache_path, enabled=enabled_cache,
+                          timeout=timeout, max_attempts=max_attempts,
+                          max_chars=max_chars, max_items=max_items) as translator:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        report["host"] = translator.host
+        report["cache"] = str(translator.cache.path) if translator.cache.enabled else None
+        for chapter in chapters:
+            paragraphs = chapter_paragraphs(chapter, keep_notes=keep_notes)
+            if not paragraphs:
+                continue
+            result = translator.translate_batch(paragraphs, target, source)
+            stem = f"ch{chapter.number:04d}.{target}"
+            jsonl_path = out_dir / f"{stem}.jsonl"
+            with jsonl_path.open("w", encoding="utf-8") as handle:
+                for index, (zh, translated, hit) in enumerate(
+                        zip(paragraphs, result.texts, result.cache_hits), 1):
+                    handle.write(json.dumps({
+                        "chapter": chapter.number,
+                        "title": chapter.title,
+                        "index": index,
+                        "source": zh,
+                        "target": translated,
+                        "cached": hit,
+                    }, ensure_ascii=False) + "\n")
+            text_path = out_dir / f"{stem}.txt"
+            text_path.write_text(
+                f"{chapter.title}\n{'=' * len(chapter.title)}\n\n"
+                + "\n\n".join(result.texts) + "\n", encoding="utf-8")
+            book.append(f"===== {chapter.title} =====\n\n" + "\n\n".join(result.texts))
+            results[chapter.number] = {
+                "source": paragraphs,
+                "target": result.texts,
+                "source_language": result.source_language,
+                "requests": result.requests,
+            }
+            row = {
+                "chapter": chapter.number,
+                "title": chapter.title,
+                "paragraphs": len(paragraphs),
+                "characters": sum(len(p) for p in paragraphs),
+                "requests": result.requests,
+                "cached": result.cached,
+                "source_language": result.source_language,
+                "source_language_name": result.source_language_name,
+                "files": [_relative(jsonl_path), _relative(text_path)],
+            }
+            report["chapters"].append(row)
+            report["totals"]["chapters"] += 1
+            for name in ("paragraphs", "characters", "requests", "cached"):
+                report["totals"][name] += row[name]
+            if result.source_language:
+                report["detected"] = result.source_language
+            if log is not None:
+                log(f"[rapidapi] chapter {chapter.number}: {row['paragraphs']} "
+                    f"paragraphs, {row['requests']} request(s), {row['cached']} cached")
+
+    if book:
+        book_path = out_dir / f"book.{target}.txt"
+        book_path.write_text("\n\n".join(book) + "\n", encoding="utf-8")
+        report["files"].append(_relative(book_path))
+
+    if compare and chapters and results:
+        existing = _existing_chapters(Path(existing_path)) if existing_path else {}
+        compare_path = out_dir / (
+            f"compare-ch{chapters[0].number:03d}-ch{chapters[-1].number:03d}.md")
+        write_compare(compare_path, [c for c in chapters if c.number in results],
+                      results, report, existing)
+        report["files"].append(_relative(compare_path))
+
+    report["elapsed_seconds"] = round(time.time() - started, 1)
+    report_path = out_dir / "report.json"
+    report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n",
+                           encoding="utf-8")
+    report["files"].append(_relative(report_path))
+    return report
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Translate Chinese chapters via RapidAPI and compare with the "
+                    "existing Burmese.")
+    parser.add_argument("--chapters", default="1-2",
+                        help="chapters to translate, e.g. 1-2 or 1,3-4 or all "
+                             "(default: 1-2)")
+    parser.add_argument("--target", default="my", help="target language (default: my)")
+    parser.add_argument("--source", default="auto",
+                        help="source language or auto (default: auto)")
+    parser.add_argument("--source-file", type=Path, default=CHINESE,
+                        help="Chinese text with ===== 第N章 ===== headings")
+    parser.add_argument("--existing", type=Path, default=BURMESE,
+                        help="existing human Burmese, for the comparison reference")
+    parser.add_argument("--out-dir", type=Path, default=OUTPUT)
+    parser.add_argument("--cache", type=Path, default=None, help="SQLite cache path")
+    parser.add_argument("--no-cache", action="store_true", help="ignore the cache")
+    parser.add_argument("--keep-notes", action="store_true",
+                        help="keep author notes and promo lines")
+    parser.add_argument("--no-compare", action="store_true",
+                        help="do not write the comparison file")
+    parser.add_argument("--max-chars", type=int, default=MAX_REQUEST_CHARS)
+    parser.add_argument("--max-items", type=int, default=MAX_REQUEST_ITEMS)
+    parser.add_argument("--timeout", type=float, default=60.0)
+    parser.add_argument("--attempts", type=int, default=3)
+    parser.add_argument("--json", action="store_true", help="print the report as JSON")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--plan", action="store_true",
+                      help="offline: count work and requests (default)")
+    mode.add_argument("--run", action="store_true",
+                      help="actually call the API; needs RAPIDAPI_KEY")
+    args = parser.parse_args(argv)
+
+    if not args.source_file.is_file():
+        print(f"[rapidapi] no source file at {args.source_file}", file=sys.stderr)
+        return 4
+    chapters = chinese_chapters(args.source_file)
+    if not chapters:
+        print("[rapidapi] no chapters found in the source file", file=sys.stderr)
+        return 4
+
+    if args.chapters.strip().lower() == "all":
+        wanted = [chapter.number for chapter in chapters]
+    else:
+        try:
+            wanted = parse_chapters(args.chapters)
+        except ValueError as error:
+            print(f"[rapidapi] bad --chapters: {error}", file=sys.stderr)
+            return 2
+    selected = select(chapters, wanted)
+    missing = sorted(set(wanted) - {chapter.number for chapter in selected})
+    if missing:
+        known = ", ".join(str(number) for number in wanted if number not in missing)
+        print(f"[rapidapi] no chapter(s) {missing} in {args.source_file.name}; "
+              f"found {known or 'nothing'}", file=sys.stderr)
+        return 2
+    if not selected:
+        print("[rapidapi] nothing selected", file=sys.stderr)
+        return 2
+
+    if not args.run:
+        plan = build_plan(selected, target=args.target, source=args.source,
+                          max_chars=args.max_chars, max_items=args.max_items,
+                          keep_notes=args.keep_notes)
+        plan["source_file"] = _relative(args.source_file)
+        if args.json:
+            print(json.dumps(plan, indent=2, ensure_ascii=False))
+        else:
+            print(f"[rapidapi] plan only — no request made, key not needed")
+            print(f"{'chapter':>7}  {'paragraphs':>10}  {'characters':>10}  {'requests':>8}  title")
+            for row in plan["chapters"]:
+                print(f"{row['chapter']:>7}  {row['paragraphs']:>10}  "
+                      f"{row['characters']:>10}  {row['requests']:>8}  {row['title']}")
+            totals = plan["totals"]
+            print(f"{'total':>7}  {totals['paragraphs']:>10}  "
+                  f"{totals['characters']:>10}  {totals['requests']:>8}")
+            print("\nRun the same command with --run to translate "
+                  f"({args.source} → {args.target}).")
+        return 0
+
+    try:
+        report = run(selected, target=args.target, source=args.source,
+                     out_dir=args.out_dir, cache_path=args.cache,
+                     enabled_cache=not args.no_cache, keep_notes=args.keep_notes,
+                     max_chars=args.max_chars, max_items=args.max_items,
+                     timeout=args.timeout, max_attempts=args.attempts,
+                     compare=not args.no_compare, existing_path=args.existing,
+                     log=None if args.json else print)
+    except TranslatorError as error:
+        print(f"[rapidapi] {error}", file=sys.stderr)
+        return 3
+    if args.json:
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+    else:
+        totals = report["totals"]
+        print(f"[rapidapi] {totals['chapters']} chapter(s), {totals['paragraphs']} "
+              f"paragraph(s), {totals['requests']} request(s), "
+              f"{report['elapsed_seconds']}s -> {args.out_dir}")
+        for name in report["files"]:
+            print(f"  {name}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -96,3 +96,18 @@ That's why Tsai was almost unsuspecting and stopped the displaced first.
 gist, not for publishing. That is the trade: an 83 MB offline model that runs at
 about 30 sentences/second on CPU, against an API that costs money and needs a
 key.
+
+## RapidAPI translator (Chinese → Burmese)
+
+`mt/rapidapi_translator.py` speaks the RapidAPI "Multi format AI translator" API
+and `mt/api_translate.py` runs it over chapters of the local source, writing
+JSONL/TXT plus a Chinese/Burmese comparison against the existing human
+translation. `mt/mcp_server.py` exposes the same calls as a local MCP server.
+
+```sh
+python3 mt/api_translate.py --chapters 1-2 --plan   # offline, no key
+RAPIDAPI_KEY=... python3 mt/api_translate.py --chapters 1-2 --run
+```
+
+The key is read from `RAPIDAPI_KEY`, never stored. See `mt/RAPIDAPI.md` for the
+endpoint formats, the MCP client config and the cache/retry rules.
