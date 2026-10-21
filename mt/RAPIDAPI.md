@@ -54,6 +54,73 @@ Optional overrides, mainly for tests:
 - `RAPIDAPI_HOST` — value of the `X-RapidAPI-Host` header
 - `RAPIDAPI_CACHE` — SQLite cache path (default `content/mtranslate/rapidapi-cache.sqlite3`)
 
+## Which chapter is behind the existing Burmese? (read from the DOCX)
+
+Do not guess an offset. `content/merged/episodes.docx` pairs every Chinese
+heading with the Burmese one on the same page, so the numbers come from the file
+itself:
+
+```sh
+python3 mt/chapter_map.py
+```
+
+```
+docx: /path/to/repo/content/merged/episodes.docx
+Chinese chapters with a Burmese counterpart: 1–193 (193)
+Burmese chapters present: 1–195 (195)
+split: Chinese 61 → Burmese 61 + 62
+split: Chinese 137 → Burmese 138 + 139
+last existing Burmese chapter: 195 ↔ Chinese 193
+next Chinese chapter without a Burmese counterpart: 194
+```
+
+So the chapter behind the *last* existing Burmese chapter (အခန်း ၁၉၅) is
+**Chinese 193**, and the next chapter with no human translation is **Chinese
+194**. Look one up directly:
+
+```sh
+python3 mt/chapter_map.py --at 193            # Chinese 193: Burmese 195
+python3 mt/chapter_map.py --at 61             # Chinese 61: Burmese 61, 62
+python3 mt/chapter_map.py --burmese 195       # Burmese 195: Chinese 193
+python3 mt/chapter_map.py --json              # every pair, machine-readable
+python3 mt/chapter_map.py --write content/merged/chapter-map.json
+```
+
+The OCR forms in both headings are handled: `第六四意` (64), bare `92`,
+`အခန်း (၅)`, `အခန်း(ရ)` (letter ရ for ၇), `အခန်း94` (Arabic digits),
+`Chapter 1:`, page repeats, and headings whose page numbers disagree (reported,
+not paired).
+
+### Use it from the runner
+
+`--chapters` now accepts words resolved through that map:
+
+```sh
+python3 mt/api_translate.py --chapters last --plan   # Chinese 193, has a reference
+python3 mt/api_translate.py --chapters next --plan   # Chinese 194, first untranslated
+python3 mt/api_translate.py --chapters existing --plan  # all 193 that have one
+```
+
+Any run also uses the map for the comparison: Chinese 193 is compared against
+Burmese **195**, Chinese 61 against **61 + 62**, and Chinese 62 against Burmese
+63. Before this, the comparison assumed Chinese N = Burmese N, which is wrong
+after the first split.
+
+Options: `--docx PATH` (default `content/merged/episodes.docx`), `--map PATH`
+(use a saved map instead of reading the DOCX), `--no-map` (identity numbering,
+stated in the comparison file). The generated files record it too:
+
+```json
+"reference": {
+  "docx_map": true,
+  "span": "Chinese 1–193 ↔ Burmese 1–195; next without one: 194",
+  "splits": {"61": [61, 62], "137": [138, 139]}
+}
+```
+
+The MCP tool `translate_chapters` takes the same selection strings, so an agent
+can ask for `"chapters": "next"`.
+
 ## The first two chapters
 
 ```sh

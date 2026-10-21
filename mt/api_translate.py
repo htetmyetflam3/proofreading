@@ -55,11 +55,14 @@ from rapidapi_translator import (  # noqa: E402
     parse_chapters,
     split_text,
 )
+from chapter_map import ChapterMap, ChapterMapError, load_or_derive  # noqa: E402
 from translate import BurmeseChapter, Chapter, burmese_chapters, chinese_chapters  # noqa: E402
 
 CHINESE = ROOT / "content" / "source" / "chinese-0511241012-from-8011_1.txt"
 BURMESE = ROOT / "content" / "source" / "ယဲ့နင်.txt"
 OUTPUT = ROOT / "content" / "mtranslate" / "rapidapi"
+DOCX = ROOT / "content" / "merged" / "episodes.docx"
+CHAPTER_WORDS = ("next", "last", "existing")
 
 _MARKER = re.compile(r"^\[\[[A-Z]*CRAWLER[^\]]*\]\]$")
 _PAGE = re.compile(r"^---\s*Page\s+\d+\s*---$")
@@ -152,8 +155,30 @@ def _existing_chapters(path: Path) -> dict[int, BurmeseChapter]:
         return {}
 
 
+def reference_numbers(chapter_map: ChapterMap | None, chinese: int) -> list[int]:
+    """Burmese chapter numbers behind a Chinese chapter, from the DOCX map."""
+    if chapter_map is None:
+        return [chinese]
+    return chapter_map.by_chinese.get(chinese) or []
+
+
+def reference_text(chapter_map: ChapterMap | None, existing: dict[int, BurmeseChapter],
+                   chinese: int) -> tuple[list[int], list[str]]:
+    """The existing Burmese lines for a Chinese chapter, and which chapters they came from."""
+    numbers = reference_numbers(chapter_map, chinese)
+    if numbers:
+        parts = [existing[number] for number in numbers if number in existing]
+    else:
+        parts = [existing[chinese]] if chinese in existing else []
+    lines: list[str] = []
+    for part in parts:
+        lines.extend(reference_lines(part))
+    return [part.number for part in parts], lines
+
+
 def write_compare(path: Path, chapters: list[Chapter], results: dict,
-                  report: dict, existing: dict[int, BurmeseChapter]) -> None:
+                  report: dict, existing: dict[int, BurmeseChapter],
+                  chapter_map: ChapterMap | None = None) -> None:
     lines: list[str] = [
         f"# {report['source_requested']} → {report['target']} — chapter "
         f"{chapters[0].number}–{chapters[-1].number}",
@@ -169,6 +194,7 @@ def write_compare(path: Path, chapters: list[Chapter], results: dict,
         f"| characters | {report['totals']['characters']} |",
         f"| requests (this run) | {report['totals']['requests']} |",
         f"| cache hits | {report['totals']['cached']} / {report['totals']['paragraphs']} |",
+        f"| existing Burmese (DOCX) | {_reference_span(chapter_map)} |",
         f"| generated | {report['generated']} |",
         "",
         "Each numbered paragraph below is one source line and its translation, in "
@@ -177,9 +203,15 @@ def write_compare(path: Path, chapters: list[Chapter], results: dict,
         "aligned with the Chinese, because that alignment has never been verified.",
         "",
     ]
+    if chapter_map is None:
+        lines.extend([
+            "_Reference chapters were matched by number because no DOCX map was read; "
+            "beyond the first split that is wrong — run without `--no-map`._",
+            "",
+        ])
     for chapter in chapters:
         result = results[chapter.number]
-        reference = existing.get(chapter.number)
+        numbers, reference = reference_text(chapter_map, existing, chapter.number)
         lines.append(f"## Chapter {chapter.number} — {chapter.title}")
         lines.append("")
         lines.append(f"{len(result['source'])} paragraphs · "
@@ -193,14 +225,14 @@ def write_compare(path: Path, chapters: list[Chapter], results: dict,
             lines.append("")
             lines.append(f"> {translated}" if translated else "> _(empty)_")
             lines.append("")
-        if reference is not None:
-            body = "\n".join(reference_lines(reference))
+        if numbers:
+            label = " + ".join(str(number) for number in numbers)
             lines.extend([
                 "<details>",
-                f"<summary>Existing human Burmese — chapter {chapter.number} "
-                f"({len(reference_lines(reference))} lines, reference only)</summary>",
+                f"<summary>Existing human Burmese — chapter {label} "
+                f"({len(reference)} lines, reference only)</summary>",
                 "",
-                body,
+                "\n".join(reference),
                 "",
                 "</details>",
                 "",
@@ -210,13 +242,22 @@ def write_compare(path: Path, chapters: list[Chapter], results: dict,
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
+def _reference_span(chapter_map: ChapterMap | None) -> str:
+    if chapter_map is None or not chapter_map.pairs:
+        return "not read (no DOCX map)"
+    covered = chapter_map.chinese_covered
+    burmese = chapter_map.burmese_chapters
+    return (f"Chinese {covered[0]}–{covered[-1]} ↔ Burmese "
+            f"{burmese[0]}–{burmese[-1]}; next without one: {chapter_map.next_chinese}")
+
+
 def run(chapters: list[Chapter], *, target: str = "my", source: str = "auto",
         out_dir: Path | str = OUTPUT, cache_path: Path | str | None = None,
         enabled_cache: bool = True, keep_notes: bool = False,
         max_chars: int = MAX_REQUEST_CHARS, max_items: int = MAX_REQUEST_ITEMS,
         timeout: float = 60.0, max_attempts: int = 3, compare: bool = True,
         existing_path: Path | str | None = BURMESE,
-        log=None) -> dict:
+        chapter_map: ChapterMap | None = None, log=None) -> dict:
     """Translate the given chapters and write the files described in the module doc."""
     out_dir = Path(out_dir)
     started = time.time()
@@ -230,6 +271,11 @@ def run(chapters: list[Chapter], *, target: str = "my", source: str = "auto",
         "detected": "",
         "generated": generated,
         "chapters": [],
+        "reference": {
+            "docx_map": bool(chapter_map and chapter_map.pairs),
+            "span": _reference_span(chapter_map),
+            "splits": {str(k): v for k, v in (chapter_map.splits() if chapter_map else {}).items()},
+        },
         "totals": {"chapters": 0, "paragraphs": 0, "characters": 0,
                    "requests": 0, "cached": 0},
         "elapsed_seconds": 0.0,
@@ -282,6 +328,7 @@ def run(chapters: list[Chapter], *, target: str = "my", source: str = "auto",
                 "cached": result.cached,
                 "source_language": result.source_language,
                 "source_language_name": result.source_language_name,
+                "reference_chapters": reference_numbers(chapter_map, chapter.number),
                 "files": [_relative(jsonl_path), _relative(text_path)],
             }
             report["chapters"].append(row)
@@ -304,7 +351,7 @@ def run(chapters: list[Chapter], *, target: str = "my", source: str = "auto",
         compare_path = out_dir / (
             f"compare-ch{chapters[0].number:03d}-ch{chapters[-1].number:03d}.md")
         write_compare(compare_path, [c for c in chapters if c.number in results],
-                      results, report, existing)
+                      results, report, existing, chapter_map)
         report["files"].append(_relative(compare_path))
 
     report["elapsed_seconds"] = round(time.time() - started, 1)
@@ -320,15 +367,25 @@ def main(argv: list[str] | None = None) -> int:
         description="Translate Chinese chapters via RapidAPI and compare with the "
                     "existing Burmese.")
     parser.add_argument("--chapters", default="1-2",
-                        help="chapters to translate, e.g. 1-2 or 1,3-4 or all "
-                             "(default: 1-2)")
+                        help="chapters to translate: 1-2, 1,3-4, all, or one of "
+                             "next (first Chinese chapter after the existing "
+                             "Burmese, 194), last (the Chinese chapter behind the "
+                             "last existing Burmese, 193) or existing (every "
+                             "Chinese chapter that has one). Default: 1-2")
     parser.add_argument("--target", default="my", help="target language (default: my)")
     parser.add_argument("--source", default="auto",
                         help="source language or auto (default: auto)")
     parser.add_argument("--source-file", type=Path, default=CHINESE,
                         help="Chinese text with ===== 第N章 ===== headings")
     parser.add_argument("--existing", type=Path, default=BURMESE,
-                        help="existing human Burmese, for the comparison reference")
+                        help="existing human Burmese text, for the comparison reference")
+    parser.add_argument("--docx", type=Path, default=DOCX,
+                        help="bilingual DOCX the chapter numbers come from "
+                             "(default: content/merged/episodes.docx)")
+    parser.add_argument("--map", dest="map_path", type=Path, default=None,
+                        help="saved chapter map JSON; skips reading the DOCX")
+    parser.add_argument("--no-map", action="store_true",
+                        help="ignore the DOCX map and assume Chinese N = Burmese N")
     parser.add_argument("--out-dir", type=Path, default=OUTPUT)
     parser.add_argument("--cache", type=Path, default=None, help="SQLite cache path")
     parser.add_argument("--no-cache", action="store_true", help="ignore the cache")
@@ -356,7 +413,35 @@ def main(argv: list[str] | None = None) -> int:
         print("[rapidapi] no chapters found in the source file", file=sys.stderr)
         return 4
 
-    if args.chapters.strip().lower() == "all":
+    chapter_map: ChapterMap | None = None
+    word = args.chapters.strip().lower()
+    explicit = word in CHAPTER_WORDS or args.map_path is not None or args.docx != DOCX
+    if not args.no_map:
+        try:
+            chapter_map = load_or_derive(args.map_path, args.docx)
+        except (ChapterMapError, OSError, KeyError) as error:
+            if explicit:
+                print(f"[rapidapi] chapter map unavailable: {error}", file=sys.stderr)
+            if word in CHAPTER_WORDS:
+                return 2
+    if word in CHAPTER_WORDS:
+        if chapter_map is None:
+            print(f"[rapidapi] --chapters {word} needs the DOCX map", file=sys.stderr)
+            return 2
+        if word == "next":
+            wanted = [chapter_map.next_chinese] if chapter_map.next_chinese else []
+        elif word == "last":
+            wanted = [chapter_map.last_chinese] if chapter_map.last_chinese else []
+        else:
+            wanted = chapter_map.chinese_covered
+        if not wanted:
+            print(f"[rapidapi] --chapters {word}: nothing to select", file=sys.stderr)
+            return 2
+        print(f"[rapidapi] --chapters {word} -> Chinese "
+              f"{', '.join(str(number) for number in wanted[:5])}"
+              f"{' …' if len(wanted) > 5 else ''} (from {args.docx.name})",
+              file=sys.stderr)
+    elif word == "all":
         wanted = [chapter.number for chapter in chapters]
     else:
         try:
@@ -380,6 +465,12 @@ def main(argv: list[str] | None = None) -> int:
                           max_chars=args.max_chars, max_items=args.max_items,
                           keep_notes=args.keep_notes)
         plan["source_file"] = _relative(args.source_file)
+        plan["existing"] = {
+            "docx": _relative(args.docx) if args.docx and args.docx.is_file() else None,
+            "span": _reference_span(chapter_map),
+            "next_without_reference": chapter_map.next_chinese if chapter_map else None,
+            "last_with_reference": chapter_map.last_chinese if chapter_map else None,
+        }
         if args.json:
             print(json.dumps(plan, indent=2, ensure_ascii=False))
         else:
@@ -391,6 +482,17 @@ def main(argv: list[str] | None = None) -> int:
             totals = plan["totals"]
             print(f"{'total':>7}  {totals['paragraphs']:>10}  "
                   f"{totals['characters']:>10}  {totals['requests']:>8}")
+            if chapter_map is not None:
+                covered = chapter_map.chinese_covered
+                burmese = chapter_map.burmese_chapters
+                print(f"\nexisting Burmese (from {args.docx.name}): Chinese "
+                      f"{covered[0]}–{covered[-1]} ↔ Burmese {burmese[0]}–{burmese[-1]}")
+                for chinese, numbers in chapter_map.splits().items():
+                    print(f"  split: Chinese {chinese} → Burmese "
+                          f"{' + '.join(str(number) for number in numbers)}")
+                print(f"  last chapter behind the existing Burmese: Chinese "
+                      f"{chapter_map.last_chinese}")
+                print(f"  next without a counterpart: Chinese {chapter_map.next_chinese}")
             print("\nRun the same command with --run to translate "
                   f"({args.source} → {args.target}).")
         return 0
@@ -402,6 +504,7 @@ def main(argv: list[str] | None = None) -> int:
                      max_chars=args.max_chars, max_items=args.max_items,
                      timeout=args.timeout, max_attempts=args.attempts,
                      compare=not args.no_compare, existing_path=args.existing,
+                     chapter_map=chapter_map,
                      log=None if args.json else print)
     except TranslatorError as error:
         print(f"[rapidapi] {error}", file=sys.stderr)

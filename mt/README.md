@@ -109,8 +109,11 @@ python3 mt/api_translate.py --chapters 1-2 --plan   # offline, no key
 RAPIDAPI_KEY=... python3 mt/api_translate.py --chapters 1-2 --run
 ```
 
-The key is read from `RAPIDAPI_KEY`, never stored. `mt/mcp_server.py --selftest`
-checks the MCP server without a key or network, and
+The key is read from `RAPIDAPI_KEY`, never stored. `mt/chapter_map.py` reads the
+Chinese↔Burmese chapter numbers out of `content/merged/episodes.docx` (last
+existing: Chinese 193 ↔ Burmese 195; next untranslated: 194), and `--chapters
+last|next|existing` uses it for both the run and the comparison reference.
+`mt/mcp_server.py --selftest` checks the MCP server without a key or network, and
 `mt/mcp_server.py --print-config --client kilo|claude|codex|gemini` prints that
 client's config. See `mt/RAPIDAPI.md` for the endpoint formats, the SSH/phone
 setup, and the cache/retry rules.

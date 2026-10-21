@@ -274,6 +274,12 @@ On chapter 193 that is 295 unresolved of 786 terms.
 `content/mtranslate/rapidapi/` (JSONL, TXT, a Chinese/Burmese comparison and
 `report.json`). `mt/mcp_server.py` exposes the three endpoints over MCP stdio.
 
+`mt/chapter_map.py` derives the chapter pairing from `content/merged/episodes.docx`
+instead of trusting an offset: it reproduces the verified alignment (Burmese 1..61 =
+Chinese 1..61, Chinese 61 → Burmese 61+62, Burmese 63..138 = Chinese 62..137,
+Chinese 137 → Burmese 138+139, Burmese 140..195 = Chinese 138..193), including the
+OCR heading forms. The comparison therefore references Burmese 195 for Chinese 193.
+
 This is a **comparison candidate**, not a new baseline, and it is not connected
 to the approved phrase memory. The key comes from `RAPIDAPI_KEY`; nothing is
 stored in the repository. The offline plan and the `--run` gate follow the same
