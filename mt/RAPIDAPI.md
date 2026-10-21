@@ -107,6 +107,140 @@ human translation: the human text comes from a PDF with its own line wrapping
 and the alignment has never been verified. The human chapter is included whole,
 under a collapsible block, so you can read the two side by side yourself.
 
+## From a phone over SSH (no desktop app)
+
+Everything here is terminal-only. There are two ways to use it, and the first
+one is usually the better fit for a VPS + phone session.
+
+### 1. Just run the script (no MCP at all)
+
+The agent only needs the ability to run a shell command. Nothing to configure:
+
+```sh
+export RAPIDAPI_KEY=...          # once per shell
+python3 mt/api_translate.py --chapters 1-2 --plan
+python3 mt/api_translate.py --chapters 1-2 --run
+```
+
+This is the most reliable option over a flaky mobile connection: no background
+server to keep alive, output is plain files, and a reconnect changes nothing.
+
+### 2. Register the MCP server with a CLI agent
+
+`python3 mt/mcp_server.py` is a stdio server, so every CLI agent can launch it.
+Pick your client:
+
+```sh
+python3 mt/mcp_server.py --print-config --client claude
+python3 mt/mcp_server.py --print-config --client kilo
+python3 mt/mcp_server.py --print-config --client codex
+python3 mt/mcp_server.py --print-config --client gemini
+python3 mt/mcp_server.py --print-config               # generic JSON
+```
+
+**Kilo Code CLI** — global config, `~/.config/kilo/kilo.jsonc` (the same file
+accepts `kilo.json`; project scope is `./kilo.json` or `./.kilo/kilo.jsonc`).
+Merge the `mcp` block into what is already there, then restart the CLI:
+
+```json
+{
+  "mcp": {
+    "rapidapi-translator": {
+      "type": "local",
+      "command": ["/usr/bin/python3", "/path/to/repo/mt/mcp_server.py"],
+      "enabled": true,
+      "environment": {"RAPIDAPI_KEY": "{env:RAPIDAPI_KEY}"}
+    }
+  }
+}
+```
+
+`{env:RAPIDAPI_KEY}` is expanded by Kilo at launch, so the key stays in your
+shell, not in the config. Check with `kilo mcp list`, and toggle servers inside
+the TUI with `/mcps`.
+
+**Claude Code**:
+
+```sh
+claude mcp add --scope user rapidapi-translator -- \
+  /usr/bin/python3 /path/to/repo/mt/mcp_server.py
+claude mcp list
+```
+
+The stdio server inherits the environment of the `claude` process, so export
+`RAPIDAPI_KEY` in the shell (or in `~/.profile`) before starting it. `--scope
+user` makes it available in every project; omit it for this project only.
+
+**Codex CLI** — `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.rapidapi-translator]
+command = "/usr/bin/python3"
+args = ["/path/to/repo/mt/mcp_server.py"]
+env_vars = ["RAPIDAPI_KEY"]
+```
+
+`codex mcp add rapidapi-translator -- python3 /path/to/repo/mt/mcp_server.py`
+writes the same table, but it has no flag for forwarding a variable, so add
+`env_vars = ["RAPIDAPI_KEY"]` to the table afterwards. (`--env KEY=VALUE` stores
+the literal value instead — avoid it on a shared VPS.)
+
+**Gemini CLI** — `~/.gemini/settings.json` (or `gemini mcp add`):
+
+```json
+{
+  "mcpServers": {
+    "rapidapi-translator": {
+      "command": "/usr/bin/python3",
+      "args": ["/path/to/repo/mt/mcp_server.py"],
+      "env": {"RAPIDAPI_KEY": "${RAPIDAPI_KEY}"}
+    }
+  }
+}
+```
+
+```sh
+gemini mcp add -s user rapidapi-translator /usr/bin/python3 /path/to/repo/mt/mcp_server.py
+```
+
+**Cursor / Zed / other editors** take the generic `mcpServers` JSON from
+`--print-config` (Zed uses `context_servers`; same `command`/`args` shape).
+
+Verify before wiring anything up — this needs no key and no network:
+
+```sh
+python3 mt/mcp_server.py --selftest
+```
+
+```json
+{"ok": true, "protocol": "2025-06-18",
+ "tools": ["detect_language", "translate_text", "translate_batch",
+           "translate_chapters"],
+ "key": "missing", "python": "/usr/bin/python3",
+ "server": "/path/to/repo/mt/mcp_server.py"}
+```
+
+If `key` says `missing` but the tools list is fine, the server works and only
+the key export is left. If a client shows no tools, run
+`--print-config --client <yours>` again and check that the python path exists on
+the VPS (`which python3`).
+
+Keep the key out of the repository:
+
+```sh
+chmod 600 ~/.profile ~/.config/kilo/kilo.jsonc ~/.codex/config.toml 2>/dev/null
+```
+
+Local client configs are already gitignored (`.mcp.json`, `kilo.json`,
+`kilo.jsonc`, `.kilo/`), so a project-scoped config cannot be committed with a
+key inside. Prefer `export` + `env_vars`/`${VAR}`/`{env:VAR}` over pasting the
+literal key anywhere.
+
+Long agent sessions on a phone: run the CLI inside `tmux` (or `screen`) so a
+dropped SSH connection does not kill a chapter run. The translator itself is
+idempotent — cached paragraphs are not re-requested, so re-running after a
+reconnect costs nothing.
+
 ## MCP server
 
 ```sh

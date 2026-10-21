@@ -109,5 +109,8 @@ python3 mt/api_translate.py --chapters 1-2 --plan   # offline, no key
 RAPIDAPI_KEY=... python3 mt/api_translate.py --chapters 1-2 --run
 ```
 
-The key is read from `RAPIDAPI_KEY`, never stored. See `mt/RAPIDAPI.md` for the
-endpoint formats, the MCP client config and the cache/retry rules.
+The key is read from `RAPIDAPI_KEY`, never stored. `mt/mcp_server.py --selftest`
+checks the MCP server without a key or network, and
+`mt/mcp_server.py --print-config --client kilo|claude|codex|gemini` prints that
+client's config. See `mt/RAPIDAPI.md` for the endpoint formats, the SSH/phone
+setup, and the cache/retry rules.

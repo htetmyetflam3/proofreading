@@ -593,6 +593,55 @@ class McpTests(ApiTestCase):
 
 
 class ConfigTests(unittest.TestCase):
+    def run_server(self, *args, env=None):
+        return subprocess.run([sys.executable, str(SERVER), *args],
+                              capture_output=True, text=True, timeout=30,
+                              env=env)
+
+    def test_client_snippets(self):
+        for client in ("json", "claude", "kilo", "codex", "gemini"):
+            output = self.run_server("--print-config", "--client", client)
+            self.assertEqual(output.returncode, 0, output.stderr)
+            self.assertIn("mcp_server.py", output.stdout)
+            if client == "claude":
+                self.assertIn("claude mcp add --scope user", output.stdout)
+                continue
+            body = "\n".join(line for line in output.stdout.splitlines()
+                             if not line.lstrip().startswith("#"))
+            if client == "codex":
+                try:
+                    import tomllib
+                except ImportError:  # pragma: no cover - python < 3.11
+                    self.assertIn('env_vars = ["RAPIDAPI_KEY"]', body)
+                    continue
+                data = tomllib.loads(body)
+                table = data["mcp_servers"]["rapidapi-translator"]
+                self.assertEqual(table["env_vars"], ["RAPIDAPI_KEY"])
+                self.assertTrue(table["args"][0].endswith("mcp_server.py"))
+                continue
+            data = json.loads(body)
+            table = (data.get("mcp") or data.get("mcpServers"))["rapidapi-translator"]
+            if client == "kilo":
+                self.assertTrue(table["command"][0].endswith("python3"))
+                self.assertIn("mcp_server.py", table["command"][1])
+                self.assertEqual(table["environment"]["RAPIDAPI_KEY"],
+                                 "{env:RAPIDAPI_KEY}")
+            else:
+                self.assertTrue(table["command"].endswith("python3"))
+                self.assertTrue(table["args"][0].endswith("mcp_server.py"))
+        unknown = self.run_server("--print-config", "--client", "nope")
+        self.assertNotEqual(unknown.returncode, 0)
+
+    def test_selftest_needs_no_key_or_network(self):
+        environment = dict(os.environ, RAPIDAPI_KEY="")
+        output = self.run_server("--selftest", env=environment)
+        self.assertEqual(output.returncode, 0, output.stderr)
+        payload = json.loads(output.stdout)
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["tools"], ["detect_language", "translate_text",
+                                            "translate_batch", "translate_chapters"])
+        self.assertEqual(payload["key"], "missing")
+
     def test_print_config_is_valid_json(self):
         output = subprocess.run([sys.executable, str(SERVER), "--print-config"],
                                 capture_output=True, text=True, timeout=20)

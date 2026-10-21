@@ -8,8 +8,9 @@
 Speaks newline-delimited JSON-RPC 2.0 on stdin/stdout, so any MCP client that
 can launch a command works: Claude Desktop, Claude Code, Cursor, Zed, ...
 
-    python3 mt/mcp_server.py --print-config   # JSON snippet to paste in a client
-    python3 mt/mcp_server.py                  # serve on stdio
+    python3 mt/mcp_server.py --print-config --client kilo   # config snippet
+    python3 mt/mcp_server.py --selftest                     # no-network check
+    python3 mt/mcp_server.py                                # serve on stdio
 
 Tools:
 
@@ -328,15 +329,71 @@ class Server:
         return 0
 
 
-def config_snippet() -> dict:
+CLIENTS = ("json", "claude", "kilo", "codex", "gemini")
+
+
+def config_snippet(client: str = "json") -> str:
+    """Client config that keeps the key out of the file where the client can.
+
+    `codex` forwards the variable with `env_vars`, `kilo` and `gemini` expand
+    `{env:VAR}` / `${VAR}` at launch, and the `claude` snippet relies on the
+    script inheriting the exported variable. Only `json` (Claude Desktop and
+    other GUI clients that do not expand variables) shows a placeholder.
+    """
+    if client not in CLIENTS:
+        raise ValueError(f"client must be one of {', '.join(CLIENTS)}")
+    command = sys.executable
+    server = str(Path(__file__).resolve())
+    if client == "claude":
+        return ("# export RAPIDAPI_KEY=... in this shell first, then:\n"
+                f"claude mcp add --scope user {SERVER_NAME} -- {command} {server}")
+    if client == "codex":
+        return ("# ~/.codex/config.toml\n"
+                f"[mcp_servers.{SERVER_NAME}]\n"
+                f'command = "{command}"\n'
+                f'args = ["{server}"]\n'
+                f'env_vars = ["{KEY_ENV}"]')
+    block = {
+        "command": command,
+        "args": [server],
+    }
+    if client == "kilo":
+        payload = {"mcp": {SERVER_NAME: {
+            "type": "local",
+            "command": [command, server],
+            "enabled": True,
+            "environment": {KEY_ENV: "{env:" + KEY_ENV + "}"},
+        }}}
+    elif client == "gemini":
+        payload = {"mcpServers": {SERVER_NAME: dict(block, env={
+            KEY_ENV: "${" + KEY_ENV + "}"})}}
+    else:
+        payload = {"mcpServers": {SERVER_NAME: dict(block, env={
+            KEY_ENV: "<your-rapidapi-key>"})}}
+    return json.dumps(payload, indent=2)
+
+
+def selftest() -> dict:
+    """Protocol round-trip with no network and no key; proves the server runs."""
+    server = Server(enabled_cache=False)
+    responses = []
+    for request in (
+        {"jsonrpc": "2.0", "id": 1, "method": "initialize",
+         "params": {"protocolVersion": "2025-06-18", "capabilities": {},
+                    "clientInfo": {"name": "selftest", "version": "0"}}},
+        {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+        {"jsonrpc": "2.0", "id": 3, "method": "ping"},
+    ):
+        responses.append(server.handle(request))
+    tools = responses[1]["result"]["tools"] if responses[1] else []
     return {
-        "mcpServers": {
-            SERVER_NAME: {
-                "command": sys.executable,
-                "args": [str(Path(__file__).resolve())],
-                "env": {KEY_ENV: "<your-rapidapi-key>"},
-            }
-        }
+        "ok": responses[0] is not None and responses[1] is not None
+              and responses[2] is not None,
+        "protocol": (responses[0] or {}).get("result", {}).get("protocolVersion"),
+        "tools": [tool["name"] for tool in tools],
+        "key": "set" if os.environ.get(KEY_ENV) else "missing",
+        "python": sys.executable,
+        "server": str(Path(__file__).resolve()),
     }
 
 
@@ -344,8 +401,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--print-config", action="store_true",
                         help="print an MCP client configuration snippet and exit")
+    parser.add_argument("--client", choices=CLIENTS, default="json",
+                        help="config flavour for --print-config "
+                             "(default: json, for Claude Desktop and other GUI clients)")
     parser.add_argument("--check", action="store_true",
                         help="print configuration state without a request")
+    parser.add_argument("--selftest", action="store_true",
+                        help="protocol round-trip with no network; proves the "
+                             "server starts under this python")
     parser.add_argument("--cache", type=Path, default=None, help="SQLite cache path")
     parser.add_argument("--no-cache", action="store_true")
     parser.add_argument("--source-file", type=Path, default=None,
@@ -362,8 +425,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.print_config:
-        print(json.dumps(config_snippet(), indent=2))
+        print(config_snippet(args.client))
         return 0
+    if args.selftest:
+        result = selftest()
+        print(json.dumps(result, indent=2))
+        return 0 if result["ok"] else 1
     if args.check:
         print(json.dumps({
             "host": HOST,
