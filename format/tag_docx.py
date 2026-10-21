@@ -84,7 +84,7 @@ def main():
     )
     parser.add_argument("--input", type=Path, default=None,
                         help="Plain UTF-8 text; default: content/source/ယဲ့နင်.txt")
-    parser.add_argument("--output-dir", type=Path, default=ROOT / "content" / "kaung-pos")
+    parser.add_argument("--output-dir", type=Path, default=ROOT / "content" / "kmt-pos")
     parser.add_argument("--max-paragraphs", type=int,
                         help="Explicit small pilot; uses a separate output name")
     args = parser.parse_args()

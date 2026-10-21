@@ -21,7 +21,7 @@ import json5
 
 ROOT = Path(__file__).resolve().parent.parent
 VERSION = 2
-REFERENCE = ROOT/'content/kaung-pos/ယဲ့နင်1-200.raw_pos.txt'
+REFERENCE = ROOT/'content/kmt-pos/ယဲ့နင်.raw_pos.txt'
 WORK = ROOT/'content/mtranslate/comparison'
 PROFILE = ROOT/'content/analysis/reference-data-audit.json'
 GUARD = ROOT/'scraper/wasm/box/runtime-guard.mjs'
