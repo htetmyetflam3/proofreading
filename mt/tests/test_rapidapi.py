@@ -37,6 +37,7 @@ from rapidapi_translator import (  # noqa: E402
 )
 
 KEY = "test-key-0123456789"
+BURMESE = "မြန်မာ:"  # what a real my-target answer starts with
 HOST = "test.example"
 LANGUAGE = {"language": "zh-Hant", "language_name": "Chinese (Traditional)"}
 
@@ -75,14 +76,14 @@ class _Handler(BaseHTTPRequestHandler):
             self._send(200, {"status": True, "data": dict(LANGUAGE)})
         elif parsed.path == "/translate":
             self._send(200, {"status": True, "data": {
-                "translated_text": "MY:" + body,
+                "translated_text": BURMESE + body,
                 "source_language": "zh-Hant",
                 "source_language_name": "Chinese (Traditional)",
             }})
         elif parsed.path == "/translate/batch":
             texts = json.loads(body)
             self._send(200, {"status": True, "data": {
-                "translated_texts": ["MY:" + text for text in texts],
+                "translated_texts": [BURMESE + text for text in texts],
                 "source_language": "zh-Hant",
                 "source_language_name": "Chinese (Traditional)",
             }})
@@ -181,7 +182,7 @@ class ClientTests(ApiTestCase):
 
     def test_translate_uses_query_and_raw_body(self):
         data = self.client().translate("你好", "my", "auto")
-        self.assertEqual(data["translated_text"], "MY:你好")
+        self.assertEqual(data["translated_text"], BURMESE + "你好")
         record = self.api.last()
         self.assertEqual(record["path"], "/translate")
         self.assertEqual(record["params"], {"source": "auto", "target": "my"})
@@ -190,7 +191,7 @@ class ClientTests(ApiTestCase):
 
     def test_batch_deduplicates_and_keeps_order(self):
         result = self.client().translate_batch(["一", "二", "一", "三"], "my")
-        self.assertEqual(result.texts, ["MY:一", "MY:二", "MY:一", "MY:三"])
+        self.assertEqual(result.texts, [BURMESE + "一", BURMESE + "二", BURMESE + "一", BURMESE + "三"])
         self.assertEqual(result.requests, 1)
         self.assertEqual(json.loads(self.api.last()["body"]), ["一", "二", "三"])
         self.assertEqual(self.api.last()["params"], {"source": "auto", "target": "my"})
@@ -198,13 +199,13 @@ class ClientTests(ApiTestCase):
     def test_batch_chunks_by_item_limit(self):
         texts = [f"第{i}段" for i in range(5)]
         result = self.client(max_items=2).translate_batch(texts, "my")
-        self.assertEqual(result.texts, ["MY:" + text for text in texts])
+        self.assertEqual(result.texts, [BURMESE + text for text in texts])
         self.assertEqual(result.requests, 3)
 
     def test_batch_chunks_by_character_limit(self):
         texts = ["一" * 30, "二" * 30, "三" * 30]
         result = self.client(max_chars=50).translate_batch(texts, "my")
-        self.assertEqual(result.texts, ["MY:" + text for text in texts])
+        self.assertEqual(result.texts, [BURMESE + text for text in texts])
         self.assertEqual(result.requests, 3)
 
     def test_long_string_is_split_and_rejoined(self):
@@ -212,7 +213,7 @@ class ClientTests(ApiTestCase):
         client = self.client(max_chars=12)
         result = client.translate_batch([text], "my")
         self.assertEqual(result.requests, 2)
-        self.assertTrue(result.texts[0].startswith("MY:第一句話。"))
+        self.assertTrue(result.texts[0].startswith(BURMESE + "第一句話。"))
         self.assertIn("第四句話", result.texts[0])
 
     def test_status_false_raises(self):
@@ -235,7 +236,7 @@ class ClientTests(ApiTestCase):
         self.api.queue(429, {"error": "slow down"}, {"Retry-After": "0"})
         client = self.client()
         result = client.translate_batch(["一"], "my")
-        self.assertEqual(result.texts, ["MY:一"])
+        self.assertEqual(result.texts, [BURMESE + "一"])
         self.assertEqual(client.stats["retries"], 2)
         self.assertEqual(client.stats["requests"], 3)
 
@@ -486,7 +487,7 @@ class ChapterTests(ApiTestCase):
         self.assertEqual([row["source"] for row in records],
                          ["大周，帝都盛京。", "“我就這麼穿越了？”"])
         self.assertEqual([row["target"] for row in records],
-                         ["MY:大周，帝都盛京。", "MY:“我就這麼穿越了？”"])
+                         [BURMESE + "大周，帝都盛京。", BURMESE + "“我就這麼穿越了？”"])
         comparison = (self.out / "compare-ch001-ch002.md").read_text(encoding="utf-8")
         self.assertIn("မဟာကျိုး", comparison)
         self.assertIn("Existing human Burmese — chapter 1", comparison)
@@ -518,6 +519,30 @@ class ChapterTests(ApiTestCase):
         self.assertEqual(code, 0)
         self.assertTrue((self.out / "report.json").is_file())
         self.assertEqual(len(self.api.requests), 2)
+
+    def test_target_check_reports_burmese_output(self):
+        chapters = api_translate.chinese_chapters(self.source)
+        report = api_translate.run(chapters, out_dir=self.out, cache_path=self.cache,
+                                   existing_path=self.existing)
+        check = report["target_check"]
+        self.assertEqual(check["total"], 3)
+        self.assertEqual(check["with_myanmar_script"], 3)
+        self.assertEqual(check["unchanged"], 0)
+        self.assertEqual(check["warnings"], [])
+
+    def test_target_check_warns_when_nothing_is_translated(self):
+        pairs = [("大周，帝都盛京。", "大周，帝都盛京。"),
+                 ("他叫葉寧。", "他叫葉寧。")]
+        check = api_translate.script_check(pairs, "my")
+        self.assertEqual(check["unchanged"], 2)
+        self.assertEqual(check["with_myanmar_script"], 0)
+        self.assertTrue(any("Myanmar script" in w for w in check["warnings"]))
+        self.assertTrue(any("identical" in w for w in check["warnings"]))
+
+    def test_target_check_ignores_script_for_other_targets(self):
+        check = api_translate.script_check([("大周", "The Great Zhou")], "en")
+        self.assertNotIn("with_myanmar_script", check)
+        self.assertEqual(check["warnings"], [])
 
     def test_cli_rejects_unknown_chapter(self):
         code = api_translate.main([
@@ -625,7 +650,7 @@ class McpTests(ApiTestCase):
         })
         self.assertFalse(called["result"]["isError"])
         payload = json.loads(called["result"]["content"][0]["text"])
-        self.assertEqual(payload["translated_text"], "MY:你好")
+        self.assertEqual(payload["translated_text"], BURMESE + "你好")
 
     def test_batch_and_detect_tools(self):
         process = self.start()
@@ -635,7 +660,7 @@ class McpTests(ApiTestCase):
             "arguments": {"texts": ["一", "二"], "target": "my"},
         })
         payload = json.loads(batch["result"]["content"][0]["text"])
-        self.assertEqual(payload["translations"], ["MY:一", "MY:二"])
+        self.assertEqual(payload["translations"], [BURMESE + "一", BURMESE + "二"])
         detect = process.request("tools/call", {
             "name": "detect_language", "arguments": {"text": "大周"},
         })

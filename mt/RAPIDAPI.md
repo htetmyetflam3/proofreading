@@ -165,6 +165,49 @@ stated in the comparison file). The generated files record it too:
 The MCP tool `translate_chapters` takes the same selection strings, so an agent
 can ask for `"chapters": "next"`.
 
+## Which language comes out?
+
+Every request carries `?source=auto&target=my`. `auto` lets the API detect the
+source (it reports what it saw in `source_language` / `source_language_name`),
+and `my` is the API's code for Burmese. Nothing is inferred from the text.
+
+```sh
+python3 mt/api_translate.py --chapters last --plan
+# [rapidapi] language: auto → my (Burmese / Myanmar) (query source=auto&target=my)
+```
+
+Change it like any other language pair — the codes are the API's:
+
+```sh
+python3 mt/api_translate.py --chapters last --run --target en     # English
+python3 mt/api_translate.py --chapters last --run --target th     # Thai
+python3 mt/api_translate.py --chapters last --run --source zh-Hant --target my
+```
+
+Output files are named after the target (`ch0193.my.txt`, `ch0193.en.txt`), and
+the request is recorded in `report.json` as `"target": "my"`.
+
+### Proof that it really came back as Burmese
+
+`status: true` does not prove a translation happened, so after a run the tool
+checks the returned text and reports it:
+
+```
+[rapidapi] auto → my (Burmese / Myanmar): 1 chapter(s), 191 paragraph(s), 5 request(s)
+[rapidapi] 191/191 paragraphs contain Myanmar script
+```
+
+and in `report.json`:
+
+```json
+"target_check": {"total": 191, "unchanged": 0, "empty": 0, "with_myanmar_script": 191, "warnings": []}
+```
+
+Warnings appear on stderr when fewer than half the paragraphs contain Myanmar
+script, when more than 20% come back identical to the source, or when a
+paragraph is empty. That is the symptom of a wrong target code or an inactive
+subscription, not of a bad chapter.
+
 ## The first two chapters
 
 ```sh

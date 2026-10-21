@@ -63,6 +63,19 @@ CHINESE = ROOT / "content" / "source" / "chinese-0511241012-from-8011_1.txt"
 BURMESE = ROOT / "content" / "source" / "ယဲ့နင်.txt"
 OUTPUT = ROOT / "content" / "mtranslate" / "rapidapi"
 DOCX = ROOT / "content" / "merged" / "episodes.docx"
+# Display only: the API takes a code, this just labels the common ones so the
+# target is never invisible. An unknown code is shown as-is and not rejected.
+TARGET_NOTES = {
+    "my": "Burmese / Myanmar",
+    "en": "English",
+    "zh": "Chinese",
+    "zh-Hant": "Chinese (Traditional)",
+    "zh-Hans": "Chinese (Simplified)",
+    "th": "Thai",
+    "ja": "Japanese",
+    "ko": "Korean",
+}
+MYANMAR = re.compile(r"[\u1000-\u109f\uAA60-\uAA7F\uA9E0-\uA9FF]")
 CHAPTER_WORDS = ("next", "last", "existing")
 
 _MARKER = re.compile(r"^\[\[[A-Z]*CRAWLER[^\]]*\]\]$")
@@ -104,6 +117,44 @@ def reference_lines(chapter: BurmeseChapter) -> list[str]:
 def select(chapters: list[Chapter], wanted: list[int]) -> list[Chapter]:
     by_number = {chapter.number: chapter for chapter in chapters}
     return [by_number[number] for number in wanted if number in by_number]
+
+
+def target_label(code: str) -> str:
+    note = TARGET_NOTES.get(code)
+    return f"{code} ({note})" if note else code
+
+
+def script_check(pairs: list[tuple[str, str]], target: str) -> dict:
+    """Did the output actually come back in the target language?
+
+    The API answers `status: true` even when it hands the input back, e.g. when
+    the target code is wrong for the account. This flags that: identical text,
+    empty text, and (for `my`) paragraphs without any Myanmar character.
+    """
+    total = len(pairs)
+    unchanged = sum(1 for source, translated in pairs
+                    if translated.strip() == source.strip() and source.strip())
+    empty = sum(1 for _, translated in pairs if not translated.strip())
+    script = {
+        "total": total,
+        "unchanged": unchanged,
+        "empty": empty,
+        "warnings": [],
+    }
+    if target == "my":
+        myanmar = sum(1 for _, translated in pairs if MYANMAR.search(translated or ""))
+        script["with_myanmar_script"] = myanmar
+        if total and myanmar / total < 0.5:
+            script["warnings"].append(
+                f"only {myanmar}/{total} paragraphs contain Myanmar script; "
+                "check that --target is my and that the account is subscribed")
+    if total and unchanged / total > 0.2:
+        script["warnings"].append(
+            f"{unchanged}/{total} paragraphs came back identical to the source; "
+            "the API may not have translated them")
+    if total and empty:
+        script["warnings"].append(f"{empty}/{total} paragraphs came back empty")
+    return script
 
 
 def _pieces(paragraphs: list[str], max_chars: int) -> list[str]:
@@ -284,6 +335,7 @@ def run(chapters: list[Chapter], *, target: str = "my", source: str = "auto",
     }
     results: dict[int, dict] = {}
     book: list[str] = []
+    seen_pairs: list[tuple[str, str]] = []
 
     with CachedTranslator(cache_path=cache_path, enabled=enabled_cache,
                           timeout=timeout, max_attempts=max_attempts,
@@ -314,6 +366,7 @@ def run(chapters: list[Chapter], *, target: str = "my", source: str = "auto",
                 f"{chapter.title}\n{'=' * len(chapter.title)}\n\n"
                 + "\n\n".join(result.texts) + "\n", encoding="utf-8")
             book.append(f"===== {chapter.title} =====\n\n" + "\n\n".join(result.texts))
+            seen_pairs.extend(zip(paragraphs, result.texts))
             results[chapter.number] = {
                 "source": paragraphs,
                 "target": result.texts,
@@ -342,6 +395,7 @@ def run(chapters: list[Chapter], *, target: str = "my", source: str = "auto",
                 log(f"[rapidapi] chapter {chapter.number}: {row['paragraphs']} "
                     f"paragraphs, {row['requests']} request(s), {row['cached']} cached")
 
+    report["target_check"] = script_check(seen_pairs, target)
     if book:
         book_path = out_dir / f"book.{target}.txt"
         book_path.write_text("\n\n".join(book) + "\n", encoding="utf-8")
@@ -487,7 +541,10 @@ def main(argv: list[str] | None = None) -> int:
         if args.json:
             print(json.dumps(plan, indent=2, ensure_ascii=False))
         else:
-            print(f"[rapidapi] plan only — no request made, key not needed")
+            print("[rapidapi] plan only — no request made, key not needed")
+            print(f"[rapidapi] language: {args.source} → "
+                  f"{target_label(args.target)} "
+                  f"(query source={args.source}&target={args.target})")
             print(f"{'chapter':>7}  {'paragraphs':>10}  {'characters':>10}  {'requests':>8}  title")
             for row in plan["chapters"]:
                 print(f"{row['chapter']:>7}  {row['paragraphs']:>10}  "
@@ -526,9 +583,16 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(report, indent=2, ensure_ascii=False))
     else:
         totals = report["totals"]
-        print(f"[rapidapi] {totals['chapters']} chapter(s), {totals['paragraphs']} "
+        check = report.get("target_check") or {}
+        print(f"[rapidapi] {args.source} → {target_label(args.target)}: "
+              f"{totals['chapters']} chapter(s), {totals['paragraphs']} "
               f"paragraph(s), {totals['requests']} request(s), "
               f"{report['elapsed_seconds']}s -> {args.out_dir}")
+        if "with_myanmar_script" in check:
+            print(f"[rapidapi] {check['with_myanmar_script']}/{check['total']} "
+                  "paragraphs contain Myanmar script")
+        for warning in check.get("warnings") or []:
+            print(f"[rapidapi] warning: {warning}", file=sys.stderr)
         for name in report["files"]:
             print(f"  {name}")
     return 0
