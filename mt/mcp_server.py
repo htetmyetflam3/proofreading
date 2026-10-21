@@ -110,6 +110,62 @@ TOOLS = [
         },
     },
     {
+        "name": "read_chapter",
+        "description": "Read one Chinese chapter with stable paragraph ids, plus the "
+                       "existing human Burmese of the same chapter (when it exists) "
+                       "and which paragraphs already have agent drafts.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "chapter": {"type": "integer", "description": "Chinese chapter number."},
+                "reference_lines": {"type": "integer",
+                                    "description": "How many existing Burmese lines to "
+                                                   "include as a style reference.",
+                                    "default": 60},
+            },
+            "required": ["chapter"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "save_draft",
+        "description": "Store the agent's adjusted Burmese for one paragraph. It is "
+                       "kept as a draft with the machine text it started from; it "
+                       "never overwrites machine output and is never approved text.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "chapter": {"type": "integer"},
+                "paragraph": {"type": "string",
+                              "description": "1-based index or a paragraph id from "
+                                             "read_chapter."},
+                "draft": {"type": "string", "description": "Adjusted Burmese text."},
+                "mt": {"type": "string",
+                       "description": "Machine translation this draft started from."},
+                "model": {"type": "string", "description": "Which model wrote it."},
+                "note": {"type": "string", "description": "Optional note."},
+            },
+            "required": ["chapter", "paragraph", "draft"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "export_drafts",
+        "description": "Write the drafted chapter as text plus a Chinese / machine / "
+                       "draft comparison, and report which paragraphs are still missing.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "chapter": {"type": "integer"},
+                "out_dir": {"type": "string",
+                            "description": "Default content/mtranslate/drafts."},
+                "require_all": {"type": "boolean", "default": False},
+            },
+            "required": ["chapter"],
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "translate_chapters",
         "description": "Translate chapters of the local Chinese novel and write "
                        "JSONL, TXT, a Chinese/Burmese comparison markdown and "
@@ -142,7 +198,9 @@ class Server:
                  timeout: float = 60.0, max_attempts: int = 3,
                  source_file: Path | str | None = None,
                  existing: Path | str | None = None,
-                 out_dir: Path | str | None = None) -> None:
+                 out_dir: Path | str | None = None,
+                 draft_store: Path | str | None = None,
+                 docx: Path | str | None = None) -> None:
         self.cache_path = cache_path
         self.enabled_cache = enabled_cache
         self.max_chars = max_chars
@@ -151,8 +209,11 @@ class Server:
         self.max_attempts = max_attempts
         self.source_file = source_file
         self.existing = existing
+        self.draft_store = draft_store
+        self.docx = docx
         self.out_dir = out_dir
         self._translator: CachedTranslator | None = None
+        self._drafts = None
 
     @property
     def translator(self) -> CachedTranslator:
@@ -162,6 +223,15 @@ class Server:
                 timeout=self.timeout, max_attempts=self.max_attempts,
                 max_chars=self.max_chars, max_items=self.max_items)
         return self._translator
+
+    @property
+    def drafts(self):
+        """Opened lazily so read-only tools never create a database."""
+        if self._drafts is None:
+            from agent_work import DraftStore  # noqa: PLC0415
+            store = self.draft_store or None
+            self._drafts = DraftStore(store) if store else DraftStore()
+        return self._drafts
 
     # -- tools -------------------------------------------------------
 
@@ -180,6 +250,20 @@ class Server:
         return value
 
     def call_tool(self, name: str, arguments: dict) -> dict:
+        if name == "read_chapter":
+            chapter = self._chapter_arg(arguments)
+            return self._read_chapter(chapter, arguments)
+        if name == "save_draft":
+            return self._save_draft(arguments)
+        if name == "export_drafts":
+            chapter = self._chapter_arg(arguments)
+            out_dir = arguments.get("out_dir")
+            from api_translate import CHINESE  # noqa: PLC0415
+            return self.drafts.export(
+                chapter, Path(out_dir) if out_dir else Path(
+                    self.out_dir or "content/mtranslate/drafts"),
+                require_all=bool(arguments.get("require_all", False)),
+                source=Path(self.source_file or CHINESE))
         if name == "detect_language":
             text = self._text_arg(arguments, "text")
             return self.translator.detect(text)
@@ -207,6 +291,50 @@ class Server:
         if name == "translate_chapters":
             return self._translate_chapters(arguments)
         raise KeyError(name)
+
+    @staticmethod
+    def _chapter_arg(arguments: dict) -> int:
+        value = arguments.get("chapter")
+        if isinstance(value, bool) or not isinstance(value, (int, str)):
+            raise ValueError("`chapter` must be a chapter number")
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            raise ValueError("`chapter` must be a chapter number") from None
+
+    def _read_chapter(self, chapter: int, arguments: dict) -> dict:
+        from agent_work import DEFAULT_OUT, read_chapter  # noqa: PLC0415
+        from api_translate import BURMESE, CHINESE, DOCX  # noqa: PLC0415
+        try:
+            limit = int(arguments.get("reference_lines", 60))
+        except (TypeError, ValueError):
+            raise ValueError("`reference_lines` must be a number") from None
+        return read_chapter(
+            chapter,
+            source=Path(self.source_file or CHINESE),
+            existing=Path(self.existing or BURMESE),
+            docx=Path(self.docx or DOCX),
+            store=self.drafts,
+            reference_lines_limit=max(0, limit),
+        )
+
+    def _save_draft(self, arguments: dict) -> dict:
+        from agent_work import DraftError, chapter_paragraphs_by_number, _select  # noqa: PLC0415
+        from api_translate import CHINESE  # noqa: PLC0415
+        chapter = self._chapter_arg(arguments)
+        try:
+            paragraph = _select(
+                chapter_paragraphs_by_number(chapter,
+                                             source=Path(self.source_file or CHINESE)),
+                str(arguments.get("paragraph", "")))
+        except DraftError as error:
+            raise ValueError(str(error)) from None
+        draft = arguments.get("draft")
+        if not isinstance(draft, str) or not draft.strip():
+            raise ValueError("`draft` must be a non-empty string")
+        return self.drafts.save(paragraph, draft, mt_text=arguments.get("mt"),
+                                model=arguments.get("model"),
+                                note=arguments.get("note"))
 
     def _translate_chapters(self, arguments: dict) -> dict:
         from api_translate import (  # noqa: PLC0415
@@ -517,6 +645,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="existing human Burmese for the comparison reference")
     parser.add_argument("--out-dir", type=Path, default=None,
                         help="default output directory for translate_chapters")
+    parser.add_argument("--docx", type=Path, default=None,
+                        help="bilingual DOCX for chapter numbers "
+                             "(default: content/merged/episodes.docx)")
+    parser.add_argument("--draft-store", type=Path, default=None,
+                        help="SQLite file for agent drafts "
+                             "(default: content/mtranslate/agent-drafts.sqlite3)")
     parser.add_argument("--max-chars", type=int, default=MAX_REQUEST_CHARS)
     parser.add_argument("--max-items", type=int, default=MAX_REQUEST_ITEMS)
     parser.add_argument("--timeout", type=float, default=60.0)
@@ -569,7 +703,8 @@ def main(argv: list[str] | None = None) -> int:
                     max_chars=args.max_chars, max_items=args.max_items,
                     timeout=args.timeout, max_attempts=args.attempts,
                     source_file=args.source_file, existing=args.existing,
-                    out_dir=args.out_dir)
+                    out_dir=args.out_dir, draft_store=args.draft_store,
+                    docx=args.docx)
     return server.serve()
 
 

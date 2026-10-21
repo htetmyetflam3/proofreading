@@ -208,6 +208,80 @@ script, when more than 20% come back identical to the source, or when a
 paragraph is empty. That is the symptom of a wrong target code or an inactive
 subscription, not of a bad chapter.
 
+## Agent-in-the-loop: local reasoning, remote MT
+
+The API is a stateless translator. It sees one paragraph, knows nothing about
+the story, and cannot keep a name or a tone consistent across a chapter. The
+division of labour that works:
+
+| who | does | sees |
+|---|---|---|
+| RapidAPI | literal MT for a batch of paragraphs | one paragraph at a time |
+| your local agent (Kilo) | reads the chapter + the existing human Burmese, picks units, fixes names/tone/style, stores drafts | the whole chapter and the style files |
+| you | approve or rewrite | everything |
+
+`mt/agent_work.py` is the missing piece: a place for the agent's text that is
+neither machine output nor approved memory.
+
+```sh
+python3 mt/agent_work.py read 193 --json        # paragraphs + ids + reference Burmese
+python3 mt/agent_work.py save 193 7 --draft "…" --mt "raw api text" --model grok
+python3 mt/agent_work.py export 193 --out-dir content/mtranslate/drafts
+python3 mt/agent_work.py list --chapter 193
+python3 mt/agent_work.py stats
+```
+
+- Paragraph ids look like `0193-007-d1f7c063` — chapter, 1-based index, hash of
+  the text, so an id cannot silently point at different prose.
+- A draft is stored with the machine text it started from, the model that wrote
+  it and a note. Status is always `draft`; there is **no approve step here** —
+  that stays a human action in `mt/mt_memory.py`.
+- Nothing writes into `content/mtranslate/<route>/`, so machine output is never
+  overwritten.
+- `read` includes the existing human Burmese of the same chapter (from the DOCX
+  map, so Chinese 61 brings Burmese 61 + 62) plus a short style card pointing at
+  `content/reference/style-sample.txt`, `content/reference/EtoBnames.txt`,
+  `content/review/burmese-overview.md` and `MT.md`.
+
+### MCP tools for that loop
+
+`read_chapter`, `save_draft`, `export_drafts` sit next to the translation tools,
+so an agent can do the whole thing without shelling out:
+
+```
+read_chapter(chapter=193)                      → 191 ids + reference sample + style card
+translate_batch(texts=[...], target="my")      → raw MT for the paragraphs it chose
+save_draft(chapter=193, paragraph="0193-007-…", draft="…", mt="…", model="grok")
+export_drafts(chapter=193)                     → text + zh/machine/draft comparison
+```
+
+### Prompt to give the Kilo agent
+
+```
+You are translating a Chinese web novel into Burmese, one chapter at a time.
+Tools: read_chapter, translate_batch, save_draft, export_drafts.
+
+1. read_chapter(number). Note the paragraph ids and read the existing Burmese
+   sample: match its register, honorifics and how names are transliterated.
+2. Choose the units to send: keep one source paragraph per batch item, but merge
+   fragments that only make sense together. Never send the whole chapter.
+3. translate_batch with target "my". Treat the result as raw material.
+4. For each paragraph, rewrite the machine text into the house style (LSE for
+   prose, LSN inside quotes), keeping names and titles consistent with the
+   reference. Then save_draft(chapter, paragraph_id, draft, mt=<machine text>,
+   model=<your model>). Do not skip paragraphs you only lightly edited — save
+   every one, so the export is complete.
+5. export_drafts(chapter) and report: drafted/total, any missing paragraph ids,
+   and the three paragraphs you are least sure about, with the Chinese.
+
+Never write to machine output files or to approved memory. If the API returns
+text identical to the Chinese or no Myanmar script, stop and say so.
+```
+
+The last instruction matters: `translate_batch` reports `requests` and `cached`,
+and a run whose output is identical to the source is the symptom of a wrong
+`target` or an inactive subscription, not of a difficult paragraph.
+
 ## The first two chapters
 
 ```sh
