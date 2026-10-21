@@ -642,6 +642,72 @@ class ConfigTests(unittest.TestCase):
                                             "translate_batch", "translate_chapters"])
         self.assertEqual(payload["key"], "missing")
 
+    def test_install_config_creates_file_with_placeholder(self):
+        target = self._temp() / "nested" / "kilo.json"
+        output = self.run_server("--install-config", "--client", "kilo",
+                                 "--config", str(target))
+        self.assertEqual(output.returncode, 0, output.stderr)
+        self.assertEqual(json.loads(output.stdout)["status"], "created")
+        entry = json.loads(target.read_text(encoding="utf-8"))["mcp"]["rapidapi-translator"]
+        self.assertEqual(entry["type"], "local")
+        self.assertEqual(entry["command"][0].rsplit("/", 1)[-1],
+                         Path(sys.executable).name)
+        self.assertTrue(entry["command"][1].endswith("mcp_server.py"))
+        self.assertEqual(entry["environment"], {"RAPIDAPI_KEY": "{env:RAPIDAPI_KEY}"})
+        if os.name == "posix":
+            self.assertEqual(target.stat().st_mode & 0o777, 0o600)
+
+    def test_install_config_merges_without_losing_keys(self):
+        target = self._temp() / "kilo.json"
+        target.write_text(json.dumps({"model": "x/y", "mcp": {"other": {"type": "local"}}}),
+                          encoding="utf-8")
+        output = self.run_server("--install-config", "--client", "kilo",
+                                 "--config", str(target))
+        self.assertEqual(json.loads(output.stdout)["status"], "merged")
+        data = json.loads(target.read_text(encoding="utf-8"))
+        self.assertEqual(data["model"], "x/y")
+        self.assertIn("other", data["mcp"])
+        self.assertIn("rapidapi-translator", data["mcp"])
+
+    def test_install_config_is_idempotent(self):
+        target = self._temp() / "kilo.json"
+        self.run_server("--install-config", "--client", "kilo", "--config", str(target))
+        before = target.read_text(encoding="utf-8")
+        output = self.run_server("--install-config", "--client", "kilo",
+                                 "--config", str(target))
+        self.assertEqual(json.loads(output.stdout)["status"], "already")
+        self.assertEqual(target.read_text(encoding="utf-8"), before)
+
+    def test_install_config_refuses_jsonc(self):
+        target = self._temp() / "kilo.jsonc"
+        original = '{\n  // comment\n  "mcp": {}\n}\n'
+        target.write_text(original, encoding="utf-8")
+        output = self.run_server("--install-config", "--client", "kilo",
+                                 "--config", str(target))
+        self.assertEqual(output.returncode, 1)
+        result = json.loads(output.stdout)
+        self.assertEqual(result["status"], "manual")
+        self.assertIn("rapidapi-translator", result["snippet"])
+        self.assertEqual(target.read_text(encoding="utf-8"), original)
+
+    def test_install_config_for_gemini_uses_env_expansion(self):
+        target = self._temp() / "settings.json"
+        self.run_server("--install-config", "--client", "gemini", "--config", str(target))
+        entry = json.loads(target.read_text(encoding="utf-8"))["mcpServers"]["rapidapi-translator"]
+        self.assertEqual(entry["env"], {"RAPIDAPI_KEY": "${RAPIDAPI_KEY}"})
+
+    def test_install_config_for_codex_is_manual(self):
+        output = self.run_server("--install-config", "--client", "codex")
+        self.assertEqual(output.returncode, 1)
+        result = json.loads(output.stdout)
+        self.assertEqual(result["status"], "manual")
+        self.assertIn("mcp_servers.rapidapi-translator", result["snippet"])
+
+    def _temp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        return Path(directory.name)
+
     def test_print_config_is_valid_json(self):
         output = subprocess.run([sys.executable, str(SERVER), "--print-config"],
                                 capture_output=True, text=True, timeout=20)

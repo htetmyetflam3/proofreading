@@ -205,9 +205,23 @@ python3 mt/mcp_server.py --print-config --client gemini
 python3 mt/mcp_server.py --print-config               # generic JSON
 ```
 
-**Kilo Code CLI** — global config, `~/.config/kilo/kilo.jsonc` (the same file
-accepts `kilo.json`; project scope is `./kilo.json` or `./.kilo/kilo.jsonc`).
-Merge the `mcp` block into what is already there, then restart the CLI:
+**Kilo Code CLI** — global config, `~/.config/kilo/kilo.json` (the same file
+accepts `kilo.jsonc`; project scope is `./kilo.json` or `./.kilo/kilo.jsonc`).
+Do not paste it by hand if you can avoid it — this writes or merges the entry,
+keeps other keys, sets the file to `0600`, and refuses to touch a JSONC file
+that contains comments:
+
+```sh
+python3 mt/mcp_server.py --install-config --client kilo
+# {"status": "created", "path": "/root/.config/kilo/kilo.json", "entry": {...}}
+```
+
+`created`, `merged` or `already` all mean the entry is there; `manual` (exit 1)
+means the file is JSONC or not JSON, and the snippet below has to be merged by
+hand. `--config PATH` targets another file. The same command works for
+`--client gemini` (`~/.gemini/settings.json`).
+
+The resulting block looks like this:
 
 ```json
 {
@@ -223,8 +237,20 @@ Merge the `mcp` block into what is already there, then restart the CLI:
 ```
 
 `{env:RAPIDAPI_KEY}` is expanded by Kilo at launch, so the key stays in your
-shell, not in the config. Check with `kilo mcp list`, and toggle servers inside
-the TUI with `/mcps`.
+shell, not in the config. Export it in the shell that starts `kilo` — a variable
+exported in one SSH session is gone after a reconnect:
+
+```sh
+read -rsp 'RapidAPI key: ' RAPIDAPI_KEY; echo
+export RAPIDAPI_KEY
+kilo          # in this same shell, so the variable is inherited
+```
+
+To keep it across sessions, add the `export` line to `~/.profile` (that file is
+not in this repository). Check with `kilo mcp list`, and toggle servers inside
+the TUI with `/mcps`. If a tool call says the key is missing, Kilo did not expand
+the variable: either start it from a shell that has it exported, or put the
+literal key in `environment` (the config lives outside the repo and is `0600`).
 
 **Claude Code**:
 

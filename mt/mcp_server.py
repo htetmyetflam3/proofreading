@@ -9,6 +9,7 @@ Speaks newline-delimited JSON-RPC 2.0 on stdin/stdout, so any MCP client that
 can launch a command works: Claude Desktop, Claude Code, Cursor, Zed, ...
 
     python3 mt/mcp_server.py --print-config --client kilo   # config snippet
+    python3 mt/mcp_server.py --install-config --client kilo # write it
     python3 mt/mcp_server.py --selftest                     # no-network check
     python3 mt/mcp_server.py                                # serve on stdio
 
@@ -332,45 +333,118 @@ class Server:
 CLIENTS = ("json", "claude", "kilo", "codex", "gemini")
 
 
-def config_snippet(client: str = "json") -> str:
-    """Client config that keeps the key out of the file where the client can.
+CONFIG_PATHS = {
+    "kilo": ("~/.config/kilo/kilo.json", "mcp"),
+    "gemini": ("~/.gemini/settings.json", "mcpServers"),
+}
 
-    `codex` forwards the variable with `env_vars`, `kilo` and `gemini` expand
-    `{env:VAR}` / `${VAR}` at launch, and the `claude` snippet relies on the
-    script inheriting the exported variable. Only `json` (Claude Desktop and
-    other GUI clients that do not expand variables) shows a placeholder.
-    """
+
+def config_payload(client: str = "json") -> dict:
+    """The server entry in the shape that client expects."""
     if client not in CLIENTS:
         raise ValueError(f"client must be one of {', '.join(CLIENTS)}")
     command = sys.executable
     server = str(Path(__file__).resolve())
-    if client == "claude":
-        return ("# export RAPIDAPI_KEY=... in this shell first, then:\n"
-                f"claude mcp add --scope user {SERVER_NAME} -- {command} {server}")
-    if client == "codex":
-        return ("# ~/.codex/config.toml\n"
-                f"[mcp_servers.{SERVER_NAME}]\n"
-                f'command = "{command}"\n'
-                f'args = ["{server}"]\n'
-                f'env_vars = ["{KEY_ENV}"]')
-    block = {
-        "command": command,
-        "args": [server],
-    }
     if client == "kilo":
-        payload = {"mcp": {SERVER_NAME: {
+        return {"mcp": {SERVER_NAME: {
             "type": "local",
             "command": [command, server],
             "enabled": True,
             "environment": {KEY_ENV: "{env:" + KEY_ENV + "}"},
         }}}
-    elif client == "gemini":
-        payload = {"mcpServers": {SERVER_NAME: dict(block, env={
-            KEY_ENV: "${" + KEY_ENV + "}"})}}
-    else:
-        payload = {"mcpServers": {SERVER_NAME: dict(block, env={
-            KEY_ENV: "<your-rapidapi-key>"})}}
-    return json.dumps(payload, indent=2)
+    if client == "gemini":
+        return {"mcpServers": {SERVER_NAME: {
+            "command": command,
+            "args": [server],
+            "env": {KEY_ENV: "${" + KEY_ENV + "}"},
+        }}}
+    return {"mcpServers": {SERVER_NAME: {
+        "command": command,
+        "args": [server],
+        "env": {KEY_ENV: "<your-rapidapi-key>"},
+    }}}
+
+
+def config_snippet(client: str = "json") -> str:
+    """Client config that keeps the key out of the file where the client can.
+
+    `codex` forwards the variable with `env_vars`, `kilo` and `gemini` expand
+    `{env:VAR}` / `${VAR}` at launch, and the `claude` snippet relies on the
+    script inheriting the exported variable. Only the generic JSON (Claude
+    Desktop and other GUI clients that do not expand variables) shows a
+    placeholder value.
+    """
+    if client not in CLIENTS:
+        raise ValueError(f"client must be one of {', '.join(CLIENTS)}")
+    if client == "claude":
+        return ("# export RAPIDAPI_KEY=... in this shell first, then:\n"
+                f"claude mcp add --scope user {SERVER_NAME} -- "
+                f"{sys.executable} {Path(__file__).resolve()}")
+    if client == "codex":
+        return ("# ~/.codex/config.toml\n"
+                f"[mcp_servers.{SERVER_NAME}]\n"
+                f'command = "{sys.executable}"\n'
+                f'args = ["{Path(__file__).resolve()}"]\n'
+                f'env_vars = ["{KEY_ENV}"]')
+    return json.dumps(config_payload(client), indent=2)
+
+
+def install_config(client: str = "kilo", path: Path | str | None = None) -> dict:
+    """Write or merge the entry into a client's JSON config.
+
+    Refuses to touch a file that is not plain JSON (kilo accepts JSONC, and
+    rewriting it would drop comments), and never overwrites an existing entry
+    with the same name. The key is a placeholder that the client expands, so no
+    secret is written here.
+    """
+    if client not in CONFIG_PATHS:
+        return {"status": "manual", "path": None,
+                "reason": f"{client} is configured by hand",
+                "snippet": config_snippet(client)}
+    default_path, root_key = CONFIG_PATHS[client]
+    target = Path(path).expanduser() if path else Path(default_path).expanduser()
+    payload = config_payload(client)[root_key][SERVER_NAME]
+
+    if target.exists():
+        text = target.read_text(encoding="utf-8")
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as error:
+            return {"status": "manual", "path": str(target),
+                    "reason": f"not plain JSON ({error.msg} at line {error.lineno}); "
+                              "merge the snippet yourself so comments are not lost",
+                    "snippet": config_snippet(client)}
+        if not isinstance(data, dict):
+            return {"status": "manual", "path": str(target),
+                    "reason": "config root is not an object",
+                    "snippet": config_snippet(client)}
+        servers = data.get(root_key)
+        if servers is not None and not isinstance(servers, dict):
+            return {"status": "manual", "path": str(target),
+                    "reason": f'top-level "{root_key}" is not an object',
+                    "snippet": config_snippet(client)}
+        servers = servers or {}
+        if SERVER_NAME in servers:
+            return {"status": "already", "path": str(target),
+                    "entry": servers[SERVER_NAME]}
+        servers[SERVER_NAME] = payload
+        data[root_key] = servers
+        target.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+                          encoding="utf-8")
+        try:
+            target.chmod(0o600)
+        except OSError:
+            pass
+        return {"status": "merged", "path": str(target), "entry": payload}
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps({root_key: {SERVER_NAME: payload}}, indent=2,
+                                 ensure_ascii=False) + "\n", encoding="utf-8")
+    try:
+        target.chmod(0o600)
+    except OSError:
+        pass
+    return {"status": "created", "path": str(target), "entry": payload}
 
 
 def selftest() -> dict:
@@ -406,6 +480,12 @@ def main(argv: list[str] | None = None) -> int:
                              "(default: json, for Claude Desktop and other GUI clients)")
     parser.add_argument("--check", action="store_true",
                         help="print configuration state without a request")
+    parser.add_argument("--install-config", action="store_true",
+                        help="write/merge the entry into the client's JSON config "
+                             "(--client kilo or gemini; default kilo)")
+    parser.add_argument("--config", type=Path, default=None,
+                        help="config file for --install-config "
+                             "(default: the client's standard path)")
     parser.add_argument("--selftest", action="store_true",
                         help="protocol round-trip with no network; proves the "
                              "server starts under this python")
@@ -427,6 +507,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.print_config:
         print(config_snippet(args.client))
         return 0
+    if args.install_config:
+        client = "kilo" if args.client == "json" else args.client
+        try:
+            result = install_config(client, args.config)
+        except ValueError as error:
+            print(f"[mcp] {error}", file=sys.stderr)
+            return 2
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 0 if result["status"] in ("created", "merged", "already") else 1
     if args.selftest:
         result = selftest()
         print(json.dumps(result, indent=2))
