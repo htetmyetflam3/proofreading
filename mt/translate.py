@@ -2,7 +2,7 @@
 # requires-python = ">=3.10"
 # dependencies = ["ctranslate2>=4", "sentencepiece>=0.1.99"]
 # ///
-"""Run the four machine-translation routes and write their output to `output/mt`.
+"""Run the four machine-translation routes and write their output to `content/mtranslate`.
 
     zh-en   Chinese  -> English   offline model (installed by mt/fetch_engine.py)
     en-my   English  -> Burmese   needs an API engine (no downloadable model exists)
@@ -24,9 +24,9 @@ Engines are resolved in this order:
 
 Output layout, one directory per route:
 
-    output/mt/<route>/chapters/ch193.en.txt   one file per chapter
-    output/mt/<route>/book.en.txt             the whole run, chapter by chapter
-    output/mt/<route>/report.json             engine, timing, coverage, errors
+    content/mtranslate/<route>/chapters/ch0001.en.txt   one file per chapter
+    content/mtranslate/<route>/book.en.txt               the whole run, chapter by chapter
+    content/mtranslate/<route>/report.json               engine, timing, coverage, errors
 """
 from __future__ import annotations
 
@@ -43,9 +43,9 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 
-CHINESE = ROOT / "input" / "chinese-0511241012-from-8011_93.txt"
-BURMESE = ROOT / "input" / "ယဲ့နင်1-200.txt"
-OUTPUT = ROOT / "output" / "mt"
+CHINESE = ROOT / "content" / "source" / "chinese-0511241012-from-8011_1.txt"
+BURMESE = ROOT / "content" / "source" / "ယဲ့နင်.txt"
+OUTPUT = ROOT / "content" / "mtranslate"
 
 ROUTES = {
     "zh-en": ("zh", "en"),
@@ -66,16 +66,60 @@ class Chapter:
     source: str
 
 
+# Crawler OCR damage: katakana ー for 一, ハ for 八, 意 for 章 (第六四意),
+# plus inline titles glued inside an unsplit section.
+_CN_NUMERALS = "一二三四五六七八九十百千零〇ーハ"
+_CN_TITLE = re.compile(r"第([" + _CN_NUMERALS + r"]+)[章意]")
+_CN_GARBLED = str.maketrans({"ー": "一", "ハ": "八"})
+_CN_DIGIT = {"〇": 0, "零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
+             "六": 6, "七": 7, "八": 8, "九": 9}
+
+
+def _cn_label(numerals: str) -> int:
+    numerals = numerals.translate(_CN_GARBLED)
+    if not any(unit in numerals for unit in "十百千"):
+        total = 0
+        for char in numerals:
+            total = total * 10 + _CN_DIGIT[char]
+        return total
+    return chinese_number(numerals)
+
+
+def _chinese_boundaries(lines: list[str]) -> list[tuple[int, int, int, int, str]]:
+    bounds: list[tuple[int, int, int, int, str]] = []
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith("===== "):
+            title = stripped.strip("= ").strip()
+            match = _CN_TITLE.match(title)
+            bare = re.fullmatch(r"\d+", title)
+            if match:
+                bounds.append((index, 0, len(line), _cn_label(match.group(1)), title))
+            elif bare:
+                bounds.append((index, 0, len(line), int(bare.group()), title))
+        elif not stripped.startswith("[[KMTCRAWLER"):
+            for match in _CN_TITLE.finditer(line):
+                bounds.append((index, match.start(), match.end(),
+                               _cn_label(match.group(1)), match.group(0).strip()))
+    return bounds
+
+
 def chinese_chapters(path: Path = CHINESE) -> list[Chapter]:
     lines = path.read_text(encoding="utf-8").split("\n")
-    heads = [i for i, line in enumerate(lines) if line.startswith("===== ")]
+    bounds = _chinese_boundaries(lines)
     chapters: list[Chapter] = []
-    for order, index in enumerate(heads):
-        end = heads[order + 1] if order + 1 < len(heads) else len(lines)
-        title = lines[index].strip("= ").strip()
-        match = re.match(r"^第([一二三四五六七八九十百千零〇]+)章", title)
-        number = chinese_number(match.group(1)) if match else order + 1
-        chapters.append(Chapter(number, title, "\n".join(lines[index + 1:end]).strip(), "chinese"))
+    for order, (index, start_cut, end_cut, number, title) in enumerate(bounds, 1):
+        if order < len(bounds):
+            end_line, end_start = bounds[order][0], bounds[order][1]
+        else:
+            end_line, end_start = len(lines), 0
+        if start_cut or end_cut:
+            segment = [lines[index][end_cut:]] + lines[index + 1:end_line]
+        else:
+            segment = lines[index + 1:end_line]
+        if end_start and segment:
+            segment[-1] = segment[-1][:end_start]
+        chapters.append(Chapter(number, title, "\n".join(segment).strip(), "chinese"))
     return chapters
 
 
@@ -98,15 +142,61 @@ def english_chapters(route_dir: Path) -> list[Chapter]:
     return chapters
 
 
+# Native PDF headings ("Chapter 1:", "အခန်း (၅)", "အပိုင်း ၅၁", split parts,
+# Arabic-digit and OCR ရ-for-၇ variants); used when the text has no crawler markers.
+_BURMESE_HEADING = re.compile(
+    r"^Chapter\s*[\-\u2013:]?\s*(?P<cn>\d+)\b"
+    r"|^(?:အခန်း|အပိုင်း)\s*[\-\u2013（(]?\s*"
+    r"(?P<bn>[၀-၉0-9ရ]+)\s*[）)]?(?:\s*(?P<part>[၁၂]))?\s*$"
+)
+
+
+def _burmese_native_heads(lines: list[str]) -> list[tuple[int, int | None, str]]:
+    heads: list[tuple[int, int | None, str]] = []
+    for index, line in enumerate(lines):
+        match = _BURMESE_HEADING.match(line.strip())
+        if not match:
+            continue
+        if match.group("cn"):
+            label: int | None = int(match.group("cn"))
+        else:
+            digit_map = {chr(0x1040 + i): str(i) for i in range(10)}
+            digits = "".join(digit_map.get(char, char) for char in match.group("bn"))
+            found = re.search(r"\d+", digits)
+            label = int(found.group()) if found else None
+        heads.append((index, label, line.strip()))
+    for order, (index, label, title) in enumerate(heads):
+        if label is None:
+            previous = heads[order - 1][1] if order else None
+            upcoming = next((item[1] for item in heads[order + 1:] if item[1] is not None), None)
+            if previous is not None and upcoming == previous + 2:
+                heads[order] = (index, previous + 1, title)
+    return heads
+
+
 def burmese_chapters(path: Path = BURMESE) -> list[Chapter]:
     lines = path.read_text(encoding="utf-8").split("\n")
     marks = [i for i, line in enumerate(lines) if line.startswith("[[HCRAWLER MARKER")]
-    chapters = []
-    for order, index in enumerate(marks):
-        end = marks[order + 1] if order + 1 < len(marks) else len(lines)
-        title = lines[index + 1].strip() if index + 1 < len(lines) else ""
-        chapters.append(BurmeseChapter(order + 1, title, "\n".join(lines[index + 2:end]).strip(),
-                                       "burmese", marker=order + 1))
+    if marks:
+        chapters = []
+        for order, index in enumerate(marks):
+            end = marks[order + 1] if order + 1 < len(marks) else len(lines)
+            title = lines[index + 1].strip() if index + 1 < len(lines) else ""
+            chapters.append(BurmeseChapter(order + 1, title, "\n".join(lines[index + 2:end]).strip(),
+                                           "burmese", marker=order + 1))
+        return chapters
+    heads = _burmese_native_heads(lines)
+    chapters: list[BurmeseChapter] = []
+    for order, (index, label, title) in enumerate(heads):
+        end = heads[order + 1][0] if order + 1 < len(heads) else len(lines)
+        body = "\n".join(lines[index + 1:end]).strip()
+        if chapters and chapters[-1].number == label:
+            previous = chapters[-1]
+            chapters[-1] = BurmeseChapter(previous.number, previous.title,
+                                          previous.body + "\n\n" + body, "burmese",
+                                          marker=previous.marker)
+        else:
+            chapters.append(BurmeseChapter(label, title, body, "burmese", marker=len(chapters) + 1))
     return chapters
 
 
@@ -391,7 +481,7 @@ def main(argv: list[str] | None = None) -> int:
                         help="route to run; repeatable, default: all four")
     parser.add_argument("--engine", choices=["offline", "azure", "glossary"], default="offline")
     parser.add_argument("--source-file", type=Path, default=None,
-                        help="Chinese text; default input/chinese-0511241012-from-8011_93.txt")
+                        help="Chinese text; default content/source/chinese-0511241012-from-8011_1.txt")
     parser.add_argument("--limit", type=int, default=None, help="only the first N chapters")
     parser.add_argument("--only", action="append", default=[], help="chapter number to include")
     parser.add_argument("--out-dir", type=Path, default=OUTPUT)

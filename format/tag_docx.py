@@ -22,7 +22,7 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_INPUT = ROOT / "input" / "ယဲ့နင်1-200.txt"
+DEFAULT_INPUT = ROOT / "content" / "source" / "ယဲ့နင်.txt"
 CHAPTER_MARKER = re.compile(r"^\[\[HCRAWLER MARKER \d+\]\]$")
 
 
@@ -83,8 +83,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--input", type=Path, default=None,
-                        help="Plain UTF-8 text; default: input/ယဲ့နင်1-200.txt")
-    parser.add_argument("--output-dir", type=Path, default=ROOT / "output/tagger")
+                        help="Plain UTF-8 text; default: content/source/ယဲ့နင်.txt")
+    parser.add_argument("--output-dir", type=Path, default=ROOT / "content" / "kaung-pos")
     parser.add_argument("--max-paragraphs", type=int,
                         help="Explicit small pilot; uses a separate output name")
     args = parser.parse_args()
@@ -93,7 +93,7 @@ def main():
 
     text_path = args.input or DEFAULT_INPUT
     if args.input is None and not text_path.is_file():
-        candidates = list((ROOT / "input").glob("*.txt"))
+        candidates = list((ROOT / "content" / "source").glob("*.txt"))
         if len(candidates) != 1:
             parser.error("Specify --input (no default text file was found)")
         text_path = candidates[0]

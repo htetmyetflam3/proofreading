@@ -1,0 +1,12 @@
+{
+  "engine": "offline",
+  "routes": {
+    "zh-en": {
+      "status": "unavailable",
+      "detail": "no offline model installed for zh-en (mt/fetch_engine.py --install zh-en)",
+      "chapters": 0,
+      "sentences": 0,
+      "seconds": 0.0
+    }
+  }
+}

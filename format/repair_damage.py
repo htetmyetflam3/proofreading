@@ -38,7 +38,7 @@ passes run in order, each one anchored on the dictionary:
 Repair passes repeat until nothing changes (`--rounds`, default 3).
 
 Default output is a new file next to the input:
-    input/ယဲ့နင်1-200.txt -> input/ယဲ့နင်1-200.damage-repaired.txt
+    content/source/ယဲ့နင်.txt -> content/source/ယဲ့နင်.damage-repaired.txt
 
 Use --in-place explicitly to overwrite. --dry-run writes nothing and prints the
 same report. Every line ending and every byte outside a repair is preserved.

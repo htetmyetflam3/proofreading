@@ -54,13 +54,13 @@ python3 mt/translate.py --route zh-my --engine glossary --only 193
 Outputs, one directory per route:
 
 ```
-output/mt/zh-en/chapters/ch0193.en.txt    one file per chapter
-output/mt/zh-en/book.en.txt               the whole run
-output/mt/zh-en/report.json               engine, sentences, seconds, empty lines
-output/mt/manifest.json                   every route of the last run
+content/mtranslate/zh-en/chapters/ch0193.en.txt    one file per chapter
+content/mtranslate/zh-en/book.en.txt               the whole run
+content/mtranslate/zh-en/report.json               engine, sentences, seconds, empty lines
+content/mtranslate/manifest.json                   every route of the last run
 ```
 
-`output/mt/` is git-ignored: it is generated.
+`content/mtranslate/` holds generated route outputs; the merged books under `content/merged/` are tracked core data.
 
 ## The glossary engine is not a translation engine
 
@@ -84,7 +84,7 @@ dictionary stores both and OpenCC normalises running text before lookup.
 
 ## What the offline model actually produces
 
-Chapter 193, first sentences (`output/mt/zh-en/book.en.txt`):
+Chapter 193, first sentences (`content/mtranslate/zh-en/book.en.txt`):
 
 ```
 These people, they're the bottom of the week.

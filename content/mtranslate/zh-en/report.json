@@ -1,0 +1,15 @@
+{
+  "route": "zh-en",
+  "engine": "offline",
+  "chapters": 0,
+  "sentences": 0,
+  "empty": 0,
+  "skipped": 0,
+  "tokens": 0,
+  "unresolved": 0,
+  "started": 0.0,
+  "seconds": 0.0,
+  "status": "unavailable",
+  "detail": "no offline model installed for zh-en (mt/fetch_engine.py --install zh-en)",
+  "files": []
+}

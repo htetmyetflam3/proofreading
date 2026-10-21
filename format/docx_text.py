@@ -10,7 +10,7 @@ removes only the observed PDF/export wrappers (`# Source:`, `# Pages:`,
 Burmese text.
 
 Default output is the matching text beside the DOCX input:
-    input/ယဲ့နင်1-200.docx -> input/ယဲ့နင်1-200.txt
+    content/source/ယဲ့နင်.docx -> content/source/ယဲ့နင်.txt
 
 The original DOCX is never modified. The text preserves the translator's
 existing quotation characters; it is not a quote-repair pass. Trailing spaces
@@ -127,9 +127,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("input", nargs="?", type=Path,
-                        help="DOCX path; default: the single DOCX in input/")
+                        help="DOCX path; default: the single DOCX in content/source/")
     parser.add_argument("-o", "--output", type=Path,
-                        help="Text path; default: input/<stem>.txt")
+                        help="Text path; default: content/source/<stem>.txt")
     parser.add_argument("--force", action="store_true", help="Overwrite an existing text output")
     parser.add_argument("--repair-damage", action="store_true",
                         help="Repair PDF-conversion vowel displacement (see repair_damage.py)")
@@ -140,14 +140,14 @@ def main(argv: list[str] | None = None) -> int:
     try:
         docx = args.input
         if docx is None:
-            candidates = list((ROOT / "input").glob("*.docx"))
+            candidates = list((ROOT / "content" / "source").glob("*.docx"))
             if len(candidates) != 1:
-                raise ValueError("Specify a DOCX path (there is not exactly one DOCX in input/)")
+                raise ValueError("Specify a DOCX path (there is not exactly one DOCX in content/source/)")
             docx = candidates[0]
         docx = docx.resolve()
         if not docx.is_file():
             raise ValueError(f"Input DOCX does not exist: {docx}")
-        destination = (args.output or (ROOT / "input" / (docx.stem + ".txt"))).resolve()
+        destination = (args.output or (ROOT / "content" / "source" / (docx.stem + ".txt"))).resolve()
         if destination == docx:
             raise ValueError("Text output must not replace the DOCX")
         if destination.exists() and not args.force:

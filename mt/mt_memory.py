@@ -25,7 +25,7 @@ import tempfile
 import unicodedata
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_MEMORY = ROOT / "output" / "mt" / "memory.sqlite3"
+DEFAULT_MEMORY = ROOT / "content" / "mtranslate" / "memory.sqlite3"
 STATUSES = ("suggested", "approved")
 KINDS = ("phrase", "term")
 ENTITY = re.compile(r"&(?:[A-Za-z][A-Za-z0-9]*|#\d+|#x[0-9A-Fa-f]+);")

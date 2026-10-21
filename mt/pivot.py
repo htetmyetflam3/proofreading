@@ -6,8 +6,8 @@
 
 The chapter files in this repository contain two parallel texts of the same novel:
 
-    Chinese   input/chinese-0511241012-from-8011_93.txt   210 chapters, 193 .. 408
-    Burmese   input/ယဲ့နင်1-200.txt                          197 markers, chapters 1 .. 193
+    Chinese   content/source/chinese-0511241012-from-8011_1.txt   377 sections, chapters 1 .. 408
+    Burmese   content/source/ယဲ့နင်.txt                            197 markers, chapters 1 .. 195
 
 They overlap in exactly one chapter -- Chinese 193 is Burmese marker 197 (title
 `အခန်း ၁၉၅`, opening `ဤလူများသည် မဟာကျိုးပြည်ထောင်၏` for
@@ -44,7 +44,7 @@ from translate import (  # noqa: E402
     sentences,
 )
 
-OUTPUT = ROOT / "output" / "mt"
+OUTPUT = ROOT / "content" / "mtranslate"
 SHARED = {"chinese": 193, "burmese_marker": 197}
 
 

@@ -1,23 +1,28 @@
-# Untracked directories
+# Local tooling only. Pipeline outputs under content/ are core repository
+# data and must stay tracked — do not ignore them.
 
-*.venv*
-*venv*
-*output*
-*.output/
-*.log*
-*frontend/
-*__pycache__*
-/__pycache__/
-*pycache*
-*package.lock.json*
-# Runtime build artifacts
-/node_modules/
-*node_modules*
-dist
-*env*
-coverage/
+# Python
+__pycache__/
+*.py[cod]
+*.venv/
+venv/
+.venv/
+
+# Node
+node_modules/
+
+# Editors / OS
+*.swp
+*.tmp
 .DS_Store
 Thumbs.db
-*.tmp
-*.swp
 
+# Logs
+*.log
+
+# Local environment (never commit secrets)
+.env
+
+# Build leftovers
+dist/
+coverage/

@@ -21,9 +21,9 @@ import json5
 
 ROOT = Path(__file__).resolve().parent.parent
 VERSION = 2
-REFERENCE = ROOT/'output/tagger/ယဲ့နင်1-200.raw_pos.txt'
-WORK = ROOT/'output/mt/comparison'
-PROFILE = ROOT/'analysis/reference-data-audit.json'
+REFERENCE = ROOT/'content/kaung-pos/ယဲ့နင်1-200.raw_pos.txt'
+WORK = ROOT/'content/mtranslate/comparison'
+PROFILE = ROOT/'content/analysis/reference-data-audit.json'
 GUARD = ROOT/'scraper/wasm/box/runtime-guard.mjs'
 
 class ComparisonError(Exception):
