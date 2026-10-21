@@ -45,6 +45,7 @@ from rapidapi_translator import (  # noqa: E402
     MAX_REQUEST_ITEMS,
     CachedTranslator,
     TranslatorError,
+    load_env_file,
     parse_chapters,
 )
 
@@ -339,33 +340,42 @@ CONFIG_PATHS = {
 }
 
 
-def config_payload(client: str = "json") -> dict:
-    """The server entry in the shape that client expects."""
+def _extra_args(env_file: Path | str | None) -> list[str]:
+    return ["--env-file", str(Path(env_file).expanduser())] if env_file else []
+
+
+def config_payload(client: str = "json", env_file: Path | str | None = None) -> dict:
+    """The server entry in the shape that client expects.
+
+    With `env_file`, the server reads the key from that file at startup and the
+    entry carries no `environment` placeholder, so nothing has to be exported
+    into the client's shell.
+    """
     if client not in CLIENTS:
         raise ValueError(f"client must be one of {', '.join(CLIENTS)}")
     command = sys.executable
     server = str(Path(__file__).resolve())
+    extra = _extra_args(env_file)
+    environment = {} if env_file else {KEY_ENV: "{env:" + KEY_ENV + "}"}
     if client == "kilo":
         return {"mcp": {SERVER_NAME: {
             "type": "local",
-            "command": [command, server],
+            "command": [command, server, *extra],
             "enabled": True,
-            "environment": {KEY_ENV: "{env:" + KEY_ENV + "}"},
+            **({"environment": environment} if environment else {}),
         }}}
     if client == "gemini":
-        return {"mcpServers": {SERVER_NAME: {
-            "command": command,
-            "args": [server],
-            "env": {KEY_ENV: "${" + KEY_ENV + "}"},
-        }}}
+        env = {} if env_file else {KEY_ENV: "${" + KEY_ENV + "}"}
+        payload = {"command": command, "args": [server, *extra]}
+        return {"mcpServers": {SERVER_NAME: dict(payload, **({"env": env} if env else {}))}}
     return {"mcpServers": {SERVER_NAME: {
         "command": command,
-        "args": [server],
+        "args": [server, *extra],
         "env": {KEY_ENV: "<your-rapidapi-key>"},
     }}}
 
 
-def config_snippet(client: str = "json") -> str:
+def config_snippet(client: str = "json", env_file: Path | str | None = None) -> str:
     """Client config that keeps the key out of the file where the client can.
 
     `codex` forwards the variable with `env_vars`, `kilo` and `gemini` expand
@@ -376,20 +386,26 @@ def config_snippet(client: str = "json") -> str:
     """
     if client not in CLIENTS:
         raise ValueError(f"client must be one of {', '.join(CLIENTS)}")
+    extra = _extra_args(env_file)
     if client == "claude":
+        tail = " ".join(extra)
         return ("# export RAPIDAPI_KEY=... in this shell first, then:\n"
                 f"claude mcp add --scope user {SERVER_NAME} -- "
-                f"{sys.executable} {Path(__file__).resolve()}")
+                f"{sys.executable} {Path(__file__).resolve()}"
+                + (f" {tail}" if tail else ""))
     if client == "codex":
+        args = ", ".join(f'"{item}"' for item in
+                         [str(Path(__file__).resolve()), *extra])
         return ("# ~/.codex/config.toml\n"
                 f"[mcp_servers.{SERVER_NAME}]\n"
                 f'command = "{sys.executable}"\n'
-                f'args = ["{Path(__file__).resolve()}"]\n'
-                f'env_vars = ["{KEY_ENV}"]')
-    return json.dumps(config_payload(client), indent=2)
+                f"args = [{args}]\n"
+                + ("" if env_file else f'env_vars = ["{KEY_ENV}"]'))
+    return json.dumps(config_payload(client, env_file), indent=2)
 
 
-def install_config(client: str = "kilo", path: Path | str | None = None) -> dict:
+def install_config(client: str = "kilo", path: Path | str | None = None,
+                   env_file: Path | str | None = None) -> dict:
     """Write or merge the entry into a client's JSON config.
 
     Refuses to touch a file that is not plain JSON (kilo accepts JSONC, and
@@ -400,10 +416,10 @@ def install_config(client: str = "kilo", path: Path | str | None = None) -> dict
     if client not in CONFIG_PATHS:
         return {"status": "manual", "path": None,
                 "reason": f"{client} is configured by hand",
-                "snippet": config_snippet(client)}
+                "snippet": config_snippet(client, env_file)}
     default_path, root_key = CONFIG_PATHS[client]
     target = Path(path).expanduser() if path else Path(default_path).expanduser()
-    payload = config_payload(client)[root_key][SERVER_NAME]
+    payload = config_payload(client, env_file)[root_key][SERVER_NAME]
 
     if target.exists():
         text = target.read_text(encoding="utf-8")
@@ -413,16 +429,16 @@ def install_config(client: str = "kilo", path: Path | str | None = None) -> dict
             return {"status": "manual", "path": str(target),
                     "reason": f"not plain JSON ({error.msg} at line {error.lineno}); "
                               "merge the snippet yourself so comments are not lost",
-                    "snippet": config_snippet(client)}
+                    "snippet": config_snippet(client, env_file)}
         if not isinstance(data, dict):
             return {"status": "manual", "path": str(target),
                     "reason": "config root is not an object",
-                    "snippet": config_snippet(client)}
+                    "snippet": config_snippet(client, env_file)}
         servers = data.get(root_key)
         if servers is not None and not isinstance(servers, dict):
             return {"status": "manual", "path": str(target),
                     "reason": f'top-level "{root_key}" is not an object',
-                    "snippet": config_snippet(client)}
+                    "snippet": config_snippet(client, env_file)}
         servers = servers or {}
         if SERVER_NAME in servers:
             return {"status": "already", "path": str(target),
@@ -486,6 +502,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", type=Path, default=None,
                         help="config file for --install-config "
                              "(default: the client's standard path)")
+    parser.add_argument("--env-file", type=Path, default=None, metavar="PATH",
+                        help="read KEY=VALUE lines from PATH at startup "
+                             "(also RAPIDAPI_ENV_FILE); the shell wins")
     parser.add_argument("--selftest", action="store_true",
                         help="protocol round-trip with no network; proves the "
                              "server starts under this python")
@@ -505,12 +524,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.print_config:
-        print(config_snippet(args.client))
+        print(config_snippet(args.client, args.env_file))
         return 0
     if args.install_config:
         client = "kilo" if args.client == "json" else args.client
         try:
-            result = install_config(client, args.config)
+            result = install_config(client, args.config, args.env_file)
         except ValueError as error:
             print(f"[mcp] {error}", file=sys.stderr)
             return 2
@@ -526,8 +545,17 @@ def main(argv: list[str] | None = None) -> int:
             "key": "set" if os.environ.get(KEY_ENV) else "missing",
             "cache": str(args.cache or os.environ.get(CACHE_ENV) or DEFAULT_CACHE),
             "protocols": list(SUPPORTED_PROTOCOLS),
+            "env_file": str(args.env_file or os.environ.get("RAPIDAPI_ENV_FILE") or ""),
         }, indent=2))
         return 0
+
+    try:
+        loaded = load_env_file(args.env_file)
+    except TranslatorError as error:
+        print(f"[mcp] {error}", file=sys.stderr)
+        return 2
+    if loaded:
+        print(f"[mcp] loaded {', '.join(loaded)} from {args.env_file}", file=sys.stderr)
 
     server = Server(cache_path=args.cache, enabled_cache=not args.no_cache,
                     max_chars=args.max_chars, max_items=args.max_items,

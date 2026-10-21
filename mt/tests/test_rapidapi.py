@@ -31,6 +31,7 @@ from rapidapi_translator import (  # noqa: E402
     RapidApiClient,
     TranslatorError,
     chunk_texts,
+    load_env_file,
     parse_chapters,
     split_text,
 )
@@ -265,6 +266,93 @@ class ClientTests(ApiTestCase):
             with self.assertRaises(TranslatorError) as caught:
                 RapidApiClient()
         self.assertIn("RAPIDAPI_KEY", str(caught.exception))
+
+
+class EnvFileTests(ApiTestCase):
+    def write_env(self, text, name=".env"):
+        path = self.tmp / name
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def test_parse_forms(self):
+        path = self.write_env(
+            "# comment\n"
+            "\n"
+            "RAPIDAPI_KEY=plain\n"
+            "export QUOTED=\"with spaces\"\n"
+            "SINGLE='single quoted'\n"
+            "TRAILING=value # note\n"
+            "not a pair\n"
+            "1BAD=x\n"
+            "EMPTY=\n"
+        )
+        from rapidapi_translator import parse_env_file
+        values = parse_env_file(path)
+        self.assertEqual(values["RAPIDAPI_KEY"], "plain")
+        self.assertEqual(values["QUOTED"], "with spaces")
+        self.assertEqual(values["SINGLE"], "single quoted")
+        self.assertEqual(values["TRAILING"], "value")
+        self.assertEqual(values["EMPTY"], "")
+        self.assertNotIn("1BAD", values)
+        self.assertNotIn("not a pair", values)
+
+    def test_load_does_not_override_the_shell(self):
+        path = self.write_env("RAPIDAPI_KEY=from-file\nOTHER=file\n")
+        with mock.patch.dict(os.environ, {"RAPIDAPI_KEY": "from-shell"}, clear=False):
+            os.environ.pop("OTHER", None)
+            loaded = load_env_file(path)
+            self.assertEqual(os.environ["RAPIDAPI_KEY"], "from-shell")
+            self.assertEqual(os.environ["OTHER"], "file")
+        self.assertEqual(loaded, ["OTHER"])
+
+    def test_empty_variable_counts_as_unset(self):
+        path = self.write_env("RAPIDAPI_KEY=from-file\n")
+        with mock.patch.dict(os.environ, {"RAPIDAPI_KEY": ""}, clear=False):
+            self.assertEqual(load_env_file(path), ["RAPIDAPI_KEY"])
+            self.assertEqual(os.environ["RAPIDAPI_KEY"], "from-file")
+
+    def test_override_is_opt_in(self):
+        path = self.write_env("RAPIDAPI_KEY=from-file\n")
+        with mock.patch.dict(os.environ, {"RAPIDAPI_KEY": "from-shell"}, clear=False):
+            load_env_file(path, override=True)
+            self.assertEqual(os.environ["RAPIDAPI_KEY"], "from-file")
+
+    def test_no_path_does_nothing(self):
+        with mock.patch.dict(os.environ, {"RAPIDAPI_ENV_FILE": ""}, clear=False):
+            self.assertEqual(load_env_file(), [])
+
+    def test_missing_file_raises(self):
+        with self.assertRaises(TranslatorError) as caught:
+            load_env_file(self.tmp / "nope.env")
+        self.assertIn("no env file", str(caught.exception))
+
+    def test_cli_reads_env_file(self):
+        path = self.write_env("RAPIDAPI_KEY=from-file\n")
+        with mock.patch.dict(os.environ, {"RAPIDAPI_KEY": ""}, clear=False):
+            code = __import__("rapidapi_translator").main(
+                ["--translate", "你好", "--target", "my", "--env-file", str(path),
+                 "--cache", str(self.cache), "--json"])
+        self.assertEqual(code, 0)
+        self.assertEqual(self.api.last()["key"], "from-file")
+
+    def test_chapter_cli_reads_env_file(self):
+        path = self.write_env("RAPIDAPI_KEY=from-file\n")
+        source = self.tmp / "source.txt"
+        source.write_text("===== 第一章 =====\n\n大周，帝都盛京。\n", encoding="utf-8")
+        with mock.patch.dict(os.environ, {"RAPIDAPI_KEY": ""}, clear=False):
+            code = api_translate.main([
+                "--chapters", "1", "--source-file", str(source),
+                "--out-dir", str(self.tmp / "out"), "--cache", str(self.cache),
+                "--env-file", str(path), "--no-compare", "--run", "--json"])
+        self.assertEqual(code, 0)
+        self.assertEqual(self.api.last()["key"], "from-file")
+
+    def test_bad_env_file_path_exits_2(self):
+        with mock.patch.dict(os.environ, {"RAPIDAPI_KEY": ""}, clear=False):
+            code = __import__("rapidapi_translator").main(
+                ["--translate", "x", "--env-file", str(self.tmp / "nope.env")])
+        self.assertEqual(code, 2)
+        self.assertEqual(self.api.requests, [])
 
 
 class CacheTests(ApiTestCase):
@@ -689,6 +777,17 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(result["status"], "manual")
         self.assertIn("rapidapi-translator", result["snippet"])
         self.assertEqual(target.read_text(encoding="utf-8"), original)
+
+    def test_install_config_with_env_file_adds_args_and_drops_placeholder(self):
+        env_file = self._temp() / ".env"
+        env_file.write_text("RAPIDAPI_KEY=x\n", encoding="utf-8")
+        target = self._temp() / "kilo.json"
+        output = self.run_server("--install-config", "--client", "kilo",
+                                 "--config", str(target), "--env-file", str(env_file))
+        self.assertEqual(output.returncode, 0, output.stderr)
+        entry = json.loads(target.read_text(encoding="utf-8"))["mcp"]["rapidapi-translator"]
+        self.assertEqual(entry["command"][-2:], ["--env-file", str(env_file)])
+        self.assertNotIn("environment", entry)
 
     def test_install_config_for_gemini_uses_env_expansion(self):
         target = self._temp() / "settings.json"

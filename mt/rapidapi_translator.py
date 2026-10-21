@@ -22,6 +22,9 @@ Design rules, borrowed from `init/initmt.py` and `mt/translate.py`:
 
 - The key is read from `RAPIDAPI_KEY` and is never written to disk or printed.
   A key is redacted from any error text before an exception is raised.
+- Nothing is loaded implicitly. `load_env_file()` is called only when `--env-file`
+  (or `RAPIDAPI_ENV_FILE`) names a file, and it never prints or returns values.
+  The shell environment always wins over the file.
 - Redirects are not followed, so the key cannot be forwarded to another host.
 - Only 408/425/429/5xx and network errors are retried. A retried request may
   already have been counted by RapidAPI; the caller sees `stats["retries"]`.
@@ -56,6 +59,7 @@ KEY_ENV = "RAPIDAPI_KEY"
 BASE_URL_ENV = "RAPIDAPI_BASE_URL"  # tests / gateways only
 HOST_ENV = "RAPIDAPI_HOST"
 CACHE_ENV = "RAPIDAPI_CACHE"
+ENV_FILE_ENV = "RAPIDAPI_ENV_FILE"
 
 DEFAULT_CACHE = ROOT / "content" / "mtranslate" / "rapidapi-cache.sqlite3"
 
@@ -96,6 +100,63 @@ class BatchResult:
             "requests": self.requests,
             "cached": self.cached,
         }
+
+
+# ---------------------------------------------------------------- .env
+
+_VALID_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def parse_env_file(path: Path | str) -> dict[str, str]:
+    """KEY=VALUE lines from a dotenv file. Comments, blanks and `export ` allowed.
+
+    Supports single or double quotes around the value. No substitution is
+    performed, so `$` and `{` stay literal; a line without `=` or with an
+    invalid name is skipped rather than raising.
+    """
+    values: dict[str, str] = {}
+    for raw in Path(path).read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export "):].lstrip()
+        name, sep, value = line.partition("=")
+        if not sep:
+            continue
+        name = name.strip()
+        if not _VALID_KEY.match(name):
+            continue
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        elif " #" in value:
+            value = value.split(" #", 1)[0].rstrip()
+        values[name] = value
+    return values
+
+
+def load_env_file(path: Path | str | None = None, *,
+                  override: bool = False) -> list[str]:
+    """Load a dotenv file into os.environ and return the names that were set.
+
+    A variable already present with a non-empty value is kept unless `override`
+    is true, so `export RAPIDAPI_KEY=...` in the shell beats the file. Values
+    are never printed; a missing file raises, because a silent no-op would hide
+    a typo in the path.
+    """
+    target = path or os.environ.get(ENV_FILE_ENV)
+    if not target:
+        return []
+    file = Path(target).expanduser()
+    if not file.is_file():
+        raise TranslatorError(f"no env file at {file}")
+    loaded: list[str] = []
+    for name, value in parse_env_file(file).items():
+        if override or not os.environ.get(name):
+            os.environ[name] = value
+            loaded.append(name)
+    return loaded
 
 
 # ---------------------------------------------------------------- helpers
@@ -584,7 +645,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-items", type=int, default=MAX_REQUEST_ITEMS)
     parser.add_argument("--timeout", type=float, default=60.0)
     parser.add_argument("--attempts", type=int, default=3)
+    parser.add_argument("--env-file", type=Path, default=None, metavar="PATH",
+                        help="read KEY=VALUE lines from PATH before running "
+                             f"(also {ENV_FILE_ENV}); the shell environment wins")
     args = parser.parse_args(argv)
+
+    try:
+        loaded = load_env_file(args.env_file)
+    except TranslatorError as error:
+        print(f"[rapidapi] {error}", file=sys.stderr)
+        return 2
+    if loaded:
+        print(f"[rapidapi] loaded {', '.join(loaded)} from "
+              f"{args.env_file or os.environ.get(ENV_FILE_ENV)}", file=sys.stderr)
 
     if args.check:
         print(json.dumps({
@@ -592,6 +665,7 @@ def main(argv: list[str] | None = None) -> int:
             "base_url": os.environ.get(BASE_URL_ENV, BASE_URL),
             "key": "set" if os.environ.get(KEY_ENV) else "missing",
             "cache": str(args.cache or os.environ.get(CACHE_ENV) or DEFAULT_CACHE),
+            "env_file": str(args.env_file or os.environ.get(ENV_FILE_ENV) or ""),
         }, indent=2))
         return 0
 

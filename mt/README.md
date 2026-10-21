@@ -109,7 +109,8 @@ python3 mt/api_translate.py --chapters 1-2 --plan   # offline, no key
 RAPIDAPI_KEY=... python3 mt/api_translate.py --chapters 1-2 --run
 ```
 
-The key is read from `RAPIDAPI_KEY`, never stored. `mt/chapter_map.py` reads the
+The key is read from `RAPIDAPI_KEY`, or from a file named with `--env-file`
+(nothing is loaded implicitly; `.env` is gitignored), never stored. `mt/chapter_map.py` reads the
 Chinese↔Burmese chapter numbers out of `content/merged/episodes.docx` (last
 existing: Chinese 193 ↔ Burmese 195; next untranslated: 194), and `--chapters
 last|next|existing` uses it for both the run and the comparison reference.

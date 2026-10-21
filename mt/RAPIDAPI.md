@@ -48,6 +48,50 @@ read -rsp 'RapidAPI key: ' RAPIDAPI_KEY; echo
 export RAPIDAPI_KEY
 ```
 
+### Keeping it in `.env` instead
+
+`.env` is already gitignored here, but nothing reads it implicitly — that is
+deliberate, so a key file can never be picked up by accident. Point a tool at it
+explicitly with `--env-file`, or set `RAPIDAPI_ENV_FILE` once:
+
+```sh
+cat > .env <<'EOF'
+RAPIDAPI_KEY=your-key-here
+EOF
+chmod 600 .env
+
+python3 mt/api_translate.py --chapters next --plan --env-file .env
+python3 mt/api_translate.py --chapters next --run  --env-file .env
+python3 mt/rapidapi_translator.py --detect "大周" --env-file .env
+```
+
+Rules:
+
+- The shell wins. A variable already exported with a non-empty value is not
+  overwritten; an empty one counts as unset and is filled from the file.
+- Values are never printed. Startup only reports the *names* it loaded, e.g.
+  `[rapidapi] loaded RAPIDAPI_KEY from .env`.
+- A path that does not exist is an error (exit 2), not a silent no-op.
+- `KEY=VALUE`, `export KEY=VALUE`, quotes and `#` comments are understood; no
+  `$VAR` substitution is performed.
+- Nothing else in `.env` is disturbed, and `RAPIDAPI_BASE_URL`, `RAPIDAPI_HOST`,
+  `RAPIDAPI_CACHE` work there too.
+
+For the MCP server, put the file in the client entry so the key never has to be
+exported into the client's shell:
+
+```sh
+python3 mt/mcp_server.py --install-config --client kilo --env-file /root/proofreading/.env
+```
+
+That writes the entry with `"--env-file", "/root/proofreading/.env"` and no
+`environment` block, i.e. the server reads the file when the client launches it.
+For Claude Code and Codex the same flag appends `--env-file …` to the command:
+
+```sh
+python3 mt/mcp_server.py --print-config --client codex --env-file ~/proofreading/.env
+```
+
 Optional overrides, mainly for tests:
 
 - `RAPIDAPI_BASE_URL` — base URL (default `https://multi-format-ai-translator-the-most-complete.p.rapidapi.com`)

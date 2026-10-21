@@ -52,6 +52,7 @@ from rapidapi_translator import (  # noqa: E402
     CachedTranslator,
     TranslatorError,
     chunk_texts,
+    load_env_file,
     parse_chapters,
     split_text,
 )
@@ -398,12 +399,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--timeout", type=float, default=60.0)
     parser.add_argument("--attempts", type=int, default=3)
     parser.add_argument("--json", action="store_true", help="print the report as JSON")
+    parser.add_argument("--env-file", type=Path, default=None, metavar="PATH",
+                        help="read KEY=VALUE lines from PATH before running; the "
+                             "shell environment wins. Not loaded implicitly.")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--plan", action="store_true",
                       help="offline: count work and requests (default)")
     mode.add_argument("--run", action="store_true",
                       help="actually call the API; needs RAPIDAPI_KEY")
     args = parser.parse_args(argv)
+
+    try:
+        loaded = load_env_file(args.env_file)
+    except TranslatorError as error:
+        print(f"[rapidapi] {error}", file=sys.stderr)
+        return 2
+    if loaded:
+        print(f"[rapidapi] loaded {', '.join(loaded)} from {args.env_file}",
+              file=sys.stderr)
 
     if not args.source_file.is_file():
         print(f"[rapidapi] no source file at {args.source_file}", file=sys.stderr)
