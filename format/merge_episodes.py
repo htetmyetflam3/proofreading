@@ -18,26 +18,41 @@ Output shape:
 
 Pairing modes (`--pair`):
 
-    order  (default) pair in file order: episode N is Chinese chapter N of the
-           Chinese file and Burmese chapter N of the Burmese file.
-    map    pair with an explicit JSON list: [{"chinese": 193, "burmese": 197}].
-           Use this when the two files are known to line up.
+    order     pair in file order: episode N is Chinese chapter N of the Chinese
+              file and Burmese chapter N of the Burmese file (unverified).
+    map       pair with an explicit JSON list [{"chinese": N, "burmese": M}],
+              or an object {"caution": ..., "pairs": [...]}.
+    verified  the hardcoded, content-checked alignment (recommended).
 
-What the two supplied files actually contain, measured:
+What the two supplied files contain, measured and manually verified:
 
-    Chinese  input/chinese-0511241012-from-8011_93.txt   210 chapters, 193 .. 408
-    Burmese  input/ယဲ့နင်1-200.txt                          197 markers, titles 1 .. 195
+    Chinese  content/source/chinese-0511241012-from-8011_1.txt   chapters 1 .. 408
+    Burmese  content/source/ယဲ့နင်.txt                            native headings, chapters 1 .. 195
 
-They are not the same run of chapters. One pair is confirmed by identical
-content: Chinese 193 (`這些人口，可都是大周的底子`) is Burmese marker 197
-(`ဤလူများသည် မဟာကျိုးပြည်ထောင်၏ အေခြခံဖြစ်သည်`). No automatic matcher is offered
-here because the two files barely overlap -- pairing is either positional
-(`order`) or explicit (`map`), and the report always states which was used.
+The Chinese crawl carries OCR-damaged chapter titles (第六四意 for 64;
+第一百八十ー章 / 第一百ハ十一章 for 181), bare-number headers, inline titles glued
+inside the previous section, and re-fetched duplicate fragments. The Burmese
+edition split two long Chinese chapters: Chinese 61 -> Burmese 61+62 and
+Chinese 137 -> Burmese 138+139. Opening-paragraph comparison therefore gives:
 
-    uv run format/merge_episodes.py                      # order, all episodes
-    uv run format/merge_episodes.py --pair map --map pairs.json
+    Burmese 1..61    = Chinese 1..61     (1:1)
+    Burmese 62       = Chinese 61        (split)
+    Burmese 63..138  = Chinese 62..137   (offset -1)
+    Burmese 139      = Chinese 137       (split)
+    Burmese 140..195 = Chinese 138..193  (offset -2)
 
-Machine columns (`--with`, repeatable). They are read from `output/mt/<route>/`:
+Anchor: Burmese 195 = Chinese 193 (`這些人口，可都是大周的底子` /
+`ဤလူများသည် မဟာကျိုးပြည်ထောင်၏ အေခြခံဖြစ်သည်`). Evidence per pair is recorded
+in content/merged/pairs-verified.json.
+
+    # full merge incl. Chinese chapters without a Burmese counterpart
+    python3 format/merge_episodes.py --pair verified -o content/merged/episodes.txt
+    # one-to-one rows only, capped at the Burmese-covered range (Chinese <= 194)
+    python3 format/merge_episodes.py --pair verified --only-matched --max-chinese 194 \
+        -o content/merged/episodes.txt --report content/merged/pairs.json
+    python3 format/merge_episodes.py --pair map --map pairs.json
+
+Machine columns (`--with`, repeatable). They are read from `content/mtranslate/<route>/`:
 
     zh-en   machine English of the Chinese chapter -- the intermediate the
             translator actually used before restyling into Burmese
@@ -59,10 +74,10 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-CHINESE = ROOT / "input" / "chinese-0511241012-from-8011_93.txt"
-BURMESE = ROOT / "input" / "ယဲ့နင်1-200.txt"
-OUTPUT = ROOT / "output" / "merged"
-MT = ROOT / "output" / "mt"
+CHINESE = ROOT / "content" / "source" / "chinese-0511241012-from-8011_1.txt"
+BURMESE = ROOT / "content" / "source" / "ယဲ့နင်.txt"
+OUTPUT = ROOT / "content" / "merged"
+MT = ROOT / "content" / "mtranslate"
 COLUMNS = {
     "zh-en": ("Chinese to English (machine)", "ch{:04d}.en.txt", None),
     "en-zh": ("English to Chinese (machine back-translation)", "ch{:04d}.zh.txt", None),
@@ -105,28 +120,143 @@ class Episode:
     body: str
 
 
+# Crawler OCR damage seen in the source: katakana ー for 一, ハ for 八, and
+# 意 for 章 (第六四意). Inline titles inside an unsplit section use the same
+# shapes, so the numeral class and an 意-variant are accepted everywhere.
+_CN_NUMERALS = "一二三四五六七八九十百千零〇ーハ"
+_CN_TITLE = re.compile(r"第([" + _CN_NUMERALS + r"]+)[章意]")
+_CN_BARE = re.compile(r"^===== (\d+) =====$")
+_GARBLED_GLYPH = str.maketrans({"ー": "一", "ハ": "八"})
+_CN_DIGIT = {"〇": 0, "零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
+             "六": 6, "七": 7, "八": 8, "九": 9}
+
+
+def _cn_label(numerals: str) -> int:
+    """Chapter number from a title numeral run, tolerating OCR-garbled titles."""
+    numerals = numerals.translate(_GARBLED_GLYPH)
+    if not any(unit in numerals for unit in "十百千"):
+        # Garbled form with the unit dropped, e.g. 六四 for 六十四.
+        total = 0
+        for char in numerals:
+            total = total * 10 + _CN_DIGIT[char]
+        return total
+    return chinese_number(numerals)
+
+
+def _chinese_boundaries(lines: list[str]) -> list[tuple[int, int, int, int, str]]:
+    """All chapter starts: (line index, title start cut, title end cut, label, title)."""
+    bounds: list[tuple[int, int, int, int, str]] = []
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped.startswith("===== "):
+            title = stripped.strip("= ").strip()
+            match = _CN_TITLE.match(title)
+            bare = re.fullmatch(r"\d+", title)
+            if match:
+                bounds.append((index, 0, len(line), _cn_label(match.group(1)), title))
+            elif bare:
+                bounds.append((index, 0, len(line), int(bare.group()), title))
+        elif not stripped.startswith("[[KMTCRAWLER"):
+            for match in _CN_TITLE.finditer(line):
+                bounds.append((index, match.start(), match.end(),
+                               _cn_label(match.group(1)), match.group(0).strip()))
+    return bounds
+
+
 def chinese_episodes(path: Path = CHINESE) -> list[Episode]:
     lines = path.read_text(encoding="utf-8").split("\n")
-    heads = [index for index, line in enumerate(lines) if line.startswith("===== ")]
-    episodes = []
-    for order, index in enumerate(heads, 1):
-        end = heads[order] if order < len(heads) else len(lines)
-        title = lines[index].strip("= ").strip()
-        match = re.match(r"^第([一二三四五六七八九十百千零〇]+)章", title)
-        episodes.append(Episode(order, chinese_number(match.group(1)) if match else None,
-                                title, "\n".join(lines[index + 1:end]).strip()))
+    bounds = _chinese_boundaries(lines)
+    episodes: list[Episode] = []
+    for order, (index, start_cut, end_cut, label, title) in enumerate(bounds, 1):
+        if order < len(bounds):
+            end_line, end_start = bounds[order][0], bounds[order][1]
+        else:
+            end_line, end_start = len(lines), 0
+        if start_cut or end_cut:
+            segment = [lines[index][end_cut:]] + lines[index + 1:end_line]  # inline title
+        else:
+            segment = lines[index + 1:end_line]                             # ===== header line
+        if end_start and segment:
+            segment[-1] = segment[-1][:end_start]
+        episodes.append(Episode(order, label, title, "\n".join(segment).strip()))
     return episodes
+
+
+# Content-verified chapter alignment, established by reading one opening
+# paragraph per chapter on both sides (evidence in pairs-verified.json).
+# Segments: (Burmese label range, Chinese label range), 1:1 inside each.
+VERIFIED_SEGMENTS = [
+    ((1, 61), (1, 61)),
+    ((62, 62), (61, 61)),    # ZH61 split across Burmese 61 + 62
+    ((63, 138), (62, 137)),
+    ((139, 139), (137, 137)),  # ZH137 split across Burmese 138 + 139
+    ((140, 195), (138, 193)),
+]
+
+
+def verified_pairs() -> list[dict[int, int]]:
+    pairs: list[dict[int, int]] = []
+    for (b_lo, b_hi), (c_lo, c_hi) in VERIFIED_SEGMENTS:
+        for burmese, chinese in zip(range(b_lo, b_hi + 1), range(c_lo, c_hi + 1)):
+            pairs.append({"chinese": chinese, "burmese": burmese})
+    return pairs
+
+
+# Native PDF-extracted headings: "Chapter 1:", "Chapter - 124 (subtitle)",
+# "အခန်း (၅)", "အခန်း ၁၈", "အခန်း - 84", "အပိုင်း ၅၁", plus split parts
+# "အခန်း (၅၉) ၁ / ၂". The digit slot also admits ရ, an OCR misread of ၇,
+# repaired by chapter-sequence inference below.
+_BURMESE_HEADING = re.compile(
+    r"^Chapter\s*[\-\u2013:]?\s*(?P<cn>\d+)\b"
+    r"|^(?:အခန်း|အပိုင်း)\s*[\-\u2013（(]?\s*"
+    r"(?P<bn>[၀-၉0-9ရ]+)\s*[）)]?(?:\s*(?P<part>[၁၂]))?\s*$"
+)
+
+
+def _burmese_native_heads(lines: list[str]) -> list[tuple[int, int | None, str]]:
+    """(line index, chapter label or None pending inference, heading title)."""
+    heads: list[tuple[int, int | None, str]] = []
+    for index, line in enumerate(lines):
+        match = _BURMESE_HEADING.match(line.strip())
+        if not match:
+            continue
+        if match.group("cn"):
+            label: int | None = int(match.group("cn"))
+        else:
+            label = burmese_number(match.group("bn"))
+        heads.append((index, label, line.strip()))
+    for order, (index, label, title) in enumerate(heads):
+        if label is None:
+            previous = heads[order - 1][1] if order else None
+            upcoming = next((item[1] for item in heads[order + 1:] if item[1] is not None), None)
+            if previous is not None and upcoming == previous + 2:
+                heads[order] = (index, previous + 1, title)
+    return heads
 
 
 def burmese_episodes(path: Path = BURMESE) -> list[Episode]:
     lines = path.read_text(encoding="utf-8").split("\n")
     marks = [index for index, line in enumerate(lines) if line.startswith("[[HCRAWLER MARKER")]
-    episodes = []
-    for order, index in enumerate(marks, 1):
-        end = marks[order] if order < len(marks) else len(lines)
-        title = lines[index + 1].strip() if index + 1 < len(lines) else ""
-        episodes.append(Episode(order, burmese_number(title), title,
-                                "\n".join(lines[index + 2:end]).strip()))
+    if marks:
+        episodes = []
+        for order, index in enumerate(marks, 1):
+            end = marks[order] if order < len(marks) else len(lines)
+            title = lines[index + 1].strip() if index + 1 < len(lines) else ""
+            episodes.append(Episode(order, burmese_number(title), title,
+                                    "\n".join(lines[index + 2:end]).strip()))
+        return episodes
+    # No crawler markers: split on the native headings of the PDF text.
+    heads = _burmese_native_heads(lines)
+    episodes: list[Episode] = []
+    for order, (index, label, title) in enumerate(heads):
+        end = heads[order + 1][0] if order + 1 < len(heads) else len(lines)
+        body = "\n".join(lines[index + 1:end]).strip()
+        if episodes and episodes[-1].label == label:
+            # Split chapter (e.g. 59 part 1 / part 2): join into one episode.
+            episodes[-1] = Episode(episodes[-1].order, label, episodes[-1].title,
+                                   episodes[-1].body + "\n\n" + body)
+        else:
+            episodes.append(Episode(len(episodes) + 1, label, title, body))
     return episodes
 
 
@@ -179,7 +309,7 @@ def render(pairs: list[tuple[int | None, int | None]], chinese: list[Episode],
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--pair", choices=["order", "map"], default="order")
+    parser.add_argument("--pair", choices=["order", "map", "verified"], default="order")
     parser.add_argument("--map", type=Path, help="JSON list of {chinese, burmese} chapter numbers")
     parser.add_argument("--chinese", type=Path, default=CHINESE)
     parser.add_argument("--burmese", type=Path, default=BURMESE)
@@ -188,6 +318,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--first", type=int, default=None, help="write only the first N episodes")
     parser.add_argument("--only-matched", action="store_true",
                         help="omit chapters that have no counterpart")
+    parser.add_argument("--max-chinese", type=int, default=None,
+                        help="drop pairs whose Chinese chapter number is above N (e.g. 194 keeps the Burmese-covered range)")
     parser.add_argument("--with", dest="columns", action="append", choices=sorted(COLUMNS),
                         default=[], help="add an MT column; repeatable")
     args = parser.parse_args(argv)
@@ -205,10 +337,31 @@ def main(argv: list[str] | None = None) -> int:
         caution = ("positional pairing: episode N is Chinese chapter N of the Chinese file and "
                    "Burmese chapter N of the Burmese file -- not verified as a translation pair")
     else:
-        if not args.map:
-            parser.error("--pair map needs --map")
-        mapping = json.loads(args.map.read_text(encoding="utf-8"))
-        by_chinese = {episode.label: index for index, episode in enumerate(chinese)}
+        if args.pair == "verified":
+            mapping = verified_pairs()
+            map_caution = (
+                "content-verified alignment by opening-paragraph comparison: "
+                "Burmese 1..61 = Chinese 1..61; Chinese 61 split across Burmese 61+62; "
+                "Burmese 63..138 = Chinese 62..137; Chinese 137 split across Burmese 138+139; "
+                "Burmese 140..195 = Chinese 138..193. Anchor: Burmese 195 = Chinese 193 "
+                "(這些人口，可都是大周的底子). Chinese 194..408 have no Burmese counterpart."
+            )
+        else:
+            if not args.map:
+                parser.error("--pair map needs --map")
+            map_doc = json.loads(args.map.read_text(encoding="utf-8"))
+            if isinstance(map_doc, dict):
+                mapping, map_caution = map_doc.get("pairs", []), map_doc.get("caution")
+            else:
+                mapping, map_caution = map_doc, None
+        # Garbled re-fetches repeat a label; the fullest episode is the real chapter.
+        by_chinese: dict[int, int] = {}
+        for index, episode in enumerate(chinese):
+            if episode.label is None:
+                continue
+            current = by_chinese.get(episode.label)
+            if current is None or len(episode.body) > len(chinese[current].body):
+                by_chinese[episode.label] = index
         by_burmese = {episode.label: index for index, episode in enumerate(burmese)}
         pairs = []
         for item in mapping:
@@ -224,10 +377,13 @@ def main(argv: list[str] | None = None) -> int:
         pairs += [(None, index) for index in range(len(burmese)) if index not in used_b]
         pairs.sort(key=lambda pair: (pair[0] if pair[0] is not None else 10 ** 6,
                                      pair[1] if pair[1] is not None else 10 ** 6))
-        caution = "explicit map supplied by --map"
+        caution = map_caution or "explicit map supplied by --map"
 
     if args.only_matched:
         pairs = [(c, b) for c, b in pairs if c is not None and b is not None]
+    if args.max_chinese is not None:
+        pairs = [(c, b) for c, b in pairs
+                 if c is None or chinese[c].label <= args.max_chinese]
     if args.first:
         pairs = pairs[:args.first]
 

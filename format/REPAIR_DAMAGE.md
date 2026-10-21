@@ -1,7 +1,7 @@
 # Burmese damage repair (`repair_damage`)
 
 Fixes the encoding damage left by the PDF-to-DOCX conversion of
-`input/ယဲ့နင်1-200.docx`, using the hand-made dictionary in
+`content/source/ယဲ့နင်.docx`, using the hand-made dictionary in
 `Engine/knowledge/isTreasure/master.json` as the judge. Python and JavaScript
 produce byte-identical output.
 
@@ -58,7 +58,7 @@ Passes repeat until nothing changes (`--rounds`, default 3).
 ## Result on the book
 
 ```
-input/ယဲ့နင်1-200.txt  6,358,707 -> 6,358,743 bytes, 59,879 lines, 197 markers
+content/source/ယဲ့နင်.txt  6,358,707 -> 6,358,743 bytes, 59,879 lines, 197 markers
 sha256 b21e2bbfb124a84888144e19084254a4855f022e2b0efaafa10013ff3f0ddffa
 
 round 1: 2375 repairs (corrections 274, digits 161, windows 1940)
@@ -89,13 +89,13 @@ syllables missing from the syllable map, a different fault.
 
 ```sh
 # Python
-python3 format/repair_damage.py input/ယဲ့နင်1-200.txt --dry-run
-python3 format/repair_damage.py input/ယဲ့နင်1-200.txt            # -> <stem>.damage-repaired.txt
-python3 format/repair_damage.py input/ယဲ့နင်1-200.txt --in-place --report /tmp/report.json
+python3 format/repair_damage.py content/source/ယဲ့နင်.txt --dry-run
+python3 format/repair_damage.py content/source/ယဲ့နင်.txt            # -> <stem>.damage-repaired.txt
+python3 format/repair_damage.py content/source/ယဲ့နင်.txt --in-place --report /tmp/report.json
 
 # JavaScript (same rules, same bytes)
-node format/repair_damage.mjs input/ယဲ့နင်1-200.txt --dry-run
-node format/repair_damage.mjs input/ယဲ့နင်1-200.txt -o out.txt --verify out-python.txt
+node format/repair_damage.mjs content/source/ယဲ့နင်.txt --dry-run
+node format/repair_damage.mjs content/source/ယဲ့နင်.txt -o out.txt --verify out-python.txt
 
 # during DOCX extraction
 python3 format/docx_text.py --force --repair-damage

@@ -71,7 +71,7 @@ examples:
 
 HTML (--Hcrawler): include the supplied chapter and continue to the book's end;
 each chapter title is preceded by a numbered HCrawler marker;
-one UTF-8 text in ../input/ with actual chapter names as section headers.
+one UTF-8 text in content/source/ with actual chapter names as section headers.
 Starts at CHAPTER_URL, with no directory preflight; follows its next-page
 links within the same book. Rerun the same command to resume.
 No upload or email for this plain HTML fetcher.
@@ -221,7 +221,7 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="CHAPTER_URL",
         help=(
             "Download this novel543 chapter page through the book's end into "
-            "one UTF-8 text in ../input/, with chapter-name section headers. "
+            "one UTF-8 text in content/source/, with chapter-name section headers. "
             "Includes all pagination; rerun the same URL to resume. No upload."
         ),
     )
@@ -382,7 +382,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     except KeyboardInterrupt:
         if args.hcrawler is not None:
-            print("\n[paused] text stays in input/; rerun the same --Hcrawler URL to resume.")
+            print("\n[paused] text stays in content/source/; rerun the same --Hcrawler URL to resume.")
         elif args.upload:
             print(
                 "\n[paused] watcher stopped; unarchived files stay local. "

@@ -30,8 +30,8 @@ import httpx
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_ENDPOINT = "https://api.cognitive.microsofttranslator.com"
-DEFAULT_CACHE = ROOT / "output" / "mt" / "cache.sqlite3"
-DEFAULT_MEMORY = ROOT / "output" / "mt" / "memory.sqlite3"
+DEFAULT_CACHE = ROOT / "content" / "mtranslate" / "cache.sqlite3"
+DEFAULT_MEMORY = ROOT / "content" / "mtranslate" / "memory.sqlite3"
 SCHEMA_VERSION = 2
 # An HCrawler marker line belongs to the chapter header that follows it, so it
 # is consumed with the header and never becomes translatable chapter text.
@@ -400,7 +400,7 @@ def main(argv: list[str] | None = None) -> int:
             raise MTError("Input has no non-empty chapter text")
         url = endpoint_url(os.environ.get("AZURE_TRANSLATOR_ENDPOINT", DEFAULT_ENDPOINT))
         stem = args.input.stem if args.input else "sample"
-        destination = (args.output or ROOT / "output" / "mt" / f"{stem}-{args.chinese}-azure-candidates.jsonl").resolve()
+        destination = (args.output or ROOT / "content" / "mtranslate" / f"{stem}-{args.chinese}-azure-candidates.jsonl").resolve()
         if destination.suffix.lower() != ".jsonl":
             raise MTError("MT output must use .jsonl; source/config files cannot be overwritten")
         if args.cache.suffix.lower() not in {".db", ".sqlite", ".sqlite3"}:

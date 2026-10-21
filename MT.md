@@ -30,10 +30,10 @@ credentials. The default is an offline plan.
 
 ```sh
 # No MT API call, key, output file or cache creation:
-uv run init/initmt.py --input input/chinese-0511241012-from-8011_93.txt --max-units 3 --plan
+uv run init/initmt.py --input content/source/chinese-0511241012-from-8011_1.txt --max-units 3 --plan
 
 # After configuring your credentials locally:
-uv run init/initmt.py --input input/chinese-0511241012-from-8011_93.txt --max-units 3 --run
+uv run init/initmt.py --input content/source/chinese-0511241012-from-8011_1.txt --max-units 3 --run
 ```
 
 The three-unit uncached plan has an upper bound of **nine requests**. The default
@@ -66,14 +66,14 @@ Set the region according to your resource rather than guessing one.
 
 ## Cache, source protection and output
 
-Default local artifacts, ignored in Git:
+Default local artifacts under content/mtranslate (runtime stores, regenerated on re-run):
 
-- `output/mt/cache.sqlite3` — successful translations cached independently by
+- `content/mtranslate/cache.sqlite3` — successful translations cached independently by
   exact text, language pair, endpoint and API options, never by key.
-- `output/mt/chinese-0511241012-from-8011_93-zh-Hant-azure-candidates.jsonl` —
+- `content/mtranslate/chinese-0511241012-from-8011_1-zh-Hant-azure-candidates.jsonl` —
   one record per source unit containing `zh_my`, `zh_en`, `en_my`, each leg's
   `origin`, plus the `memory` review block.
-- `output/mt/memory.sqlite3` — approved/pending phrase and glossary entries.
+- `content/mtranslate/memory.sqlite3` — approved/pending phrase and glossary entries.
 
 A successful Chinese→English leg is reused as the English→Burmese input; the
 pivot does not translate an invented or separately edited English sentence.
@@ -110,14 +110,14 @@ uv run mt/mt_memory.py glossary --from zh-Hant --to my
 uv run mt/mt_memory.py stats
 ```
 
-Default store: `output/mt/memory.sqlite3` (ignored in Git). Export reviewed JSONL
+Default store: `content/mtranslate/memory.sqlite3` (runtime store). Export reviewed JSONL
 when you want a durable copy; copy a reviewed export somewhere tracked if you want it
 versioned. Import validates every line before writing and will not downgrade an
 approved entry to `suggested`:
 
 ```sh
-uv run mt/mt_memory.py export --output output/mt/memory-export.jsonl
-uv run mt/mt_memory.py import --input output/mt/memory-export.jsonl
+uv run mt/mt_memory.py export --output content/mtranslate/memory-export.jsonl
+uv run mt/mt_memory.py import --input content/mtranslate/memory-export.jsonl
 ```
 
 Matching normalizes NFKC and whitespace **for lookup only**; the approved text is
@@ -137,7 +137,7 @@ Repeated source phrases can be ranked without any Burmese tokenizer. This report
 does not create or approve entries:
 
 ```sh
-uv run mt/mt_memory.py frequent --input input/chinese-0511241012-from-8011_93.txt --top 30
+uv run mt/mt_memory.py frequent --input content/source/chinese-0511241012-from-8011_1.txt --top 30
 ```
 
 It splits on Chinese sentence/dialogue punctuation, ignores literal HTML-entity
@@ -155,11 +155,11 @@ so new crawls do not need a later repair pass:
 
 ```sh
 # Safe default: writes <input>.quotes-repaired.txt
-uv run format/repair_quotes.py input/chinese-0511241012-from-8011_93.txt \
+uv run format/repair_quotes.py content/source/chinese-0511241012-from-8011_1.txt \
   --report /tmp/quote-report.tsv
 
 # Explicit in-place rewrite:
-uv run format/repair_quotes.py input/chinese-0511241012-from-8011_93.txt --in-place
+uv run format/repair_quotes.py content/source/chinese-0511241012-from-8011_1.txt --in-place
 ```
 
 The conversion is context-aware rather than a blind alternating replace: it handles
@@ -213,7 +213,7 @@ with the data-only sequence/compound table in root `mainrules.js`. `top` and
 
 ```sh
 uv run mt/mt_compare.py --profile
-uv run mt/mt_compare.py --input output/mt/chinese-0511241012-from-8011_93-zh-Hant-azure-candidates.jsonl
+uv run mt/mt_compare.py --input content/mtranslate/chinese-0511241012-from-8011_1-zh-Hant-azure-candidates.jsonl
 ```
 
 This audits the supplied catalog and can tag **both** Burmese candidates through

@@ -32,7 +32,7 @@ sys.path.insert(0, str(REPO_DIR / "format"))
 from quote_text import repair_text  # noqa: E402
 
 SCRAPER_DIR = Path(__file__).resolve().parents[2]
-INPUT_DIR = SCRAPER_DIR.parent / "input"
+INPUT_DIR = REPO_DIR / "content" / "source"
 SCAN_DIR = SCRAPER_DIR / "modules" / "result"
 REQUEST_TIMEOUT = 30.0
 REQUEST_DELAY = 0.5
