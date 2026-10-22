@@ -46,7 +46,6 @@ from rapidapi_translator import (  # noqa: E402
     CachedTranslator,
     TranslatorError,
     load_env_file,
-    parse_chapters,
 )
 
 SERVER_NAME = "rapidapi-translator"
@@ -56,10 +55,12 @@ DEFAULT_PROTOCOL = "2024-11-05"
 
 INSTRUCTIONS = (
     "Translation tools backed by the RapidAPI 'Multi format AI translator' API. "
-    f"The API key is read from {KEY_ENV}. `translate_chapters` reads the local "
-    "Chinese web-novel source and writes files under content/mtranslate/rapidapi; "
-    "it costs one request per ~4,500 characters, so check the plan output first "
-    "with mt/api_translate.py --plan."
+    f"The API key is read from {KEY_ENV}. `translate_chapters` translates ONE "
+    "PAIR of chapters of the local Chinese novel, two chapters at most, and "
+    "writes files under content/mtranslate/rapidapi; it costs about five "
+    "requests per chapter. Omit `chapters` for the next pair after the human "
+    "translation (194+195, then 196+197). Check the free plan first with "
+    "`mt/apicaller.py` or `mt/api_translate.py --plan`."
 )
 
 TOOLS = [
@@ -234,15 +235,19 @@ TOOLS = [
     },
     {
         "name": "translate_chapters",
-        "description": "Translate chapters of the local Chinese novel and write "
-                       "JSONL, TXT, a Chinese/Burmese comparison markdown and "
-                       "report.json. Costs one request per ~4,500 characters.",
+        "description": "Translate ONE PAIR of chapters of the local Chinese "
+                       "novel (two at most; a third is refused) and write "
+                       "JSONL, TXT, a comparison markdown and a report. Omit "
+                       "`chapters` for the next pair after the human "
+                       "translation that is not on disk yet, e.g. 194+195 then "
+                       "196+197. Costs ~5 requests per chapter.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "chapters": {"type": "string",
-                             "description": "'1-2', '1,3-4' or 'all'.",
-                             "default": "1-2"},
+                             "description": "One or two chapters: '194&195', "
+                                            "'194+195', '194,195' or '194'. "
+                                            "Omit for the next pair."},
                 "target": {"type": "string", "description": "Target language code.",
                            "default": "my"},
                 "source": {"type": "string", "description": "Source code or 'auto'.",
@@ -251,7 +256,7 @@ TOOLS = [
                             "description": "Output directory; default "
                                            "content/mtranslate/rapidapi."},
             },
-            "required": ["chapters"],
+            "required": [],
             "additionalProperties": False,
         },
     },
@@ -485,37 +490,47 @@ class Server:
                                 note=arguments.get("note"))
 
     def _translate_chapters(self, arguments: dict) -> dict:
-        from api_translate import (  # noqa: PLC0415
-            BURMESE, CHINESE, OUTPUT, chinese_chapters, run, select,
+        from apicaller import (  # noqa: PLC0415
+            PairError, next_numbers, resolve, translate_pair,
         )
+        from api_translate import BURMESE, CHINESE, DOCX, OUTPUT, chinese_chapters
+        from chapter_map import ChapterMapError, load_or_derive
 
-        spec = arguments.get("chapters", "1-2")
-        if not isinstance(spec, str) or not spec.strip():
-            raise ValueError("`chapters` must be a string such as '1-2'")
+        spec = arguments.get("chapters")
+        if spec is not None and not isinstance(spec, str):
+            raise ValueError("`chapters` must be a string such as '194&195'")
         target = self._language(arguments.get("target", "my"), "target")
         source = self._language(arguments.get("source", "auto"), "source")
         out_dir = Path(arguments.get("out_dir") or self.out_dir or OUTPUT)
         chapters = chinese_chapters(Path(self.source_file or CHINESE))
-        if spec.strip().lower() == "all":
-            wanted = [chapter.number for chapter in chapters]
-        else:
-            wanted = parse_chapters(spec)
-        selected = select(chapters, wanted)
-        missing = sorted(set(wanted) - {chapter.number for chapter in selected})
-        if missing or not selected:
-            raise ValueError(f"chapter(s) {missing or wanted} not found in the local source")
-        report = run(selected, target=target, source=source, out_dir=out_dir,
-                     cache_path=self.cache_path, enabled_cache=self.enabled_cache,
-                     max_chars=self.max_chars, max_items=self.max_items,
-                     timeout=self.timeout, max_attempts=self.max_attempts,
-                     existing_path=Path(self.existing or BURMESE))
+        chapter_map = None
+        try:
+            chapter_map = load_or_derive(None, Path(self.docx or DOCX))
+        except (ChapterMapError, OSError, KeyError):
+            chapter_map = None
+        try:
+            numbers, selected, note = resolve(
+                spec, chapters, chapter_map, out_dir=out_dir, target=target)
+        except PairError as error:
+            raise ValueError(str(error)) from error
+        report = translate_pair(
+            selected, chapter_map=chapter_map, target=target, source=source,
+            out_dir=out_dir, cache_path=self.cache_path,
+            enabled_cache=self.enabled_cache, max_chars=self.max_chars,
+            max_items=self.max_items, timeout=self.timeout,
+            attempts=self.max_attempts,
+            existing=Path(self.existing or BURMESE))
         return {
             "target": report["target"],
             "detected": report["detected"],
+            "requested": numbers,
+            "selection": note,
             "totals": report["totals"],
             "chapters": report["chapters"],
             "files": report["files"],
             "elapsed_seconds": report["elapsed_seconds"],
+            "next": next_numbers(chapter_map, chapters, out_dir=out_dir,
+                                 target=target),
         }
 
     # -- protocol ----------------------------------------------------

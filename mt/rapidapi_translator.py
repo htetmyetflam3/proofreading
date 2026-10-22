@@ -68,6 +68,10 @@ DEFAULT_CACHE = ROOT / "content" / "mtranslate" / "rapidapi-cache.sqlite3"
 MAX_REQUEST_CHARS = 4500
 MAX_REQUEST_ITEMS = 40
 
+# The novel is translated one pair of chapters per call, reviewed before the
+# next pair is spent. Every entry point enforces this; see mt/apicaller.py.
+MAX_CHAPTERS_PER_CALL = 2
+
 RETRY_STATUS = frozenset({408, 425, 429, 500, 502, 503, 504})
 USER_AGENT = "proofreading-rapidapi/1.0"
 

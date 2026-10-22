@@ -181,26 +181,48 @@ Ten tools: `detect_language`, `translate_text`, `translate_batch`, `read_chapter
 
 ## 2.1 Produce the AI translation (the only paid step)
 
+Two chapters per call, never the whole novel at once. The first call is 194 +
+195: the human translation ends at Chinese 193 (`episodes.docx`), and these are
+the first two chapters behind it.
+
 ```sh
 cd "$REPO"
-python3 mt/api_translate.py --chapters 1-2 --plan                  # free preview
-python3 mt/api_translate.py --chapters 1-2 --env-file ~/.env --run # spends quota
+uv run mt/apicaller.py --status                    # cursor, chapters left; free
+uv run mt/apicaller.py                             # plan 194 + 195; free
+uv run mt/apicaller.py --run --env-file ~/.env     # translate 194 + 195
+uv run mt/apicaller.py --run --env-file ~/.env     # 196 + 197
 ```
 
-Chapters 1–2 are 139 paragraphs, 3,148 characters, **4 requests**.
+The cursor moves by itself: a chapter that already has a JSONL under
+`content/mtranslate/rapidapi/` is not offered again.
+
+`&` is a shell operator — unquoted, `--194&195` backgrounds `--194` and tries to
+run `195`. Quote it, or use `+`:
+
+```sh
+uv run mt/apicaller.py '--194&195' --run --env-file ~/.env
+uv run mt/apicaller.py --194+195 --run --env-file ~/.env    # same pair
+```
+
+194 + 195 is 363 paragraphs, 6,427 characters, **10 requests** (40 paragraphs
+per request). A third chapter is refused, and the refusal prints the pairs to
+run in order. `mt/api_translate.py --run` enforces the same limit unless you add
+`--allow-bulk`.
 
 Writes `content/mtranslate/rapidapi/`:
 
 ```
-ch0001.my.jsonl    one record per paragraph: source, target, cached
-ch0001.my.txt      the chapter in Burmese
-book.my.txt        every selected chapter
-compare-ch001-ch002.md   Chinese | new Burmese | existing human Burmese
-report.json        counts, detected language, requests, files
+ch0194.my.jsonl            one record per paragraph: source, target, cached
+ch0194.my.txt               the chapter in Burmese
+pair-0194-0195.my.txt       both chapters
+compare-ch194-ch195.md      Chinese | new Burmese | existing human Burmese
+report-0194-0195.json       this pair's report
+report.json                 the latest report, overwritten each run
 ```
 
 Re-running is free for anything already cached; the cache is
-`content/mtranslate/rapidapi-cache.sqlite3`.
+`content/mtranslate/rapidapi-cache.sqlite3`. `--json` prints the plan or the
+report as one object, which is what the agent reads.
 
 ## 2.2 Check the join before spending agent tokens
 
@@ -208,13 +230,13 @@ Re-running is free for anything already cached; the cache is
 python3 - <<'EOF'
 import sys; sys.path.insert(0, "mt")
 from mcp_server import Server
-r = Server(enabled_cache=False).call_tool("read_chapter", {"chapter": 1})
+r = Server(enabled_cache=False).call_tool("read_chapter", {"chapter": 194})
 print(r["translation"])
 print(r["paragraphs"][0])
 EOF
 ```
 
-Want `{'available': True, 'attached': 69, 'mismatched': 0, ...}` and a `my` field
+Want `{'available': True, 'attached': 166, 'mismatched': 0, ...}` and a `my` field
 on each paragraph. Alignment is verified per paragraph against the Chinese, so a
 stale file cannot shift Burmese onto the wrong sentence.
 
@@ -255,7 +277,31 @@ Or from inside the agent session: `export_drafts {"chapter": 1}`.
 All flags below are copied from `--help`; run any of them with `--help` for the
 same text.
 
-## `mt/api_translate.py` — RapidAPI chapter caller
+## `mt/apicaller.py` — the two-chapter caller
+
+| flag | meaning |
+|---|---|
+| `194 195` (positional) | chapters to translate, as bare numbers |
+| `--194&195` `--194+195` `--194,195` `--194-195` | the same pair written as one token; `&` needs quoting |
+| `--chapters` | explicit spec, `next`, or omitted for the cursor |
+| `--status` | human span, chapters done and left, next pair; no request |
+| `--plan` | count the pair, no request (default) |
+| `--run` | call the API; needs `RAPIDAPI_KEY` |
+| `--target` | target language, default `my` |
+| `--source` | source language or `auto`, default `auto` |
+| `--source-file` | Chinese text with `===== 第N章 =====` headings |
+| `--existing` | human Burmese, used as the comparison reference |
+| `--docx` | bilingual DOCX the chapter numbers come from |
+| `--map` / `--no-map` | saved chapter map; or assume Chinese N = Burmese N |
+| `--out-dir` | output directory, default `content/mtranslate/rapidapi` |
+| `--cache` / `--no-cache` | translation cache |
+| `--no-compare` | skip the comparison markdown |
+| `--max-chars` / `--max-items` | request limits |
+| `--timeout` / `--attempts` | per request |
+| `--json` | the plan, report or status as one object |
+| `--env-file` | read `KEY=VALUE` lines from PATH; the shell wins |
+
+## `mt/api_translate.py` — the batch engine under it
 
 | flag | meaning |
 |---|---|
@@ -280,6 +326,7 @@ same text.
 | `--env-file` | read `KEY=VALUE` lines from PATH; the shell wins |
 | `--plan` | offline count, no request (default) |
 | `--run` | actually call the API; needs `RAPIDAPI_KEY` |
+| `--allow-bulk` | lift the two-chapter limit for one `--run` |
 
 ## `mt/mcp_server.py` — the agent's tool server
 
@@ -359,6 +406,7 @@ an engine gap — not an error), `unknown` (neither — the only suspect bucket)
 
 | flag | meaning |
 |---|---|
+| `--index` | index file to read or write, default `content/review/overview.yaml` |
 | `--build` | regenerate `content/review/overview.yaml` |
 | `--find TEXT...` | sections mentioning every word |
 | `--get ID` | print one section by id |
@@ -387,7 +435,9 @@ an engine gap — not an error), `unknown` (neither — the only suspect bucket)
 | `kilo run` exits 1 with a permission diagnostic | missing `--auto` |
 | `401` from Groq | `GROQ_API_KEY` value is wrong, or the line is still `groq=key` |
 | `/mcp` shows no server | `kilo.jsonc` path wrong, or python path in `command` is wrong |
-| `read_chapter` has no `my` field | `api_translate.py --run` has not produced that chapter |
+| `--194&195` returns to the prompt, then `195: command not found` | unquoted `&`; use `'--194&195'` or `--194+195` |
+| `2 at a time` refusal | intended: run the pairs it prints, in order |
+| `read_chapter` has no `my` field | `apicaller.py --run` has not produced that chapter |
 | `translation.attached` is 0 but `available` is true | the jsonl exists but its `source` lines no longer match the Chinese — regenerate it |
 | `no offline model installed` | `mt/fetch_engine.py --install zh-en` |
 | `{?}` tags in segmentation | not an error; 2 of 3 are engine coverage, not text damage |

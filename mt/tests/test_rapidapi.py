@@ -704,7 +704,26 @@ class McpTests(ApiTestCase):
         self.assertFalse(called["result"]["isError"], called["result"])
         payload = json.loads(called["result"]["content"][0]["text"])
         self.assertEqual(payload["totals"]["paragraphs"], 3)
+        self.assertEqual(payload["requested"], [1, 2])
         self.assertTrue((out / "report.json").is_file())
+        # one pair per call: the pair's own copy, and no whole-book overwrite
+        self.assertTrue((out / "report-0001-0002.json").is_file())
+        self.assertTrue((out / "pair-0001-0002.my.txt").is_file())
+        self.assertFalse((out / "book.my.txt").exists())
+        self.assertEqual(payload["next"], [])
+
+    def test_chapter_tool_refuses_more_than_a_pair(self):
+        source = self.tmp / "source.txt"
+        source.write_text(SOURCE, encoding="utf-8")
+        process = self.start(args=("--source-file", str(source)))
+        process.request("initialize", {"protocolVersion": "2025-06-18"})
+        called = process.request("tools/call", {
+            "name": "translate_chapters",
+            "arguments": {"chapters": "1,2,3", "out_dir": str(self.tmp / "nope")},
+        }, timeout=60)
+        self.assertTrue(called["result"]["isError"], called["result"])
+        self.assertIn("2 at a time", called["result"]["content"][0]["text"])
+        self.assertFalse((self.tmp / "nope").exists())
 
 
 class ConfigTests(unittest.TestCase):

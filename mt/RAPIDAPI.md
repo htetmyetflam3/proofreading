@@ -17,11 +17,12 @@ Three files:
 
 | file | what it is |
 |---|---|
-| `mt/rapidapi_translator.py` | the API caller: three endpoints, cache, retries, redaction |
-| `mt/api_translate.py` | translate chapters of the local novel and compare with the existing human Burmese |
+| `mt/rapidapi_translator.py` | the API client: three endpoints, cache, retries, redaction |
+| `mt/apicaller.py` | the caller you run: exactly two chapters per call, starting behind the human translation |
+| `mt/api_translate.py` | the batch engine under it; writes the JSONL, TXT, comparison and report |
 | `mt/mcp_server.py` | the same caller as a local MCP server (stdio, no dependencies) |
 
-Nothing needs installing: all three are standard-library Python 3.10+.
+Nothing needs installing: all four are standard-library Python 3.10+.
 
 ## Why the API looked complicated
 
@@ -73,8 +74,9 @@ RAPIDAPI_KEY=your-key-here
 EOF
 chmod 600 .env
 
-python3 mt/api_translate.py --chapters next --plan --env-file .env
-python3 mt/api_translate.py --chapters next --run  --env-file .env
+uv run mt/apicaller.py --plan --env-file .env              # 194 + 195
+uv run mt/apicaller.py --run  --env-file .env              # spends quota
+uv run mt/apicaller.py --196+197 --run --env-file .env     # the next pair
 python3 mt/rapidapi_translator.py --detect "大周" --env-file .env
 ```
 
@@ -540,7 +542,7 @@ Tools:
 | `detect_language` | `text` | one request |
 | `translate_text` | `text`, `target` (default `my`), `source` (default `auto`) | one request unless cached |
 | `translate_batch` | `texts[]`, `target`, `source` | only uncached strings are sent |
-| `translate_chapters` | `chapters` (`"1-2"`, `"1,3-4"`, `"all"`), `target`, `source`, `out_dir` | writes the same files as the CLI; one request per ~4,500 characters |
+| `translate_chapters` | `chapters` (`"194&195"`, `"194,195"`, or omitted for the next pair), `target`, `source`, `out_dir` | one pair per call, two chapters at most; calls `mt/apicaller.py` and writes the same files |
 
 Example tool call and result:
 

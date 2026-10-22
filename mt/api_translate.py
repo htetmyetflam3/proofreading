@@ -47,6 +47,7 @@ ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 
 from rapidapi_translator import (  # noqa: E402
+    MAX_CHAPTERS_PER_CALL,
     MAX_REQUEST_CHARS,
     MAX_REQUEST_ITEMS,
     CachedTranslator,
@@ -309,7 +310,8 @@ def run(chapters: list[Chapter], *, target: str = "my", source: str = "auto",
         max_chars: int = MAX_REQUEST_CHARS, max_items: int = MAX_REQUEST_ITEMS,
         timeout: float = 60.0, max_attempts: int = 3, compare: bool = True,
         existing_path: Path | str | None = BURMESE,
-        chapter_map: ChapterMap | None = None, log=None) -> dict:
+        chapter_map: ChapterMap | None = None, log=None,
+        book_name: str | None = None) -> dict:
     """Translate the given chapters and write the files described in the module doc."""
     out_dir = Path(out_dir)
     started = time.time()
@@ -397,7 +399,10 @@ def run(chapters: list[Chapter], *, target: str = "my", source: str = "auto",
 
     report["target_check"] = script_check(seen_pairs, target)
     if book:
-        book_path = out_dir / f"book.{target}.txt"
+        # A caller that translates one pair per run must not overwrite the
+        # previous pair, so it passes its own name; the batch caller keeps the
+        # historical `book.<target>.txt`.
+        book_path = out_dir / (book_name or f"book.{target}.txt")
         book_path.write_text("\n\n".join(book) + "\n", encoding="utf-8")
         report["files"].append(_relative(book_path))
 
@@ -461,6 +466,9 @@ def main(argv: list[str] | None = None) -> int:
                       help="offline: count work and requests (default)")
     mode.add_argument("--run", action="store_true",
                       help="actually call the API; needs RAPIDAPI_KEY")
+    parser.add_argument("--allow-bulk", action="store_true",
+                        help="lift the two-chapter limit for one --run; "
+                             "mt/apicaller.py is the normal way to spend quota")
     args = parser.parse_args(argv)
 
     try:
@@ -525,6 +533,13 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if not selected:
         print("[rapidapi] nothing selected", file=sys.stderr)
+        return 2
+
+    if args.run and len(selected) > MAX_CHAPTERS_PER_CALL and not args.allow_bulk:
+        print(f"[rapidapi] --run translates {MAX_CHAPTERS_PER_CALL} chapters at a "
+              f"time; {len(selected)} were selected. Use mt/apicaller.py for the "
+              "pair-by-pair run, or add --allow-bulk for one bulk call.",
+              file=sys.stderr)
         return 2
 
     if not args.run:
