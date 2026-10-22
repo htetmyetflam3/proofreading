@@ -32,10 +32,10 @@ review_lookup {"chapter": 194}
 **Two traps in that document, both real.**
 
 - **Its voice is not the author's.** The reviewer writes chatty first person on
-  purpose — `တယ်`, `ပဲ`, `လို့`, `ဘူး` — and says so on line 7 of the file. The
-  author writes formal narration with colloquial dialogue inside `“…”`. Never
-  import the reviewer's register into a draft, no matter how many of its
-  sentences sound like fun.
+  purpose — `တယ်`, `ပဲ`, `လို့`, `ဘူး` — and says in its header (line 6) that
+  the novel's register does not apply to the document. The author writes formal
+  narration with colloquial dialogue inside `“…”`. Never import the reviewer's
+  register into a draft, no matter how many of its sentences sound like fun.
 - **Its Burmese quotes carry the same damage as the reference.** They were
   copied out of the PDF→DOCX text. Read them for what they mean. Never copy a
   spelling out of the review, and never feed a quote to `segment_text`.
