@@ -19,12 +19,15 @@ reading back into Chinese to check the meaning survived.
 ## Install
 
 ```sh
-uv run mt/fetch_engine.py --install zh-en    # downloads and installs the model
-uv run mt/fetch_engine.py --check            # what is installed
-uv run mt/fetch_engine.py --remove zh-en
+python3 mt/fetch_engine.py --install zh-en   # clones and unpacks the model
+python3 mt/fetch_engine.py --check           # what is installed; writes nothing
+python3 mt/fetch_engine.py --remove zh-en
 ```
 
 Models go to `$XDG_DATA_HOME/argos-translate/packages` and are not committed.
+Installing needs no packages: the `.argosmodel` is a zip and it is unpacked
+in-tree. Only running a model needs `ctranslate2` and `sentencepiece`, in the
+same `python3` that runs `mt/translate.py` (see `SETUP.md` 1.1).
 
 ## Run
 

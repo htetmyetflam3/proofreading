@@ -17,18 +17,42 @@ git pull
 
 ## 1.1 Python and dependencies
 
-Everything is standard-library Python 3.10+ except the two model runners. Nothing
-needs a virtualenv, but PEP 668 systems need one or `--break-system-packages`.
+**One interpreter runs everything in `mt/`: `python3`.** Third-party packages go
+into that same interpreter, and every command in this document is spelled
+`python3 …` for exactly that reason.
 
 ```sh
 python3 --version                                  # 3.10 or newer
 python3 -m pip install --break-system-packages \
-    ctranslate2 sentencepiece                      # offline zh-en / en-zh
+    ctranslate2 sentencepiece                      # only for --engine offline
+python3 -c "import ctranslate2, sentencepiece; print('ok')"
 ```
 
-`ctranslate2` and `sentencepiece` are only needed by `mt/translate.py --engine offline`
-and `mt/fetch_engine.py`. The MCP server, the API caller, the lexicon and the
-overview index need nothing installed.
+Only `mt/translate.py --engine offline` imports those two, and only when it
+loads a model. Installing a model (`mt/fetch_engine.py`) is standard library: it
+unpacks the `.argosmodel` zip itself and never imports `argostranslate`.
+Everything else — `mt/apicaller.py`, `mt/api_translate.py`, `mt/mcp_server.py`,
+`mt/lexicon.py`, `mt/overview_index.py`, `mt/agent_work.py` — needs nothing
+installed at all.
+
+### Why not `uv run`
+
+The `pyproject.toml` at the repo root is the **scraper's** environment
+(selenium, pikepdf, pyarrow), not `mt/`. `uv run mt/…` builds or reuses that
+environment, so it can install hundreds of megabytes to run a script that needs
+none of it — and it is a different interpreter from the one
+`pip --break-system-packages` just installed `ctranslate2` into. That is the
+drift: a model installed for `python3`, then a runner started by `uv` that
+cannot see it.
+
+If you have uv and want it, keep it out of the project for the stdlib scripts:
+
+```sh
+uv run --no-project mt/apicaller.py --status       # optional spelling
+```
+
+Never use `uv run` for `mt/translate.py --engine offline` unless you installed
+`ctranslate2` and `sentencepiece` inside that same environment.
 
 Node is only needed by the engine under `Engine/` (segmentation and POS), which
 `mt/lexicon.py` shells out to:
@@ -85,10 +109,15 @@ pipeline.
 python3 mt/fetch_engine.py --check
 python3 mt/fetch_engine.py --install zh-en
 python3 mt/fetch_engine.py --install en-zh
+python3 mt/translate.py --list          # the two routes, now available
 ```
 
-Models land in `$XDG_DATA_HOME/argos-translate/packages` (~85 MB each) and are
-never committed.
+Exactly two routes exist, the two `mt/translate.py` runs: `zh-en` and `en-zh`.
+Models land in `$XDG_DATA_HOME/argos-translate/packages` (`translate-zh_en-1_0`,
+~86 MB each) and are never committed. `--check` writes nothing, anywhere;
+`--json` prints the same table as one object. The install is standard library —
+no `argostranslate`, no `pip`, no virtualenv. If `git` is missing, the clone is
+the step that fails, before anything is downloaded.
 
 ## 1.4 Dictionaries (optional, for the chapter merge)
 
@@ -187,10 +216,10 @@ the first two chapters behind it.
 
 ```sh
 cd "$REPO"
-uv run mt/apicaller.py --status                    # cursor, chapters left; free
-uv run mt/apicaller.py                             # plan 194 + 195; free
-uv run mt/apicaller.py --run --env-file ~/.env     # translate 194 + 195
-uv run mt/apicaller.py --run --env-file ~/.env     # 196 + 197
+python3 mt/apicaller.py --status                   # cursor, chapters left; free
+python3 mt/apicaller.py                            # plan 194 + 195; free
+python3 mt/apicaller.py --run --env-file ~/.env    # translate 194 + 195
+python3 mt/apicaller.py --run --env-file ~/.env    # 196 + 197
 ```
 
 The cursor moves by itself: a chapter that already has a JSONL under
@@ -200,8 +229,8 @@ The cursor moves by itself: a chapter that already has a JSONL under
 run `195`. Quote it, or use `+`:
 
 ```sh
-uv run mt/apicaller.py '--194&195' --run --env-file ~/.env
-uv run mt/apicaller.py --194+195 --run --env-file ~/.env    # same pair
+python3 mt/apicaller.py '--194&195' --run --env-file ~/.env
+python3 mt/apicaller.py --194+195 --run --env-file ~/.env    # same pair
 ```
 
 194 + 195 is 363 paragraphs, 6,427 characters, **10 requests** (40 paragraphs
@@ -420,10 +449,12 @@ an engine gap — not an error), `unknown` (neither — the only suspect bucket)
 
 | flag | meaning |
 |---|---|
-| `--install {zh-en,en-zh}` | download and install one model |
-| `--all-available` | install everything downloadable |
-| `--check` | what is installed |
+| `--install {zh-en,en-zh}` | clone and unpack one model |
+| `--all-available` | install both routes |
+| `--check` | what is installed, with size; writes nothing |
 | `--remove {zh-en,en-zh}` | delete one model |
+| `--package-dir` | package directory, default `$XDG_DATA_HOME/argos-translate/packages` |
+| `--json` | the report as one JSON object |
 | `fetch_dicts.py --force` | rebuild dictionaries even if present |
 
 ---
@@ -439,6 +470,9 @@ an engine gap — not an error), `unknown` (neither — the only suspect bucket)
 | `2 at a time` refusal | intended: run the pairs it prints, in order |
 | `read_chapter` has no `my` field | `apicaller.py --run` has not produced that chapter |
 | `translation.attached` is 0 but `available` is true | the jsonl exists but its `source` lines no longer match the Chinese — regenerate it |
-| `no offline model installed` | `mt/fetch_engine.py --install zh-en` |
+| `ModuleNotFoundError: No module named 'argostranslate'` | old copy of `mt/fetch_engine.py`; `git pull` — it unpacks the zip itself now |
+| `uv run` says the model is missing, `python3` finds it | two interpreters; see 1.1 and use `python3` |
+| `--check` lists `zt-en`, `en-my`, `zh-my` | old copy; the only routes are `zh-en` and `en-zh` |
+| `no offline model installed` | `python3 mt/fetch_engine.py --install zh-en` |
 | `{?}` tags in segmentation | not an error; 2 of 3 are engine coverage, not text damage |
 | the agent "fixes" `အေခြအေန` in the reference | it is editing the tone reference; it must never be edited |

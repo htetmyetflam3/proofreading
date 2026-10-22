@@ -245,7 +245,7 @@ Two dictionaries and one offline translation model are installed and verified:
 
 ```sh
 python3 format/fetch_dicts.py --check        # 118,840 CC-CEDICT entries, 21,984 English-Myanmar headwords
-uv run mt/fetch_engine.py --check            # zh-en offline model, everything else unavailable
+python3 mt/fetch_engine.py --check           # zh-en / en-zh offline models only
 ```
 
 | what | data | where | committed |
