@@ -125,31 +125,64 @@ python3 mt/mcp_server.py --selftest
 python3 mt/mcp_server.py --env-file ~/.env
 ```
 
-## 6. The first run
-
-Start with chapter 1, one paragraph, and the prompt file as the brief:
+## 6. Readiness check, before running anything
 
 ```sh
 cd ~/proofreading
-kilo --prompt-file mt/quality/finetune-agent-prompt.md
+set -a; . ~/.env; set +a
+
+echo "GROQ_API_KEY:   ${GROQ_API_KEY:+set}"
+echo "RAPIDAPI_KEY:   ${RAPIDAPI_KEY:+set}"
+python3 mt/mcp_server.py --selftest | grep -E '"ok"|"key"'
+python3 mt/rapidapi_translator.py --check | grep '"key"'
+command -v kilo || echo "kilo is not installed"
 ```
 
-Then, inside the session:
+`--env-file` is not passed to the selftest above; the key lines show what the
+shell is carrying. Both must say `set` before chapter work starts.
+
+## 7. The AI text has to exist first
+
+The agent judges the API's Burmese. Nothing in the repository contains it —
+`content/mtranslate/` holds only `zh-en` and `en-zh`. Without step one there is
+nothing to proofread, only a Chinese source and a human reference.
+
+```sh
+python3 mt/rapidapi_translator.py --translate "天下太平"
+```
+
+If that returns Burmese, the key works. Then produce the two chapters:
 
 ```
-read_chapter {"chapter": 1, "limit": 3}
+translate_chapters {"chapters": "1-2"}
 ```
 
-Read what comes back before letting it write anything. The first useful signal
-is not the rewrite — it is whether the model quotes tool output accurately. If
-it invents a `segment_text` result, the model is too weak and the key is fine.
+This is the only paid step; it is one request per ~4,500 characters and writes
+to `content/mtranslate/rapidapi/`. Everything after it is local.
 
-## 7. What to watch on the first chapter
+## 8. The first run
+
+`kilo run` is the non-interactive command; `--file` attaches a file, and
+`--auto` stops it from auto-rejecting every permission request.
+
+```sh
+kilo run --auto --file mt/quality/finetune-agent-prompt.md \
+  "Follow the brief. Call read_chapter for chapter 1, then segment_text on the
+   first three AI sentences, and stop. Report the tool output verbatim."
+```
+
+Interactively, it is just `kilo` and then the same instruction typed in.
+
+The first useful signal is not the rewrite — it is whether the model quotes
+tool output accurately. If it invents a `segment_text` result, the model is too
+weak; the key is fine.
+
+## 9. What to watch on the first chapter
 
 | symptom | meaning |
 |---|---|
 | it rewrites without calling `segment_text` | the tool loop is not happening; check `/mcp` |
-| it calls `translate_text` for every sentence | wasteful; the source is already local, use `read_chapter` |
+| it calls `translate_text` for every sentence | wasteful; the AI text is already on disk after `translate_chapters` |
 | it treats `∅` or `{?}` as errors | it ignored the prompt; re-read step 3 |
 | it "fixes" `အေခြအေန` in the reference | it is editing the tone reference, not the AI text |
 | it produces fluent Burmese with no evidence line | reject the record; the prompt requires one |
