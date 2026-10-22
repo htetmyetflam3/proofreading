@@ -1,36 +1,17 @@
 # Machine translation (`mt/`)
 
-Four routes, one runner. Engine availability is checked before anything runs, and
+Two routes, one runner. Engine availability is checked before anything runs, and
 the output directory records which engine actually produced the text.
 
 ```
 zh-en   Chinese -> English   offline model installed          RUNS HERE
-en-my   English -> Burmese   via mt/nllb.py (CTranslate2)       RUNS OFFLINE
-my-en   Burmese -> English   via mt/nllb.py (CTranslate2)       RUNS OFFLINE
-zh-my   Chinese -> Burmese   via mt/nllb.py (CTranslate2)       RUNS OFFLINE
+en-zh   English -> Chinese   offline model                    RUNS HERE
 ```
 
-## Why three routes have no offline model
-
-Argos Translate publishes 100 packages; its index (`argospm-index`) contains no
-`my` (Burmese) entry in either direction, and a search of GitHub for
-`translate-en_my` / `translate-my_en` model files returns nothing. The two model
-files that do exist for this project's languages are Chinese/English only:
-
-| file | size | source |
-|---|---|---|
-| `translate-zh_en-1_0.argosmodel` | 83 MB | `jiangwensm/OPUS-argosmodels` (mirror of the Argos package) |
-| `translate-en_zh-1_0.argosmodel` | 82 MB | same |
-
-They are Marian/OPUS checkpoints, and they are fetched through a sparse git clone
-because `argosopentech.com` and `raw.githubusercontent.com` are not reachable from
-this machine.
-
-So the Burmese routes need an engine that is not Argos: `mt/nllb.py` (offline,
-NLLB-200 under CTranslate2) or an API. Azure Translator v3 supports `my` in
-both directions, and `mt/translate.py --engine azure` already speaks it: it reads
-`AZURE_TRANSLATOR_KEY` and `AZURE_TRANSLATOR_REGION` from your shell, never from a
-file, and refuses to run when they are missing.
+There is no machine translation to or from Burmese. The Burmese under review
+comes from the translator API (`mt/RAPIDAPI.md`); these two routes exist so a
+local agent can read the Chinese source in English, and re-express an English
+reading back into Chinese to check the meaning survived.
 
 ## Install
 
@@ -48,8 +29,7 @@ Models go to `$XDG_DATA_HOME/argos-translate/packages` and are not committed.
 python3 mt/translate.py --list                       # availability per route and engine
 python3 mt/translate.py --route zh-en                # all 210 Chinese chapters
 python3 mt/translate.py --route zh-en --only 193     # one chapter
-python3 mt/translate.py --route en-my --engine azure # needs the two env vars
-python3 mt/translate.py --route zh-my --engine glossary --only 193
+python3 mt/translate.py --route en-zh --engine offline --only 193
 ```
 
 Outputs, one directory per route:
@@ -63,18 +43,16 @@ content/mtranslate/manifest.json                   every route of the last run
 
 `content/mtranslate/` holds generated route outputs; the merged books under `content/merged/` are tracked core data.
 
-## The glossary engine is not a translation engine
+## What the two routes are for
 
-`--engine glossary` walks each Chinese sentence with CC-CEDICT, maps the English
-glosses through the English-Myanmar dictionary, and prints what it resolved:
+| route | what it is for |
+|---|---|
+| `zh-en` | read the Chinese source in English; check that the API's Burmese says the same thing |
+| `en-zh` | re-express an English reading back into Chinese and compare it with the original |
 
-```
-这些人口，可都是大周的底子  →  人口→လူဦးရေ/ဦးရေ 底子→အောက်ခြေ/အောက်ခံ
-```
-
-It measures dictionary coverage (`unresolved` / `tokens` in `report.json`), which
-is useful for judging whether a dictionary-only path could ever beat MT. It does
-not produce Burmese prose, and nothing downstream should treat it as translation.
+Neither produces Burmese, and neither is a substitute for the reference text in
+`content/merged/episodes.docx`. The agent's judgement comes from the Chinese,
+the human Burmese, and the engine — not from machine translation.
 
 ## Reading the Chinese
 

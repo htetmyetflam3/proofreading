@@ -5,12 +5,13 @@
 | name | produced by | what it is |
 |---|---|---|
 | **AI translation** | this RapidAPI caller | the text the proofreading agent judges and rewrites |
-| **MT** | `mt/translate.py` (Argos, offline) → `content/mtranslate/<route>/` | legacy machine translation, kept for reference only |
+| **MT** | `mt/translate.py --route zh-en` (Argos, offline) | Chinese → English only. No Burmese MT exists; see `MT.md` |
 | **reference** | `content/merged/episodes.docx` | human Burmese translation; style oracle, carries PDF→DOCX encoding damage |
 
-The API does **not** return MT. It returns AI-translated text, which is
-materially better than the Argos output and should never be referred to as MT
-in prompts, notes, or column names (`save_draft` takes `ai_text`).
+The API does **not** return MT. It returns AI-translated text and should never
+be referred to as MT in prompts, notes, or column names (`save_draft` takes
+`ai_text`). The only local machine translation left is Chinese → English, which
+exists so an agent can read the source; it never produces Burmese.
 
 Three files:
 

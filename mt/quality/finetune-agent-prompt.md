@@ -11,17 +11,18 @@ judges **AI-translated text**, and rewrites it into the author's voice.
 | name | where it lives | what it is | what it is for |
 |---|---|---|---|
 | **Reference** | `content/merged/episodes.docx`, chapters 1–195 | human Burmese translation of the Chinese novel. Produced by PDF→DOCX, so it carries encoding damage (Zawgyi-order clusters, digit-for-letter, dropped vowels) | **style oracle only.** Tone, register, particles, sentence rhythm |
-| **MT** | `content/mtranslate/<route>/`, written by `mt/translate.py` | legacy machine translation (Argos offline) | historical comparison. Rarely useful, never a target |
-| **AI translation** | RapidAPI `flybyapi1` output, e.g. `content/mtranslate/rapidapi/` | AI-translated Burmese. Markedly better than MT, close to publishable | **the text you judge and rewrite** |
+| **English** | `content/mtranslate/zh-en/`, written by `mt/translate.py` | Chinese → English machine translation (Argos, offline) | read the source in a language you know |
+| **AI translation** | RapidAPI `flybyapi1` output, e.g. `content/mtranslate/rapidapi/` | AI-translated Burmese, close to publishable | **the text you judge and rewrite** |
 
 Two rules that follow from this and must never be broken:
 
 1. **Never feed the reference to the segmentor as spelling truth.** Its
    encoding damage is a PDF-extraction artifact. It says nothing about how the
    language works and nothing about whether the AI translation is right.
-2. **Never call the AI translation "MT".** They are different pipelines with
-   different failure modes. MT is word-salad at times; AI translation is fluent
-   but may miss voice, register, and specific lexical choices.
+2. **Never call the AI translation "MT".** There is no Chinese → Burmese machine
+   translation in this project and none is needed. The only local MT is
+   Chinese → English, which exists so you can read the source. The Burmese you
+   judge comes from the API.
 
 ## Your job
 
@@ -102,16 +103,21 @@ can reach it, and — when the written form is *not* a word and a repaired form
 *is* — a proved repair. Only use those proved repairs. `{"verdict": "no proved
 repair"}` means: leave the word alone and flag it.
 
-**Step 5 — judge, then write.** The judgement is about voice, not grammar:
+**Step 5 — when meaning is in doubt, go back to the source.** Read the
+Chinese sentence in English (`content/mtranslate/zh-en/`) and check that the AI
+sentence says the same thing. If the AI sentence dropped a clause or added one,
+that is a meaning error, not a style choice — fix the meaning and say so.
+
+**Step 6 — judge, then write.** The judgement is about voice, not grammar:
 
 - Does the AI sentence carry the reference's register?
-- Does it use the author's particles, or a neutral machine register?
+- Does it use the author's particles, or a flat neutral register?
 - Does it keep the author's sentence length, or chop/formality-mix?
 - Does it translate names, ranks, and cultivation terms the way the reference
   does? Build the term list from the reference as you go and keep it
   consistent across chapters.
 
-**Step 6 — save with provenance.**
+**Step 7 — save with provenance.**
 
 ```
 save_draft {"chapter": 7, "paragraph": "0007-042-3f9a1c2b",
@@ -157,7 +163,7 @@ returns a proved repair. The AI text is clean enough that this is rare.
 - Words where `lookup_word` says `no proved repair`.
 - The house particles: `၏`, `တွင်`, `များ` in narration.
 - Sentence length, for its own sake. Long is the house style.
-- The legacy MT column. Do not diff against it, do not adopt its phrasing.
+- The Chinese → English column. It is your reading aid, never a target.
 
 ## Output contract
 
@@ -247,4 +253,4 @@ export_drafts {"chapter": 7}
 - [ ] zero mixed-register sentences introduced
 - [ ] the term list was updated and applied
 - [ ] nothing written to `master.json`, the tree, or the caches
-- [ ] the legacy MT column was never used as a target
+- [ ] the Chinese → English column was used only to read the source

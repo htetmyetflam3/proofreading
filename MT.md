@@ -1,4 +1,13 @@
-# MT pilot: direct Burmese, English-pivot Burmese, and approved phrase memory
+# MT pilot — superseded for Burmese
+
+> **Status (2026-10-22).** The Chinese → Burmese and English → Burmese legs are
+> dropped. No offline zh→my model exists (Argos publishes no Burmese package),
+> and the Burmese under review now comes from the translator API, which is far
+> better than any pivot MT this file could produce. What remains in use is
+> `zh_en`: Chinese → English, so a local agent can read the source and
+> cross-check meaning. `mt/translate.py` now exposes only `zh-en` and `en-zh`.
+> `init/initmt.py` has been removed with the dropped legs; this file is kept as
+> the record of the pilot, not as a plan.
 
 ## Exactly three routes
 

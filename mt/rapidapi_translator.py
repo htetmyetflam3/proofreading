@@ -18,7 +18,7 @@ All three take `?source=` (default `auto`) and `?target=` as query parameters
 and answer with `{"status": true, "data": {...}}`; `/translate/batch` returns
 `data.translated_texts` in input order.
 
-Design rules, borrowed from `init/initmt.py` and `mt/translate.py`:
+Design rules, borrowed from `mt/translate.py`:
 
 - The key is read from `RAPIDAPI_KEY` and is never written to disk or printed.
   A key is redacted from any error text before an exception is raised.

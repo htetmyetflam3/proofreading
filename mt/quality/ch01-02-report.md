@@ -5,7 +5,7 @@
 | name | where | nature |
 |---|---|---|
 | **Reference** | `content/merged/episodes.docx` | human Burmese translation, PDF→DOCX, carries encoding damage |
-| **MT** | `content/mtranslate/<route>/` from `mt/translate.py` | legacy Argos machine translation |
+| **English** | `content/mtranslate/zh-en/` from `mt/translate.py` | Chinese → English, the reading aid for the source |
 | **AI translation** | RapidAPI `flybyapi1` output | AI-translated Burmese, close to publishable |
 
 This report measures the **reference only**. It is a style oracle: the agent
@@ -154,7 +154,7 @@ The agent's input is the **AI translation**, and its reference is the
 | restore `၏` / `တွင်` / `များ` where AI drifted to neutral | "modernise" the reference |
 | keep terminology consistent across chapters | repair reference encoding damage |
 | segment the AI text and read its splits | feed the reference to the segmentor |
-| flag meaning errors against the Chinese | diff against the legacy MT column |
+| flag meaning errors against the Chinese | diff against a Burmese MT column — none exists |
 
 **Hard rules the measurements justify:**
 

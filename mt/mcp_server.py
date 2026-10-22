@@ -130,8 +130,8 @@ TOOLS = [
     {
         "name": "save_draft",
         "description": "Store the agent's adjusted Burmese for one paragraph. It is "
-                       "kept as a draft with the machine text it started from; it "
-                       "never overwrites machine output and is never approved text.",
+                       "kept as a draft with the AI translation it started from; it "
+                       "never overwrites the translation and is never approved text.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -154,7 +154,7 @@ TOOLS = [
     },
     {
         "name": "export_drafts",
-        "description": "Write the drafted chapter as text plus a Chinese / machine / "
+        "description": "Write the drafted chapter as text plus a Chinese / AI / "
                        "draft comparison, and report which paragraphs are still missing.",
         "inputSchema": {
             "type": "object",
