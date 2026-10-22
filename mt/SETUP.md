@@ -152,8 +152,9 @@ cat > ~/.config/kilo/kilo.jsonc <<EOF
       "options": { "apiKey": "{env:GROQ_API_KEY}" },
       "models": {
         "openai/gpt-oss-120b": {
+          "name": "gpt-oss-120b",
           "tool_call": true,
-          "limit": { "context": 131072, "output": 16000 }
+          "limit": { "context": 131072, "output": 1024 }
         }
       }
     }
@@ -173,18 +174,17 @@ cat > ~/.config/kilo/kilo.jsonc <<EOF
 EOF
 ```
 
-Why `output` is 16,000 and not 32,000: Kilo subtracts the output reservation
-from the context before it compacts, and every token the model **generates** is
-billed against the same per-minute Groq budget as its input (8k on the free
-plan, 250k on Developer). This model narrates its reasoning by design, so a 32k
-ceiling is 32k of narration per turn that you pay for and never read. 16,000
-still fits a 20-record report.
+Why `output` is 1,024: Groq charges the **declared** `max_tokens` against the
+per-minute budget, whether or not the model uses it. Work the arithmetic per
+turn — the tail of a `review_brief` test already carries ~6.1k of prompt, so
+`2048` puts that request at 8.1k and it is rejected (413 "Limit 8000, Requested
+8271") before a token is generated, while `1024` leaves ~900 tokens of headroom.
+There is no way to "grow into" the budget: a reservation that overflows fails.
 
-**If you are on the free plan, set `"output": 2048` instead.** On 8k TPM there
-is no room for a 16k reservation, and some Groq endpoints reject a request whose
-declared `max_tokens` alone breaks the ceiling (413 "Limit 8000, Requested
-8271") before generating anything. Better still: put a card on the account — see
-*If the session dies with "Compaction exhausted"* below.
+On a plan with a real ceiling the same reasoning sets 16,000 rather than 32,000:
+this model narrates its reasoning, so a 32k reservation is 32k of narration per
+turn that you pay for and never read, and Kilo subtracts the reservation from
+the context before it compacts.
 
 Which plan is this key on? The response headers say so:
 
@@ -206,6 +206,13 @@ Three things that bite:
   written to `kilo.jsonc`.
 - The model string is `provider/model`. Kilo has a built-in `groq` provider, so
   no base URL is needed.
+- The `models` block above is not decoration. Kilo's built-in Groq catalog is
+  stale — after Groq's 2026 retirements it may list **only**
+  `meta-llama/llama-prompt-guard-2-22m` and `-86m`, which are input-security
+  classifiers, not chat models: they return a risk score and cannot follow an
+  instruction or call a tool. Declaring `openai/gpt-oss-120b` here is what makes
+  `groq/openai/gpt-oss-120b` resolvable at run time, even when `kilo models groq`
+  still does not print it.
 
 **Check the config took, before running anything.** A bad key or an unknown model
 id makes Kilo fall back to Auto Free silently, so `/status` is the only proof:
@@ -1111,6 +1118,7 @@ compounds or sentences — its own output says so.
 | `kilo run` exits 1 with a permission diagnostic | missing `--auto` |
 | `401` from Groq | `GROQ_API_KEY` value is wrong, or the line is still `groq=key` |
 | `/status` shows Auto Free after you set a model | the key was not exported, or the model id is not in `kilo models groq` |
+| `kilo models groq` lists only `meta-llama/llama-prompt-guard-2-*` | those are prompt-injection **classifiers** (a risk score in, nothing out), not chat models; Kilo's Groq catalog is stale after the 2026 retirements. Declare `openai/gpt-oss-120b` under `provider.groq.models` — the declaration is what makes it resolvable |
 | `Model not found: groq/llama-3.3-70b-versatile` | Groq **retired that id on 2026-08-16** for free and developer keys (enterprise keeps it). There is no Groq setting to enable — the id is gone. Use `openai/gpt-oss-120b`, the replacement Groq itself names |
 | `Model not found` for an id that *is* in `kilo models groq` | one malformed entry under `provider.<id>.models` rejects the whole provider block (Kilo issue #14766). Every entry needs both `limit.context` and `limit.output` |
 | bare `kilo` exits with `UnknownError … ref err_…` | a Kilo-side crash, not a Groq refusal; use `kilo run`, and check the config parses with `kilo models groq` before reading anything into it |
