@@ -1,0 +1,444 @@
+# Setup and command reference
+
+One document for a VPS over SSH. Terminal only: every step is copy-paste, no GUI.
+Order: dependencies → keys → models → Kilo → MCP → the run → every flag.
+
+Paths assume the clone is at `~/proofreading`. If it is elsewhere, adjust `$REPO`.
+
+```sh
+export REPO="$HOME/proofreading"
+cd "$REPO"
+git pull
+```
+
+---
+
+# Part 1 — Setup
+
+## 1.1 Python and dependencies
+
+Everything is standard-library Python 3.10+ except the two model runners. Nothing
+needs a virtualenv, but PEP 668 systems need one or `--break-system-packages`.
+
+```sh
+python3 --version                                  # 3.10 or newer
+python3 -m pip install --break-system-packages \
+    ctranslate2 sentencepiece                      # offline zh-en / en-zh
+```
+
+`ctranslate2` and `sentencepiece` are only needed by `mt/translate.py --engine offline`
+and `mt/fetch_engine.py`. The MCP server, the API caller, the lexicon and the
+overview index need nothing installed.
+
+Node is only needed by the engine under `Engine/` (segmentation and POS), which
+`mt/lexicon.py` shells out to:
+
+```sh
+node --version
+cd "$REPO/Engine" && npm install --omit=dev && cd "$REPO"
+```
+
+## 1.2 Keys in `~/.env`
+
+One file, two keys, both outside the repository. It is in `.gitignore`.
+
+```sh
+cat > ~/.env <<'EOF'
+RAPIDAPI_KEY=your_rapidapi_key
+GROQ_API_KEY=gsk_your_groq_key
+EOF
+chmod 600 ~/.env
+```
+
+Who reads what:
+
+| key | read by | for |
+|---|---|---|
+| `RAPIDAPI_KEY` | `mt/api_translate.py --env-file ~/.env`, `mt/mcp_server.py --env-file ~/.env` | producing the AI-translated Burmese |
+| `GROQ_API_KEY` | the agent host (Kilo), exported into its shell | the model that runs the proofreading agent |
+
+The repository never reads `GROQ_API_KEY`. A variable named `groq` or `GROK_API_KEY`
+will not be found: the name is exactly `GROQ_API_KEY`.
+
+Verify without leaking the value:
+
+```sh
+set -a; . ~/.env; set +a
+echo "RAPIDAPI_KEY: ${RAPIDAPI_KEY:+set}"
+echo "GROQ_API_KEY: ${GROQ_API_KEY:+set}"
+
+curl -s https://api.groq.com/openai/v1/models \
+  -H "Authorization: Bearer $GROQ_API_KEY" | head -c 200
+```
+
+Two `set` lines and a model list mean the keys are good. `401` = wrong value,
+`403` = key lacks access.
+
+## 1.3 Offline translation models (optional)
+
+Only needed for `mt/translate.py`. There is **no Burmese model anywhere** — Argos
+publishes 100 packages and none is `my` — and that is deliberate: Burmese comes
+from the API, and no machine translation to or from Burmese is part of this
+pipeline.
+
+```sh
+python3 mt/fetch_engine.py --check
+python3 mt/fetch_engine.py --install zh-en
+python3 mt/fetch_engine.py --install en-zh
+```
+
+Models land in `$XDG_DATA_HOME/argos-translate/packages` (~85 MB each) and are
+never committed.
+
+## 1.4 Dictionaries (optional, for the chapter merge)
+
+```sh
+python3 format/fetch_dicts.py --check
+python3 format/fetch_dicts.py
+```
+
+CC-CEDICT (~8.6 MB) + English–Myanmar (~16.7 MB), sha256-verified, rebuildable.
+Not needed by the proofreading agent.
+
+## 1.5 Kilo
+
+```sh
+npm install -g @kilo-org/kilocode    # or: curl -fsSL https://kilo.ai/install | sh
+kilo --version
+```
+
+Config file: `~/.config/kilo/kilo.jsonc` (global). Project file: `./kilo.jsonc`.
+
+```sh
+mkdir -p ~/.config/kilo
+cat > ~/.config/kilo/kilo.jsonc <<EOF
+{
+  "\$schema": "https://app.kilo.ai/config.json",
+  "model": "groq/moonshotai/kimi-k2-instruct",
+  "provider": {
+    "groq": { "options": { "apiKey": "{env:GROQ_API_KEY}" } }
+  },
+  "mcp": {
+    "rapidapi-translator": {
+      "type": "local",
+      "command": [
+        "$(command -v python3)",
+        "$REPO/mt/mcp_server.py",
+        "--env-file", "$HOME/.env"
+      ],
+      "enabled": true
+    }
+  }
+}
+EOF
+```
+
+Three things that bite:
+
+- `{env:GROQ_API_KEY}` is expanded by Kilo, not the shell. The variable must be
+  **exported** into the process that starts Kilo: `set -a; . ~/.env; set +a`.
+- `--env-file` keeps `RAPIDAPI_KEY` out of the config file. Nothing secret is
+  written to `kilo.jsonc`.
+- The model string is `provider/model`. Kilo has a built-in `groq` provider, so
+  no base URL is needed.
+
+Model choice, for Burmese specifically:
+
+| model | note |
+|---|---|
+| `groq/moonshotai/kimi-k2-instruct` | strongest multilingual on Groq, 128K — start here |
+| `groq/llama-3.3-70b-versatile` | cheap and fast, weak Burmese; fine for structure |
+| `groq/openai/gpt-oss-120b` | follows rules well, limited Burmese fluency |
+
+Every one of them is weak at Burmese relative to this task. The tools are what
+make output checkable; the model only makes it readable.
+
+## 1.6 MCP server
+
+```sh
+python3 mt/mcp_server.py --selftest        # protocol round-trip, no network
+python3 mt/mcp_server.py --check           # config state, no request
+python3 mt/mcp_server.py --env-file ~/.env # run it (stdio; Kilo does this for you)
+```
+
+Register it with a client automatically instead of by hand:
+
+```sh
+python3 mt/mcp_server.py --print-config --client kilo
+python3 mt/mcp_server.py --install-config --client kilo --env-file ~/.env
+```
+
+`--install-config` merges into plain JSON only. If the target is JSONC with
+comments it refuses and prints the snippet, so nothing you wrote is lost.
+
+Ten tools: `detect_language`, `translate_text`, `translate_batch`, `read_chapter`,
+`save_draft`, `export_drafts`, `lookup_word`, `review_lookup`, `segment_text`,
+`translate_chapters`.
+
+---
+
+# Part 2 — The run
+
+## 2.1 Produce the AI translation (the only paid step)
+
+Two chapters per call, never the whole novel at once. The first call is 194 +
+195: the human translation ends at Chinese 193 (`episodes.docx`), and these are
+the first two chapters behind it.
+
+```sh
+cd "$REPO"
+uv run mt/apicaller.py --status                    # cursor, chapters left; free
+uv run mt/apicaller.py                             # plan 194 + 195; free
+uv run mt/apicaller.py --run --env-file ~/.env     # translate 194 + 195
+uv run mt/apicaller.py --run --env-file ~/.env     # 196 + 197
+```
+
+The cursor moves by itself: a chapter that already has a JSONL under
+`content/mtranslate/rapidapi/` is not offered again.
+
+`&` is a shell operator — unquoted, `--194&195` backgrounds `--194` and tries to
+run `195`. Quote it, or use `+`:
+
+```sh
+uv run mt/apicaller.py '--194&195' --run --env-file ~/.env
+uv run mt/apicaller.py --194+195 --run --env-file ~/.env    # same pair
+```
+
+194 + 195 is 363 paragraphs, 6,427 characters, **10 requests** (40 paragraphs
+per request). A third chapter is refused, and the refusal prints the pairs to
+run in order. `mt/api_translate.py --run` enforces the same limit unless you add
+`--allow-bulk`.
+
+Writes `content/mtranslate/rapidapi/`:
+
+```
+ch0194.my.jsonl            one record per paragraph: source, target, cached
+ch0194.my.txt               the chapter in Burmese
+pair-0194-0195.my.txt       both chapters
+compare-ch194-ch195.md      Chinese | new Burmese | existing human Burmese
+report-0194-0195.json       this pair's report
+report.json                 the latest report, overwritten each run
+```
+
+Re-running is free for anything already cached; the cache is
+`content/mtranslate/rapidapi-cache.sqlite3`. `--json` prints the plan or the
+report as one object, which is what the agent reads.
+
+## 2.2 Check the join before spending agent tokens
+
+```sh
+python3 - <<'EOF'
+import sys; sys.path.insert(0, "mt")
+from mcp_server import Server
+r = Server(enabled_cache=False).call_tool("read_chapter", {"chapter": 194})
+print(r["translation"])
+print(r["paragraphs"][0])
+EOF
+```
+
+Want `{'available': True, 'attached': 166, 'mismatched': 0, ...}` and a `my` field
+on each paragraph. Alignment is verified per paragraph against the Chinese, so a
+stale file cannot shift Burmese onto the wrong sentence.
+
+## 2.3 Run the agent
+
+Interactive:
+
+```sh
+set -a; . ~/.env; set +a
+cd "$REPO" && kilo
+```
+
+Headless:
+
+```sh
+kilo run --auto --file mt/quality/finetune-agent-prompt.md \
+  "Follow the brief. read_chapter chapter 1, confirm translation.available is true.
+   Take paragraphs 1-3: segment_text each 'my' text, lookup_word any word you doubt,
+   save_draft with ai_text set to the original. Stop after three."
+```
+
+`--auto` is required for headless: without it every permission request is
+auto-rejected and the run exits 1 even though nothing was wrong.
+
+## 2.4 Inspect the result
+
+```sh
+sqlite3 content/mtranslate/agent-drafts.sqlite3 \
+  "select paragraph_index, note, substr(draft_text,1,40) from drafts where chapter=1"
+```
+
+Or from inside the agent session: `export_drafts {"chapter": 1}`.
+
+---
+
+# Part 3 — Command reference
+
+All flags below are copied from `--help`; run any of them with `--help` for the
+same text.
+
+## `mt/apicaller.py` — the two-chapter caller
+
+| flag | meaning |
+|---|---|
+| `194 195` (positional) | chapters to translate, as bare numbers |
+| `--194&195` `--194+195` `--194,195` `--194-195` | the same pair written as one token; `&` needs quoting |
+| `--chapters` | explicit spec, `next`, or omitted for the cursor |
+| `--status` | human span, chapters done and left, next pair; no request |
+| `--plan` | count the pair, no request (default) |
+| `--run` | call the API; needs `RAPIDAPI_KEY` |
+| `--target` | target language, default `my` |
+| `--source` | source language or `auto`, default `auto` |
+| `--source-file` | Chinese text with `===== 第N章 =====` headings |
+| `--existing` | human Burmese, used as the comparison reference |
+| `--docx` | bilingual DOCX the chapter numbers come from |
+| `--map` / `--no-map` | saved chapter map; or assume Chinese N = Burmese N |
+| `--out-dir` | output directory, default `content/mtranslate/rapidapi` |
+| `--cache` / `--no-cache` | translation cache |
+| `--no-compare` | skip the comparison markdown |
+| `--max-chars` / `--max-items` | request limits |
+| `--timeout` / `--attempts` | per request |
+| `--json` | the plan, report or status as one object |
+| `--env-file` | read `KEY=VALUE` lines from PATH; the shell wins |
+
+## `mt/api_translate.py` — the batch engine under it
+
+| flag | meaning |
+|---|---|
+| `--chapters` | `1-2`, `1,3-4`, `all`, `next`, `last`, `existing`. Default `1-2` |
+| `--target` | target language, default `my` |
+| `--source` | source language or `auto`, default `auto` |
+| `--source-file` | Chinese text with `===== 第N章 =====` headings |
+| `--existing` | human Burmese for the comparison reference |
+| `--docx` | bilingual DOCX the chapter numbers come from |
+| `--map` | saved chapter-map JSON; skips reading the DOCX |
+| `--no-map` | assume Chinese N = Burmese N |
+| `--out-dir` | output directory, default `content/mtranslate/rapidapi` |
+| `--cache` | SQLite cache path |
+| `--no-cache` | ignore the cache |
+| `--keep-notes` | keep author notes and promo lines |
+| `--no-compare` | do not write the comparison file |
+| `--max-chars` | characters per request (API limit 5,000) |
+| `--max-items` | strings per batch request |
+| `--timeout` | per-request timeout |
+| `--attempts` | retries per request |
+| `--json` | print the report as JSON |
+| `--env-file` | read `KEY=VALUE` lines from PATH; the shell wins |
+| `--plan` | offline count, no request (default) |
+| `--run` | actually call the API; needs `RAPIDAPI_KEY` |
+| `--allow-bulk` | lift the two-chapter limit for one `--run` |
+
+## `mt/mcp_server.py` — the agent's tool server
+
+| flag | meaning |
+|---|---|
+| `--print-config` | print a client snippet and exit |
+| `--client` | `json`, `claude`, `kilo`, `codex`, `gemini` |
+| `--check` | print configuration state, no request |
+| `--install-config` | write/merge the entry into the client config |
+| `--config` | config file for `--install-config` |
+| `--env-file` | load keys from PATH at startup (also `RAPIDAPI_ENV_FILE`) |
+| `--selftest` | protocol round-trip, no network |
+| `--cache` / `--no-cache` | translation cache |
+| `--source-file` | Chinese source for `translate_chapters` |
+| `--existing` | human Burmese for the comparison |
+| `--out-dir` | default output directory |
+| `--docx` | bilingual DOCX for chapter numbers |
+| `--draft-store` | SQLite file for agent drafts |
+| `--max-chars` `--max-items` `--timeout` `--attempts` | request limits |
+
+## `mt/translate.py` — Chinese/English routes
+
+| flag | meaning |
+|---|---|
+| `--route` | `zh-en` or `en-zh`; repeatable |
+| `--engine` | `offline`, `azure`, `cmd` |
+| `--cmd-template` | shell command for `cmd`; `{text}` or stdin, `{source}`/`{target}` substituted |
+| `--engine-note` | model id recorded in `report.json` |
+| `--source-file` | Chinese text |
+| `--limit` | first N chapters |
+| `--only` | chapter number; repeatable |
+| `--out-dir` | output directory |
+| `--list` | route availability, then exit |
+| `--resume` | skip chapters that already have output |
+| `--cascade` | `zh-en` first, then `en-zh` which reads it |
+
+## `mt/agent_work.py` — drafts without an agent host
+
+| command | purpose |
+|---|---|
+| `read <chapter>` | `--reference-lines N`, `--no-reference` |
+| `save <chapter> <paragraph>` | `--draft` or `--draft-file`, `--ai-text`, `--model`, `--note` |
+| `note <chapter> <paragraph>` | attach a note to an existing draft |
+| `export <chapter>` | `--out-dir`, `--require-all` |
+| `list` | drafts in a chapter, or all chapters |
+| `stats` | totals for the store |
+
+Global: `--store` (SQLite path), `--source`, `--existing`, `--docx`, `--json`.
+
+## `mt/chapter_map.py` — chapter numbers from the DOCX
+
+| flag | meaning |
+|---|---|
+| `--docx` | bilingual DOCX |
+| `--at` | look up Chinese chapter N; repeatable |
+| `--burmese` | look up Burmese chapter N; repeatable |
+| `--json` | print the whole map |
+| `--write` | save the map as JSON |
+
+## `mt/lexicon.py` — dictionary and segmentation probes
+
+Read-only over `Engine/`. Never writes `master.json`, the tree, or the caches.
+
+| function | question |
+|---|---|
+| `lookup(word)` | is this an entry, which POS family, is it reachable, is there a dictionary-proved repair |
+| `coverage(text)` | which characters no entry or syllable can explain |
+| `suggest(text)` | proved repairs for storage-order damage |
+| `segment(text)` | tokens, smallest units, split verdicts, coverage |
+
+CLI: `--lookup WORD`, `--coverage TEXT`, `--suggest TEXT`, `--segment TEXT`.
+
+Split verdicts: `word` (entry), `unit` (known syllable), `loan` (Pali virama stack,
+an engine gap — not an error), `unknown` (neither — the only suspect bucket).
+
+## `mt/overview_index.py` — the background document
+
+| flag | meaning |
+|---|---|
+| `--index` | index file to read or write, default `content/review/overview.yaml` |
+| `--build` | regenerate `content/review/overview.yaml` |
+| `--find TEXT...` | sections mentioning every word |
+| `--get ID` | print one section by id |
+| `--chapter N` | the arc covering chapter N (compact map) |
+| `--section` | with `--chapter`: `story`, `opinion`, `problems`, `title` |
+| `--titles` | list ids only |
+| `--limit` | max sections printed by `--find` |
+| `--verify` | re-check every range against the markdown |
+
+## `mt/fetch_engine.py` / `format/fetch_dicts.py`
+
+| flag | meaning |
+|---|---|
+| `--install {zh-en,en-zh}` | download and install one model |
+| `--all-available` | install everything downloadable |
+| `--check` | what is installed |
+| `--remove {zh-en,en-zh}` | delete one model |
+| `fetch_dicts.py --force` | rebuild dictionaries even if present |
+
+---
+
+# Part 4 — What goes wrong
+
+| symptom | cause |
+|---|---|
+| `kilo run` exits 1 with a permission diagnostic | missing `--auto` |
+| `401` from Groq | `GROQ_API_KEY` value is wrong, or the line is still `groq=key` |
+| `/mcp` shows no server | `kilo.jsonc` path wrong, or python path in `command` is wrong |
+| `--194&195` returns to the prompt, then `195: command not found` | unquoted `&`; use `'--194&195'` or `--194+195` |
+| `2 at a time` refusal | intended: run the pairs it prints, in order |
+| `read_chapter` has no `my` field | `apicaller.py --run` has not produced that chapter |
+| `translation.attached` is 0 but `available` is true | the jsonl exists but its `source` lines no longer match the Chinese — regenerate it |
+| `no offline model installed` | `mt/fetch_engine.py --install zh-en` |
+| `{?}` tags in segmentation | not an error; 2 of 3 are engine coverage, not text damage |
+| the agent "fixes" `အေခြအေန` in the reference | it is editing the tone reference; it must never be edited |

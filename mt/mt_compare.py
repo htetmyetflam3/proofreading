@@ -295,7 +295,7 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     source=parser.add_mutually_exclusive_group(required=True)
     source.add_argument('--profile',action='store_true',help='Audit the reference and supplied rule data; this is not compound/sentence resolution')
-    source.add_argument('--input',type=Path,help='Three-route direct/pivot MT JSONL from init/initmt.py')
+    source.add_argument('--input',type=Path,help='MT candidate JSONL; the three-route zh_my/en_my producer (init/initmt.py) is retired')
     parser.add_argument('--reference',type=Path,default=REFERENCE)
     parser.add_argument('--reference-profile',type=Path,default=PROFILE)
     parser.add_argument('--output',type=Path)

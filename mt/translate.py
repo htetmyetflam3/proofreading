@@ -2,25 +2,26 @@
 # requires-python = ">=3.10"
 # dependencies = ["ctranslate2>=4", "sentencepiece>=0.1.99"]
 # ///
-"""Run the four machine-translation routes and write their output to `content/mtranslate`.
+"""Run the Chinese/English translation routes and write them to `content/mtranslate`.
 
-    zh-en   Chinese  -> English   offline model (installed by mt/fetch_engine.py)
-    en-my   English  -> Burmese   needs an API engine (no downloadable model exists)
-    my-en   Burmese  -> English   needs an API engine
-    zh-my   Chinese  -> Burmese   needs an API engine
+    zh-en   Chinese -> English   offline model (installed by mt/fetch_engine.py)
+    en-zh   English -> Chinese   offline model
+
+That is the whole set. There is no machine translation to or from Burmese: the
+Burmese text the proofreading agent works on comes from the translator API, and
+these two routes exist so a local agent can read the Chinese source in English
+and cross-check meaning against it. Chinese -> Burmese was dropped deliberately —
+see `MT.md`.
 
 Engines are resolved in this order:
 
-1. `--engine azure` — Azure Translator v3. Only runs when the environment already
+1. `--engine offline` — the locally installed Argos/OPUS model for that route.
+   `mt/fetch_engine.py --check` lists what exists.
+2. `--engine azure` — Azure Translator v3. Only runs when the environment already
    holds `AZURE_TRANSLATOR_KEY` and `AZURE_TRANSLATOR_REGION` (plus
    `AZURE_TRANSLATOR_ENDPOINT` if the resource is not global). The key is read
    from the environment and never written to disk or printed.
-2. `--engine offline` — the locally installed Argos/OPUS model for that route.
-   `mt/fetch_engine.py --check` lists what exists.
-3. `--engine glossary` — dictionary look-up, **not** a translation engine. It maps
-   each Chinese word through CC-CEDICT to an English gloss and then through the
-   English-Myanmar dictionary, and writes what it could and could not resolve.
-   It exists to measure dictionary coverage, not to produce readable Burmese.
+3. `--engine cmd` — any translator installed as a command; see `--cmd-template`.
 
 Output layout, one directory per route:
 
@@ -34,6 +35,8 @@ import argparse
 import json
 import os
 import re
+import shlex
+import subprocess
 import sys
 import time
 from dataclasses import dataclass, field
@@ -50,9 +53,6 @@ OUTPUT = ROOT / "content" / "mtranslate"
 ROUTES = {
     "zh-en": ("zh", "en"),
     "en-zh": ("en", "zh"),
-    "en-my": ("en", "my"),
-    "my-en": ("my", "en"),
-    "zh-my": ("zh", "my"),
 }
 
 # ---------------------------------------------------------------- chapters
@@ -341,65 +341,66 @@ class AzureEngine(Engine):
         return results
 
 
-class GlossaryEngine(Engine):
-    """Dictionary look-up, not a translation engine."""
+class CommandEngine(Engine):
+    """Any installed translator, driven by a shell command template.
 
-    name = "glossary"
-    detail = "format/dicts.py (CC-CEDICT + English-Myanmar)"
+    The official Argos index has no Burmese package, so a zh->my or en->my
+    engine has to be installed separately. Rather than hard-code whichever one
+    was installed last, this engine runs a command you supply and records it in
+    the report. The template gets the text on stdin and must answer on stdout:
 
-    def __init__(self) -> None:
-        sys.path.insert(0, str(ROOT / "format"))
-        self.ready = False
-        try:
-            from dicts import Cedict, EnMy  # noqa: PLC0415
-            self.cedict = Cedict()
-            self.enmy = EnMy()
-            self.ready = True
-        except Exception as error:  # pragma: no cover - depends on install
-            self.error = str(error)
+        --cmd-template "my-translator --from {source} --to {target}"
+
+    `{text}` may be used instead of stdin; it is replaced with the text and the
+    process is run without a pipe. `{source}` and `{target}` are substituted
+    with the route's language codes.
+    """
+
+    name = "cmd"
+    TIMEOUT = 120
+
+    def __init__(self, source: str, target: str, template: str | None = None) -> None:
+        self.source = source
+        self.target = target
+        self.template = template or os.environ.get("MT_ENGINE_COMMAND", "")
+        self.detail = self.template or "MT_ENGINE_COMMAND is not set"
 
     def available(self) -> tuple[bool, str]:
-        return (True, self.detail) if self.ready else (False, getattr(self, "error", "dictionaries missing"))
+        if not self.template.strip():
+            return False, ("no command template: pass --cmd-template or export "
+                           "MT_ENGINE_COMMAND (see mt/MT-RESTORE.md)")
+        return True, self.template
 
-    @staticmethod
-    def _burmese(defn: str, limit: int = 3) -> list[str]:
-        out: list[str] = []
-        for part in re.split(r"[။၊]", defn):
-            for run in re.findall(r"[\u1000-\u109f][\u1000-\u109f\s]*", part):
-                if re.search(r"[A-Za-z]", run):
-                    continue
-                for token in run.split():
-                    if 2 <= len(token) <= 24 and token not in out:
-                        out.append(token)
-        return out[:limit]
+    def _render(self, text: str) -> str:
+        return (self.template
+                .replace("{source}", self.source)
+                .replace("{target}", self.target)
+                .replace("{text}", shlex.quote(text)))
 
     def translate(self, texts: list[str], source: str, target: str) -> list[str]:
-        from dicts import gloss_keys  # noqa: PLC0415
-        results = []
+        results: list[str] = []
         for text in texts:
-            words = self.cedict.terms(text, min_length=2) if source == "zh" else {text: []}
-            pieces = []
-            for word, entries in words.items():
-                burmese: list[str] = []
-                for entry in entries[:2]:
-                    for key in gloss_keys(entry)[:3]:
-                        rows = self.enmy.lookup(key)
-                        if rows:
-                            burmese.extend(self._burmese(rows[0]["definition"], 2))
-                            if burmese:
-                                break
-                    if burmese:
-                        break
-                pieces.append(f"{word}→{'/'.join(dict.fromkeys(burmese)) if burmese else '∅'}")
-            results.append(" ".join(pieces) if pieces else "∅")
+            command = self._render(text)
+            if "{text}" in self.template:
+                completed = subprocess.run(command, shell=True, capture_output=True,
+                                           text=True, timeout=self.TIMEOUT)
+            else:
+                completed = subprocess.run(command, shell=True, input=text,
+                                           capture_output=True, text=True,
+                                           timeout=self.TIMEOUT)
+            if completed.returncode != 0:
+                raise RuntimeError(f"{command} exited {completed.returncode}: "
+                                   f"{completed.stderr.strip()[:200]}")
+            results.append(completed.stdout.strip())
         return results
 
 
-def resolve(engine: str, source: str, target: str) -> Engine:
+def resolve(engine: str, source: str, target: str,
+            cmd_template: str | None = None) -> Engine:
     if engine == "azure":
         return AzureEngine()
-    if engine == "glossary":
-        return GlossaryEngine()
+    if engine == "cmd":
+        return CommandEngine(source, target, cmd_template)
     return OfflineEngine(source, target)
 
 
@@ -424,10 +425,14 @@ class Report:
 
 
 def run_route(route: str, engine_name: str, limit: int | None, out_dir: Path,
-              chapters: list[Chapter], resume: bool = False) -> Report:
+              chapters: list[Chapter], resume: bool = False,
+              cmd_template: str | None = None,
+              engine_note: str | None = None) -> Report:
     source, target = ROUTES[route]
-    engine = resolve(engine_name, source, target)
+    engine = resolve(engine_name, source, target, cmd_template)
     ok, detail = engine.available()
+    if engine_name == "cmd" and engine_note:
+        detail = f"{detail}  [# {engine_note}]"
     report = Report(route=route, engine=engine.name, detail=detail)
     out_dir.mkdir(parents=True, exist_ok=True)
     if not ok:
@@ -452,9 +457,6 @@ def run_route(route: str, engine_name: str, limit: int | None, out_dir: Path,
         report.chapters += 1
         report.sentences += len(lines)
         report.empty += sum(1 for item in translated if not item.strip())
-        if engine.name == "glossary":
-            report.tokens += sum(len(item.split()) for item in translated)
-            report.unresolved += sum(item.count("∅") for item in translated)
         title = chapter.title if not hasattr(chapter, "marker") else f"[HCRAWLER MARKER {chapter.marker}] {chapter.title}"
         body = "\n".join(translated)
         text = f"{title}\n{'=' * len(title)}\n{body}\n"
@@ -478,8 +480,13 @@ def run_route(route: str, engine_name: str, limit: int | None, out_dir: Path,
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--route", action="append", choices=sorted(ROUTES), default=[],
-                        help="route to run; repeatable, default: all four")
-    parser.add_argument("--engine", choices=["offline", "azure", "glossary"], default="offline")
+                        help="route to run; repeatable, default: both")
+    parser.add_argument("--engine", choices=["offline", "azure", "cmd"], default="offline")
+    parser.add_argument("--cmd-template", default=None,
+                        help="shell command for --engine cmd; {text} or stdin")
+    parser.add_argument("--engine-note", default=None,
+                        help="model id/version recorded in report.json, e.g. "
+                             "'argos zh-en 1.0'")
     parser.add_argument("--source-file", type=Path, default=None,
                         help="Chinese text; default content/source/chinese-0511241012-from-8011_1.txt")
     parser.add_argument("--limit", type=int, default=None, help="only the first N chapters")
@@ -488,7 +495,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--list", action="store_true", help="show route availability and exit")
     parser.add_argument("--resume", action="store_true", help="skip chapters that already have output")
     parser.add_argument("--cascade", action="store_true",
-                        help="run zh-en, then en-zh (which reads zh-en), then zh-my")
+                        help="run zh-en first, then en-zh, which reads the zh-en output")
     args = parser.parse_args(argv)
 
     if args.list:
@@ -500,8 +507,6 @@ def main(argv: list[str] | None = None) -> int:
         for route in ROUTES:
             ok, detail = AzureEngine().available()
             print(f"{route:<8}{'azure':<10}{str(ok):<11}{detail}")
-        ok, detail = GlossaryEngine().available()
-        print(f"{'all':<8}{'glossary':<10}{str(ok):<11}{detail} (dictionary look-up, not MT)")
         return 0
 
     chapters = chinese_chapters(args.source_file or CHINESE)
@@ -519,13 +524,7 @@ def main(argv: list[str] | None = None) -> int:
         print("[mt] no chapters selected", file=sys.stderr)
         return 2
 
-    if args.cascade:
-        routes = ["zh-en", "en-zh", "zh-my"]
-    else:
-        routes = args.route or sorted(ROUTES)
-    # zh-my has no translation model; --cascade uses the documented dictionary walk
-    # for that leg unless an API engine was asked for explicitly.
-    route_engine = {"zh-my": args.engine if args.engine != "offline" else "glossary"}
+    routes = ["zh-en", "en-zh"] if args.cascade else (args.route or sorted(ROUTES))
     reports = []
     for route in routes:
         out_dir = args.out_dir / route
@@ -537,8 +536,9 @@ def main(argv: list[str] | None = None) -> int:
             reports.append(Report(route=route, engine=args.engine, status="no_input",
                                   detail="run --route zh-en first"))
             continue
-        engine_for_route = route_engine.get(route, args.engine)
-        reports.append(run_route(route, engine_for_route, args.limit, out_dir, route_chapters, args.resume))
+        reports.append(run_route(route, args.engine, args.limit, out_dir,
+                                 route_chapters, args.resume, args.cmd_template,
+                                 args.engine_note))
 
     summary = {
         "engine": args.engine,

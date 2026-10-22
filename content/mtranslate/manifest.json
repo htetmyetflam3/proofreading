@@ -1,11 +1,11 @@
 {
-  "engine": "offline",
+  "engine": "glossary",
   "routes": {
-    "zh-en": {
-      "status": "unavailable",
-      "detail": "no offline model installed for zh-en (mt/fetch_engine.py --install zh-en)",
-      "chapters": 0,
-      "sentences": 0,
+    "zh-my": {
+      "status": "ok",
+      "detail": "format/dicts.py (CC-CEDICT + English-Myanmar)",
+      "chapters": 2,
+      "sentences": 165,
       "seconds": 0.0
     }
   }

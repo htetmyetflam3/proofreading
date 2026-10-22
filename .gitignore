@@ -26,3 +26,9 @@ Thumbs.db
 # Build leftovers
 dist/
 coverage/
+
+# Local MCP client configs (may contain API keys; keep them untracked)
+.mcp.json
+kilo.json
+kilo.jsonc
+.kilo/

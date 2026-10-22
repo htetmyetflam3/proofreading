@@ -1,4 +1,13 @@
-# MT pilot: direct Burmese, English-pivot Burmese, and approved phrase memory
+# MT pilot — superseded for Burmese
+
+> **Status (2026-10-22).** The Chinese → Burmese and English → Burmese legs are
+> dropped. No offline zh→my model exists (Argos publishes no Burmese package),
+> and the Burmese under review now comes from the translator API, which is far
+> better than any pivot MT this file could produce. What remains in use is
+> `zh_en`: Chinese → English, so a local agent can read the source and
+> cross-check meaning. `mt/translate.py` now exposes only `zh-en` and `en-zh`.
+> `init/initmt.py` has been removed with the dropped legs; this file is kept as
+> the record of the pilot, not as a plan.
 
 ## Exactly three routes
 
@@ -265,3 +274,22 @@ refuses to run without them; nothing is stored in the repository.
 `--engine glossary` is a dictionary walk, not MT: it reports how much of a
 chapter the two dictionaries can cover (`unresolved` / `tokens` in the report).
 On chapter 193 that is 295 unresolved of 786 terms.
+
+## RapidAPI batch route (implemented 2026-10-21)
+
+`mt/rapidapi_translator.py` adds a second API family next to Azure: the RapidAPI
+"Multi format AI translator" service, called through `POST /translate/batch`.
+`mt/api_translate.py` runs it over the first two chapters and writes
+`content/mtranslate/rapidapi/` (JSONL, TXT, a Chinese/Burmese comparison and
+`report.json`). `mt/mcp_server.py` exposes the three endpoints over MCP stdio.
+
+`mt/chapter_map.py` derives the chapter pairing from `content/merged/episodes.docx`
+instead of trusting an offset: it reproduces the verified alignment (Burmese 1..61 =
+Chinese 1..61, Chinese 61 → Burmese 61+62, Burmese 63..138 = Chinese 62..137,
+Chinese 137 → Burmese 138+139, Burmese 140..195 = Chinese 138..193), including the
+OCR heading forms. The comparison therefore references Burmese 195 for Chinese 193.
+
+This is a **comparison candidate**, not a new baseline, and it is not connected
+to the approved phrase memory. The key comes from `RAPIDAPI_KEY`; nothing is
+stored in the repository. The offline plan and the `--run` gate follow the same
+rule as the Azure route: only `--run` spends quota. See `mt/RAPIDAPI.md`.
