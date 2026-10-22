@@ -46,6 +46,33 @@ recorded.
 Rule: if you delete the generated text, `git log -- content/mtranslate` must
 still tell you which engine produced it. That is what `--engine-note` is for.
 
+## The offline path: mt/nllb.py
+
+`mt/nllb.py` is a real translator: NLLB-200 in a CTranslate2 conversion, CPU,
+no key, no billing. It covers all three dead routes (zh→my, en→my, my→en).
+
+```sh
+pip install ctranslate2 sentencepiece huggingface_hub
+python3 mt/nllb.py --check                       # what is missing
+python3 mt/nllb.py --search                      # candidate CT2 NLLB repos on the Hub
+python3 mt/nllb.py --download --repo <picked>    # ~600 MB, outside the repo
+python3 mt/nllb.py --from zh --to my --text "天下太平"
+```
+
+Language codes are the short ones (`zh`, `my`, `en`) and are mapped to FLORES
+internally; a FLORES code passed directly is accepted unchanged.
+
+Into the route runner:
+
+```sh
+python3 mt/translate.py --route zh-my --engine cmd \
+    --cmd-template "python3 mt/nllb.py --from {source} --to {target}" \
+    --engine-note "nllb-200-distilled-600M int8 (ct2)" --only 1 --only 2
+```
+
+`report.json` then records the command and the model note, exactly like any
+other `cmd` engine.
+
 ## Wiring any engine
 
 `--engine cmd` runs a command per sentence. Two calling conventions:

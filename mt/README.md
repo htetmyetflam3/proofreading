@@ -5,9 +5,9 @@ the output directory records which engine actually produced the text.
 
 ```
 zh-en   Chinese -> English   offline model installed          RUNS HERE
-en-my   English -> Burmese   no downloadable model exists      needs an API key
-my-en   Burmese -> English   no downloadable model exists      needs an API key
-zh-my   Chinese -> Burmese   no downloadable model exists      needs an API key
+en-my   English -> Burmese   via mt/nllb.py (CTranslate2)       RUNS OFFLINE
+my-en   Burmese -> English   via mt/nllb.py (CTranslate2)       RUNS OFFLINE
+zh-my   Chinese -> Burmese   via mt/nllb.py (CTranslate2)       RUNS OFFLINE
 ```
 
 ## Why three routes have no offline model
@@ -26,7 +26,8 @@ They are Marian/OPUS checkpoints, and they are fetched through a sparse git clon
 because `argosopentech.com` and `raw.githubusercontent.com` are not reachable from
 this machine.
 
-So the Burmese routes need an API engine. Azure Translator v3 supports `my` in
+So the Burmese routes need an engine that is not Argos: `mt/nllb.py` (offline,
+NLLB-200 under CTranslate2) or an API. Azure Translator v3 supports `my` in
 both directions, and `mt/translate.py --engine azure` already speaks it: it reads
 `AZURE_TRANSLATOR_KEY` and `AZURE_TRANSLATOR_REGION` from your shell, never from a
 file, and refuses to run when they are missing.
