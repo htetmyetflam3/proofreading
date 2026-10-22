@@ -5,12 +5,16 @@
 # ///
 """Call the translation API two chapters at a time.
 
-    uv run mt/apicaller.py                        # plan the next pair
-    uv run mt/apicaller.py --run                  # translate it
-    uv run mt/apicaller.py --194+195              # plan that pair
-    uv run mt/apicaller.py --194+195 --run        # translate that pair
-    uv run mt/apicaller.py '--194&195' --run      # the same pair, & quoted
-    uv run mt/apicaller.py --status               # where the cursor is
+    python3 mt/apicaller.py                        # plan the next pair
+    python3 mt/apicaller.py --run                  # translate it
+    python3 mt/apicaller.py --194+195              # plan that pair
+    python3 mt/apicaller.py --194+195 --run        # translate that pair
+    python3 mt/apicaller.py '--194&195' --run      # the same pair, & quoted
+    python3 mt/apicaller.py --status               # where the cursor is
+
+Standard library only, so any Python 3.10+ runs it; `python3` is the documented
+interpreter. With uv, spell it `uv run --no-project mt/apicaller.py …` so the
+scraper's environment in `pyproject.toml` is not built for this.
 
 `&` is a shell operator. Unquoted, `--194&195` backgrounds `--194` and runs `195`
 as a command, so the tool never sees it. Quote it, or use `+`; both spellings
@@ -373,7 +377,7 @@ def _print_plan(payload: dict, numbers: list[int], note: str,
     print("[apicaller] would write:")
     for path in planned_files(numbers, out_dir, target, compare):
         print(f"  {_show(path)}")
-    print(f"[apicaller] run: uv run mt/apicaller.py {pair_commands(numbers)[0]} --run")
+    print(f"[apicaller] run: python3 mt/apicaller.py {pair_commands(numbers)[0]} --run")
 
 
 def _print_run(report: dict, numbers: list[int]) -> None:
@@ -386,7 +390,7 @@ def _print_run(report: dict, numbers: list[int]) -> None:
     upcoming = report.get("next") or []
     if upcoming:
         print(f"[apicaller] next pair: {upcoming[0]} + {upcoming[-1]} — "
-              f"uv run mt/apicaller.py {pair_commands(upcoming)[0]} --run")
+              f"python3 mt/apicaller.py {pair_commands(upcoming)[0]} --run")
     else:
         print("[apicaller] no chapters left after this pair in the source")
 
@@ -441,8 +445,8 @@ def main(argv: list[str] | None = None) -> int:
         if payload["next"]:
             print(f"[apicaller] next pair: {payload['next'][0]} + {payload['next'][-1]}")
             command = pair_commands(payload["next"])[0]
-            print(f"[apicaller] plan it: uv run mt/apicaller.py {command}")
-            print(f"[apicaller] run it:  uv run mt/apicaller.py {command} --run")
+            print(f"[apicaller] plan it: python3 mt/apicaller.py {command}")
+            print(f"[apicaller] run it:  python3 mt/apicaller.py {command} --run")
         else:
             print("[apicaller] nothing left to translate after the human translation")
         return 0

@@ -74,9 +74,9 @@ RAPIDAPI_KEY=your-key-here
 EOF
 chmod 600 .env
 
-uv run mt/apicaller.py --plan --env-file .env              # 194 + 195
-uv run mt/apicaller.py --run  --env-file .env              # spends quota
-uv run mt/apicaller.py --196+197 --run --env-file .env     # the next pair
+python3 mt/apicaller.py --plan --env-file .env              # 194 + 195
+python3 mt/apicaller.py --run  --env-file .env              # spends quota
+python3 mt/apicaller.py --196+197 --run --env-file .env     # the next pair
 python3 mt/rapidapi_translator.py --detect "大周" --env-file .env
 ```
 

@@ -280,7 +280,8 @@ class OfflineEngine(Engine):
 
     def available(self) -> tuple[bool, str]:
         if not (self.path / "model" / "model.bin").is_file():
-            return False, f"no offline model installed for {self.pair} (mt/fetch_engine.py --install {self.pair})"
+            return False, (f"no offline model installed for {self.pair} "
+                           f"(python3 mt/fetch_engine.py --install {self.pair})")
         return True, str(self.path)
 
     def _load(self):
