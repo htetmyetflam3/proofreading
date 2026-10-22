@@ -230,11 +230,18 @@ python3 mt/mcp_server.py --install-config --client kilo --env-file ~/.env
 `--install-config` merges into plain JSON only. If the target is JSONC with
 comments it refuses and prints the snippet, so nothing you wrote is lost.
 
-Fourteen tools. Reading and checking (free, no API request):
+Sixteen tools. Reading and checking (free, no API request):
 `read_chapter`, `review_lookup`, `review_brief`, `lookup_word`, `lookup_name`,
 `check_names`, `segment_text`, `detect_language`. Writing, all local:
-`save_draft`, `export_drafts`, `register_name`. Paid, never on your behalf:
-`translate_text`, `translate_batch`, `translate_chapters`.
+`save_draft`, `export_drafts`, `register_name`, `save_verse`, `export_verse`.
+Paid, never on your behalf: `translate_text`, `translate_batch`,
+`translate_chapters`.
+
+Two things there are deliberately **not** tools: finding new names, and finding
+verse. Both are reading judgements the agent makes while it reads the AI text
+for tone; a scanner would produce candidates with no sense of which matter, and
+a verse regex cannot tell a couplet from a short sentence. The tools only write
+down what the agent decided.
 
 ---
 
@@ -383,11 +390,16 @@ Chapter 194. Work through the chain, then stop and report:
    and coverage per sentence; list only the `unknown` ones.
 6. lookup_word for each token the segmenter split, and for each name variant
    check_names reported. No repair without a dictionary hit.
-7. register_name for a genuinely new term only — list what you would register
-   and wait for me before writing. Never a second spelling of a listed term.
+7. register_name for a genuinely new term only — and a term is not only a
+   person: weapon, martial art, bloodline ability, pill, rank, place. Left side
+   is the English of the zh-en column, right side the AI's form corrected if
+   needed. List what you would register and wait for me before writing.
 8. Re-match tone: for each paragraph say which register it is (narration or
    dialogue), quote its closing particle, and name any sentence that breaks it.
    Do not save_draft yet.
+9. save_verse for every poem, song, maxim or philosophy line you judged, with
+   its English — zh-en (`english_source: mt`) or your own (`own`). If the
+   chapter has none, `kind: none`. Then export_verse {"chapter": 194}.
 
 Nothing is rewritten in this pass. Report at the end.
 ```
@@ -669,11 +681,57 @@ judges and appends to it when a genuinely new term appears.
 Everything except `--add` is read-only. `--add` only appends; it never rewrites
 an existing line.
 
+An entry is two sides and nothing else, exactly as the 129 existing lines are:
+the **English** as the zh-en column writes it, and the **Burmese** form the AI
+translation used (corrected by the agent when wrong). No categories. A term is
+not only a person — a weapon, a martial art, a bloodline ability, a pill, a rank
+or a place is registered the same way, and `Golden Eagle Saber` is the case to
+remember: easy to translate is not the same as safe to leave to the API.
+
+A trailing `# …` note is stripped before the form is compared. Before that fix,
+`--add --note` wrote a note into the form and the entry could never match the
+text it was added for.
+
 ```sh
 python3 mt/names.py --lookup "Liu Jin"
 python3 mt/names.py --check --chapter 194
 python3 mt/names.py --add 'Shen Ji = ရှန်းကျီ'
 ```
+
+## `mt/verse.py` — poems and philosophy lines, for review
+
+**It does not find verse.** Whether a line is a poem, a song, a maxim or a
+throwaway quotation is a judgement, and the agent that re-matches tone is
+already holding the paragraph. A regex that guessed would either bury real
+couplets among ordinary sentences or miss them. The agent decides; this stores
+the decision and renders the section.
+
+```sh
+python3 mt/verse.py mt 194                    # numbered zh-en lines, to quote from
+python3 mt/verse.py add 194 --paragraph 161 --kind poem \
+    --english "Even the wind has grown weary of blowing." --source own \
+    --note "closes the elegy, four parallel lines"
+python3 mt/verse.py add 194 --kind none --note "read twice, no verse"   # or none
+python3 mt/verse.py list 194
+python3 mt/verse.py export 194                # -> content/mtranslate/verse/ch0194.verse.md
+```
+
+| flag | meaning |
+|---|---|
+| `--kind` | `poem`, `philosophy`, `song`, `inscription`, `maxim`, `other`, or `none` for "checked, nothing" |
+| `--paragraph` | 1-based index or paragraph id from `read_chapter`; required unless `kind none` |
+| `--english` | the English version — the point of the section |
+| `--source` | `mt` (zh-en verbatim), `own` (agent's rendering), `mixed` (quoted then rewritten) |
+| `--mt-english` | the zh-en line you started from, so both are visible |
+| `--note` | why it is verse, and what to watch in the Burmese |
+
+The store is `content/mtranslate/verse/chNNNN.verse.jsonl` — one record per
+paragraph, so a re-save replaces rather than appends. `export` writes the
+markdown the human reviews: Chinese, the zh-en line, the English, and the note.
+`mt/agent_work.py export` and the `export_drafts` tool append that section to
+the end of the chapter comparison file whenever verse exists, so the review copy
+and the verse sit together. Nothing here touches the draft text, the AI
+translation, the name list or the engine.
 
 ## `mt/quality/profile.py` / `mt/quality/tag.py` — the numbers behind "tone"
 

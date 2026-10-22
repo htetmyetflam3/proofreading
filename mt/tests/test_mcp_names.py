@@ -120,8 +120,12 @@ class SchemaTests(unittest.TestCase):
         server = mcp_server.Server(enabled_cache=False)
         listed = server.handle({"id": 1, "method": "tools/list"})
         tools = {tool["name"]: tool for tool in listed["result"]["tools"]}
-        for name in ("review_brief", "lookup_name", "check_names", "register_name"):
+        for name in ("review_brief", "lookup_name", "check_names", "register_name",
+                     "save_verse", "export_verse"):
             self.assertIn(name, tools)
+        self.assertEqual(tools["save_verse"]["inputSchema"]["required"],
+                         ["chapter", "kind"])
+        self.assertIn("poem", tools["save_verse"]["inputSchema"]["properties"]["kind"]["enum"])
         self.assertEqual(tools["check_names"]["inputSchema"]["required"], ["text"])
         self.assertEqual(tools["register_name"]["inputSchema"]["required"],
                          ["key", "burmese"])

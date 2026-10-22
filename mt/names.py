@@ -22,6 +22,20 @@ A line with no `=` is prose and is skipped. A line written the other way round
 several English terms may legitimately share one Burmese term (Xianmen,
 Ascension sect, Immortal gate and Feather gate are all အင်မော်တယ်ဂိုဏ်း).
 
+Two sides, nothing else:
+
+    left   the English of the zh-en column (`content/mtranslate/zh-en/`)
+    right  the Burmese of the AI translation (RapidAPI), corrected if needed
+
+No categories. The file has never had them and does not need them: one English
+term, one Burmese form. What *does* get registered is wider than people — a
+weapon, a martial art, a bloodline ability, a pill, a rank or a place is
+registered the same way, because `ရွှေလင်းတဓား` has to read the same in chapter
+212 as in 194, and the API will not remember it for you.
+
+A trailing `# …` note is tolerated and stripped before the form is compared, so
+a note written by `--add` can never leak into a spelling match.
+
     python3 mt/names.py --list
     python3 mt/names.py --lookup "Liu Jin"
     python3 mt/names.py --check --chapter 194
@@ -67,12 +81,25 @@ class Entry:
     value: str
     line: int
     reversed: bool = False
+    note: str = ""
 
     def as_dict(self) -> dict:
         payload = {"key": self.key, "burmese": self.value, "line": self.line}
+        if self.note:
+            payload["note"] = self.note
         if self.reversed:
             payload["reversed_in_file"] = True
         return payload
+
+
+def split_comment(value: str) -> tuple[str, str]:
+    """`form  # note` -> (form, note). A note is never part of the form.
+
+    `--add` writes its note after a `#`; without this, the note became part of
+    the Burmese form and the entry could not match the text it was added for.
+    """
+    form, _, comment = value.partition("#")
+    return form.strip(), comment.strip()
 
 
 @dataclass
@@ -91,7 +118,8 @@ def parse(text: str) -> ListResult:
                 result.warnings.append(f"line {number}: no '=' — skipped: {line[:60]}")
             continue
         left, _, right = line.partition("=")
-        key, value = left.strip().lstrip("[").strip(), right.strip()
+        value, note = split_comment(right.strip())
+        key = left.strip().lstrip("[").strip()
         reversed_ = False
         if MYANMAR.search(key) and not MYANMAR.search(value):
             key, value = value, key
@@ -104,7 +132,7 @@ def parse(text: str) -> ListResult:
             result.warnings.append(f"line {number}: no key before '=' — skipped")
             continue
         result.entries.append(Entry(key=key, value=value, line=number,
-                                    reversed=reversed_))
+                                    reversed=reversed_, note=note))
     return result
 
 
@@ -235,14 +263,24 @@ def chapter_text(chapter: int, out_dir: Path | str | None = None,
 
 
 def add(path: Path | str | None, english: str, burmese: str, note: str = "") -> Entry:
-    """Append one term to the list, refusing a second spelling for one name."""
+    """Append one term to the list, refusing a second spelling for one name.
+
+    `english` is the term as the zh-en column writes it, `burmese` the form the
+    AI translation produced (corrected by the agent when it is wrong). That is
+    the whole record: no category, because the file has never had one.
+    """
     path = Path(path or NAMES_FILE)
     english, burmese = english.strip(), burmese.strip()
     if not english or not burmese:
         raise ValueError("--add needs both a key and a Burmese form")
+    if MYANMAR.search(english):
+        raise ValueError(f"key {english!r} contains Myanmar script; the left "
+                         "side is the English or Chinese term")
     if not MYANMAR.search(burmese):
         raise ValueError(f"{burmese!r} has no Myanmar script; the value side "
                          "must be Burmese")
+    if "#" in burmese:
+        raise ValueError("'#' starts the category note; it cannot appear in a form")
     result = load(path)
     existing = canonical(result.entries)
     same_key = [entry for entry in result.entries
@@ -265,10 +303,11 @@ def add(path: Path | str | None, english: str, burmese: str, note: str = "") -> 
     body = path.read_text(encoding="utf-8")
     if not body.endswith("\n"):
         body += "\n"
-    line = f"{english} = {burmese}" + (f"  # {note}" if note else "")
+    line = f"{english} = {burmese}" + (f"  # {note.strip()}" if note.strip() else "")
     body += f"# added {stamp}\n{line}\n"
     path.write_text(body, encoding="utf-8")
-    return Entry(key=english, value=burmese, line=len(body.splitlines()))
+    return Entry(key=english, value=burmese, line=len(body.splitlines()),
+                 note=note.strip())
 
 
 # ---------------------------------------------------------------- CLI

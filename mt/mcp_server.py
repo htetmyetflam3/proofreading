@@ -268,21 +268,89 @@ TOOLS = [
     },
     {
         "name": "register_name",
-        "description": "Append a genuinely new name or term to "
-                       "content/reference/EtoBnames.txt. Use it only when the entity is "
-                       "new to the book and no entry exists (check with lookup_name "
-                       "first). Never invent an alternative spelling for something "
-                       "already listed, and never replace an existing entry: if an entry "
-                       "looks wrong, flag it in your report instead.",
+        "description": "Append a genuinely new term to content/reference/EtoBnames.txt. "
+                       "The record has two sides and nothing else: `key` is the English "
+                       "as the zh-en column writes it, `burmese` is the form the AI "
+                       "translation used (corrected by you when it is wrong). No "
+                       "categories. A term is not only a person: a weapon, a martial "
+                       "art, a bloodline ability, a pill, a rank or a place is "
+                       "registered the same way when it will recur — 'Golden Eagle "
+                       "Saber' must be registered even though it translates cleanly on "
+                       "its own, because the API will not spell it the same way in "
+                       "chapter 212. Use it only when no entry exists (check with "
+                       "lookup_name first), never invent an alternative spelling for "
+                       "something already listed, and never replace an existing entry: "
+                       "if an entry looks wrong, flag it in your report instead.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "key": {"type": "string",
-                        "description": "The English or Chinese term, e.g. 'Shen Ji'."},
-                "burmese": {"type": "string", "description": "The Burmese form."},
-                "note": {"type": "string", "description": "Optional note stored with it."},
+                        "description": "The English term as the zh-en column writes it, "
+                                       "e.g. 'Shen Ji' or 'Golden Eagle Saber'."},
+                "burmese": {"type": "string",
+                            "description": "The Burmese form, taken from the AI "
+                                           "translation and corrected if needed."},
+                "note": {"type": "string",
+                         "description": "Optional note: where it first appears."},
             },
             "required": ["key", "burmese"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "save_verse",
+        "description": "Record ONE line you judged to be verse — a poem, a song, a "
+                       "maxim, an inscription, a philosophy line — with an English "
+                       "version for the human to review. YOU decide what is verse: no "
+                       "tool extracts it, because the boundary between a short sentence "
+                       "and a line of poetry is a reading judgement and you are the one "
+                       "reading. Do this while you re-match tone, when you already have "
+                       "the paragraph in front of you. Write the English yourself or "
+                       "quote the zh-en column (`mt/verse.py mt <chapter>` prints it "
+                       "numbered); say which with `english_source`. Use kind `none` once "
+                       "if the chapter genuinely has no verse — that is different from "
+                       "never having looked.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "chapter": {"type": "integer"},
+                "paragraph": {"type": "string",
+                              "description": "1-based index or a paragraph id from "
+                                             "read_chapter. Omit only for kind `none`."},
+                "kind": {"type": "string",
+                         "enum": ["poem", "philosophy", "song", "inscription",
+                                  "maxim", "other", "none"],
+                         "description": "What the line is. `none` records that the "
+                                        "chapter has no verse at all."},
+                "english": {"type": "string",
+                            "description": "The English version of this line."},
+                "english_source": {"type": "string", "enum": ["mt", "own", "mixed"],
+                                   "default": "own",
+                                   "description": "`mt` = the zh-en column verbatim, "
+                                                  "`own` = your own rendering, `mixed` "
+                                                  "= quoted then rewritten."},
+                "mt_english": {"type": "string",
+                               "description": "The zh-en line you started from, if any."},
+                "note": {"type": "string",
+                         "description": "Why this line is verse, and what to watch in "
+                                        "the Burmese."},
+                "model": {"type": "string"},
+            },
+            "required": ["chapter", "kind"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "export_verse",
+        "description": "Write the chapter's verse section — Chinese, the zh-en line, "
+                       "your English, and why — to content/mtranslate/verse/"
+                       "chNNNN.verse.md, which is the 'separate section for careful "
+                       "review' at the end of the chapter. Returns the file, the line "
+                       "count and whether the chapter was checked at all (`none`).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"chapter": {"type": "integer"}},
+            "required": ["chapter"],
             "additionalProperties": False,
         },
     },
@@ -450,6 +518,10 @@ class Server:
             return self._check_names(arguments)
         if name == "register_name":
             return self._register_name(arguments)
+        if name == "save_verse":
+            return self._save_verse(arguments)
+        if name == "export_verse":
+            return self._export_verse(arguments)
         if name == "translate_chapters":
             return self._translate_chapters(arguments)
         raise KeyError(name)
@@ -620,6 +692,39 @@ class Server:
         return {"added": entry.as_dict(),
                 "file": self._names_path(names.NAMES_FILE),
                 "note": "registered; every later occurrence must use this spelling"}
+
+    def _save_verse(self, arguments: dict) -> dict:
+        import verse  # noqa: PLC0415
+        chapter = self._chapter_arg(arguments)
+        kind = arguments.get("kind")
+        if not isinstance(kind, str) or not kind.strip():
+            raise ValueError("`kind` must be one of: " + ", ".join(verse.KINDS))
+        english = arguments.get("english") or ""
+        if not isinstance(english, str):
+            raise ValueError("`english` must be a string")
+        try:
+            record = verse.save(
+                chapter, kind=kind,
+                paragraph=arguments.get("paragraph"),
+                english=english,
+                english_source=str(arguments.get("english_source", "own")),
+                mt_english=arguments.get("mt_english"),
+                note=str(arguments.get("note") or ""),
+                model=arguments.get("model"))
+        except verse.VerseError as error:
+            raise ValueError(str(error)) from None
+        return {"saved": record,
+                "note": "the human reviews this section; it is not part of the draft",
+                "next": "export_verse at the end of the chapter"}
+
+    def _export_verse(self, arguments: dict) -> dict:
+        import verse  # noqa: PLC0415
+        chapter = self._chapter_arg(arguments)
+        report = verse.export(chapter)
+        if report["empty"]:
+            report["warning"] = ("nothing recorded for this chapter — save_verse each "
+                                 "line, or save_verse with kind `none` after checking")
+        return report
 
     def _read_chapter(self, chapter: int, arguments: dict) -> dict:
         from agent_work import DEFAULT_OUT, read_chapter  # noqa: PLC0415

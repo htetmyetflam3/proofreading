@@ -183,6 +183,23 @@ What that means in practice:
   Register once, at first appearance, then use that form for the rest of the
   book. Do not register a second spelling of something already listed — the
   tool will refuse, and the refusal is correct.
+- **A term is not only a person.** A weapon, a martial art, a bloodline ability,
+  a pill, a rank, a sect, a place — anything the reader will meet again — is
+  registered the same way. `Golden Eagle Saber` is the example to keep in mind:
+  it translates cleanly on its own this week, and next week the API calls it
+  ရွှေလင်းတဓား, then ရွှေလင်းတ ဓား, then something else. Straightforward means
+  *easy to translate*, not *safe to leave to chance*. Register it and the
+  question never comes up again.
+- **The entry has two sides and no category.** The left side is the English as
+  the zh-en column writes it — `content/mtranslate/zh-en/`, the local MT, not
+  the AI translation and not an English gloss you invented. The right side is
+  the form the AI translation used, corrected by you if it is wrong. That pair
+  is the record: one line, `Key = Value`, the same shape as the 129 entries
+  already there.
+- **Do not hunt for terms.** There is no tool that finds names, and none is
+  wanted: you are reading the AI text anyway, and a scanner would hand you a
+  list of candidates with no sense of which matter. Notice the term while you
+  read, then write it down.
 - **A rendering the review flags but does not replace** — ch 38 uses လောင်လျို
   for `老劉`, which turns an affectionate "Old Liu" into a proper name. The
   review explains the loss and proposes nothing; the list has no entry. Keep
@@ -326,6 +343,50 @@ Rewrite every suspected variant to its `canonical` form. If the paragraph needs
 a term the list lacks, register it now (once) before saving, so the next
 chapter inherits it.
 
+**Step 7b — the verse section.** While you read, some lines are not ordinary
+prose: a poem, a song, a maxim, an inscription, a philosophy line, a couplet
+that closes a chapter. **You** decide which — no tool extracts verse, because
+the boundary between a short sentence and a line of poetry is a judgement, and
+you are the one reading the paragraph and re-matching its tone.
+
+For each one, store an English version so the human can check the Burmese
+against something readable without opening the Chinese:
+
+```
+save_verse {"chapter": 194, "paragraph": "0194-161-256fe6df", "kind": "poem",
+            "english": "Even the wind has grown weary of blowing.",
+            "english_source": "own",
+            "note": "closes the elegy, four parallel lines"}
+```
+
+Two ways to get the English, and you say which:
+
+- **`english_source: "mt"`** — the zh-en column, quoted as it stands. It is flat
+  but literal. `python3 mt/verse.py mt 194` prints it numbered, or read
+  `content/mtranslate/zh-en/chapters/ch0194.en.txt`.
+- **`english_source: "own"`** — your own rendering. Use it when the zh-en line
+  is unreadable (poetry is exactly where a sentence-at-a-time model falls
+  apart) or when the line carries a metaphor the flat version destroys.
+  `"mixed"` means you quoted it and rewrote it.
+
+Rules for this section:
+
+- The English is for **review**, not for the draft. Do not paste it into
+  `save_draft`, and do not translate from it — the AI Burmese is what you
+  judge.
+- Set `mt_english` whenever you used or overrode a zh-en line, so the human sees
+  both.
+- Read the verse **before** you rewrite that paragraph: a couplet has a rhythm
+  the Burmese has to keep, and a philosophy line has a cadence that a normal
+  narrative sentence does not. That is why this step sits with the tone pass,
+  not with the names.
+- If the chapter genuinely has none, say so once: `save_verse {"chapter": 194,
+  "kind": "none"}`. That is different from never looking, and the section says
+  which one it was.
+- At the end of the chapter: `export_verse {"chapter": 194}` writes
+  `content/mtranslate/verse/ch0194.verse.md` — the separate section the human
+  reviews.
+
 **Step 8 — save with provenance.**
 
 ```
@@ -443,7 +504,9 @@ plausible revision as a proved one.
 | `review_lookup` | one section of the background document (111 sections): characters, arcs, defects |
 | `lookup_name` | an entry of `EtoBnames.txt` by key or by Burmese form; no argument lists all |
 | `check_names` | canonical names in a paragraph, and suspected variant spellings |
-| `register_name` | append a genuinely new term to `EtoBnames.txt` |
+| `register_name` | append a genuinely new term to `EtoBnames.txt` — people, weapons, techniques, powers, places |
+| `save_verse` | record one poem / song / maxim / philosophy line with an English version |
+| `export_verse` | write the chapter's verse review section |
 | `translate_text` / `translate_batch` | check a short clause against the Chinese when meaning is in doubt — costs quota, use sparingly |
 | `translate_chapters` | batch-translate whole chapters through the API — the human's call, never yours |
 | `detect_language` | confirm a stray fragment is Burmese |
@@ -485,6 +548,8 @@ export_drafts {"chapter": 194}
 - [ ] every rewrite cites a tool result or a reference count
 - [ ] `unknown` splits did not increase
 - [ ] zero mixed-register sentences introduced
-- [ ] the term list was updated and applied
+- [ ] the term list was updated and applied, including weapons and techniques
+- [ ] every poem, song or philosophy line got an English version, or `none` was recorded
+- [ ] `export_verse` ran, and the verse section is separate from the draft
 - [ ] nothing written to `master.json`, the tree, or the caches
 - [ ] the Chinese → English column was used only to read the source

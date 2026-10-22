@@ -360,7 +360,8 @@ class DraftStore:
     # -- export -------------------------------------------------------
 
     def export(self, chapter: int, out_dir: Path | str = DEFAULT_OUT, *,
-               require_all: bool = False, source: Path = CHINESE) -> dict:
+               require_all: bool = False, source: Path = CHINESE,
+               include_verse: bool = True) -> dict:
         paragraphs = chapter_paragraphs_by_number(chapter, source=source)
         rows = {row["index"]: row for row in self.rows_for(chapter)}
         missing = [item.index for item in paragraphs if item.index not in rows]
@@ -397,9 +398,21 @@ class DraftStore:
             lines.extend([f"draft: {row['draft_text']}",
                           f"<sub>{row['paragraph_id']} · {row['model'] or 'model not set'}"
                           f" · {row['status']}</sub>", ""])
-        compare_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+        body = "\n".join(lines).rstrip() + "\n"
+        # The verse section belongs at the end of the chapter file, not in a
+        # drawer: it is the part the human reads most carefully.
+        verse_note = None
+        if include_verse:
+            import verse as verse_store  # noqa: PLC0415
+            verse_rows = verse_store.load(chapter)
+            if verse_rows:
+                body += "\n---\n\n" + verse_store.render(chapter, verse_rows)
+                verse_note = {"lines": len(verse_rows),
+                              "kinds": sorted({row["kind"] for row in verse_rows})}
+        compare_path.write_text(body, encoding="utf-8")
         return {"chapter": chapter, "drafted": len(rows), "paragraphs": len(paragraphs),
                 "missing": len(missing), "missing_first": missing[:10],
+                "verse": verse_note,
                 "files": [str(text_path), str(compare_path)]}
 
 

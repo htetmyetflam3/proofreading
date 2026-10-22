@@ -120,6 +120,32 @@ class AddTests(unittest.TestCase):
             names.add(self.path, "Liu Jin", "လျိုကျင်း")
         self.assertEqual(self.path.read_text(encoding="utf-8"), before)
 
+    def test_a_note_is_not_part_of_the_form(self):
+        """`--add --note` used to poison the entry it wrote."""
+        names.add(self.path, "Golden Eagle Saber", "ရွှေလင်းတဓား", "ch194 first use")
+        entry = [item for item in names.load(self.path).entries
+                 if item.key == "Golden Eagle Saber"][0]
+        self.assertEqual(entry.value, "ရွှေလင်းတဓား")
+        self.assertEqual(entry.note, "ch194 first use")
+        self.assertTrue(names.hits("ရွှေလင်းတဓား နဲ့ ခုတ်တယ်။",
+                                   names.load(self.path).entries))
+
+    def test_a_weapon_or_technique_registers_like_a_person(self):
+        """Not only human names: a saber, a manual, a bloodline ability.
+
+        No category is stored — the file is one English term and one Burmese
+        form — and none is needed. The entry has to survive a round trip and
+        match the text it was added for.
+        """
+        for key, form in (("Golden Eagle Saber", "ရွှေလင်းတဓား"),
+                          ("Nine Yang Manual", "နဝ ယန်းကျမ်း"),
+                          ("Undying Bloodline", "မသေသွေးရိုး")):
+            names.add(self.path, key, form)
+            found = names.lookup(names.load(self.path).entries, key)
+            self.assertEqual([entry.value for entry in found], [form])
+            self.assertFalse(hasattr(found[0], "kind"))
+        self.assertEqual(len(names.load(self.path).entries), 8)
+
     def test_same_entry_twice_is_a_no_op(self):
         first = names.add(self.path, "Shen Ji", "ရှန်းကျီ")
         second = names.add(self.path, "Shen Ji", "ရှန်းကျီ")
