@@ -427,6 +427,15 @@ same text.
 | `--draft-store` | SQLite file for agent drafts |
 | `--max-chars` `--max-items` `--timeout` `--attempts` | request limits |
 
+Fourteen tools. The four the agent needs before it judges anything:
+
+| tool | use |
+|---|---|
+| `review_brief` | the review in one round — characters, defects, verdict, arc openings |
+| `lookup_name` | one `EtoBnames.txt` entry by key or Burmese form |
+| `check_names` | names present in a paragraph, plus suspected variant spellings |
+| `register_name` | append a new term to `EtoBnames.txt` |
+
 ## `mt/translate.py` — Chinese/English routes
 
 | flag | meaning |
@@ -495,6 +504,33 @@ an engine gap — not an error), `unknown` (neither — the only suspect bucket)
 | `--titles` | list ids only |
 | `--limit` | max sections printed by `--find` |
 | `--verify` | re-check every range against the markdown |
+| `--brief` | the whole review in one round: characters, defects, verdict, every arc's opening (≈35k chars) |
+| `--chars-per-arc N` | story characters per arc in `--brief`, default 420; `200` ≈ 25k, `60` ≈ 18k |
+
+## `mt/names.py` — the name list (`content/reference/EtoBnames.txt`)
+
+The list is the authority for Burmese spelling. The agent reads it before it
+judges and appends to it when a genuinely new term appears.
+
+| flag | meaning |
+|---|---|
+| `--list` | every entry, with line numbers |
+| `--lookup TERM` | one entry by English key or by Burmese form |
+| `--check --text '…'` | canonical names in a fragment, and suspected variants |
+| `--check --chapter N` | the same over `chNNNN.my.jsonl` |
+| `--add 'KEY = BURMESE'` | append a new entry, dated; refuses a duplicate key or a form owned by another key |
+| `--warnings` | duplicate forms, reversed lines, and prose skipped |
+| `--json` | the same report as one object |
+| `--file` / `--translations` | override the list or the `mtranslate` directory |
+
+Everything except `--add` is read-only. `--add` only appends; it never rewrites
+an existing line.
+
+```sh
+python3 mt/names.py --lookup "Liu Jin"
+python3 mt/names.py --check --chapter 194
+python3 mt/names.py --add 'Shen Ji = ရှန်းကျီ'
+```
 
 ## `mt/fetch_engine.py` / `format/fetch_dicts.py`
 
@@ -522,6 +558,8 @@ an engine gap — not an error), `unknown` (neither — the only suspect bucket)
 | `--194&195` returns to the prompt, then `195: command not found` | unquoted `&`; use `'--194&195'` or `--194+195` |
 | `2 at a time` refusal | intended: run the pairs it prints, in order |
 | `read_chapter` has no `my` field | `apicaller.py --run` has not produced that chapter |
+| a name keeps changing between chapters | it was never in `EtoBnames.txt`; `names.py --add` it once, then reuse |
+| `--add` refuses with "already owns" | the Burmese form belongs to another key — reuse that key, or pick a different form deliberately |
 | `translation.attached` is 0 but `available` is true | the jsonl exists but its `source` lines no longer match the Chinese — regenerate it |
 | `ModuleNotFoundError: No module named 'argostranslate'` | old copy of `mt/fetch_engine.py`; `git pull` — it unpacks the zip itself now |
 | `uv run` says the model is missing, `python3` finds it | two interpreters; see 1.1 and use `python3` |

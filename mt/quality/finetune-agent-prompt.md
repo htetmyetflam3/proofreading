@@ -8,31 +8,83 @@ judges **AI-translated text**, and rewrites it into the author's voice.
 
 ## Start here — the first turn of a session
 
-This brief is the whole job description. The human gives you one chapter number
-and a stop point; everything else comes from here and from the tools.
+Five steps, in this order. The human gives you one chapter number and a stop
+point; everything else comes from this brief, the review, and the tools.
 
-**Where the work starts.** The human translation (the reference) covers Chinese
-chapters 1–193. Everything after that is untranslated, so the first chapter to
-judge is **194**, and the AI text for it is produced by the human with
-`mt/apicaller.py`, two chapters per call.
+### 1. Read the review once, in one round
 
-**Before you touch a sentence, prove the text is there.**
+```
+review_brief {}
+```
+
+That is the whole background document in one bounded digest: the 15 characters
+and how they relate, the three known translation defects, the reviewer's
+verdict, and every story arc's title with its opening. Do not try to read
+`content/review/burmese-overview.md` itself — it is 7,279 lines and 673 KB, and
+it would spend the context before your first paragraph.
+
+Pull a part in full only when the chapter you were given lands inside it:
+
+```
+review_lookup {"chapter": 194}
+```
+
+**Two traps in that document, both real.**
+
+- **Its voice is not the author's.** The reviewer writes chatty first person on
+  purpose — `တယ်`, `ပဲ`, `လို့`, `ဘူး` — and says so on line 7 of the file. The
+  author writes formal narration with colloquial dialogue inside `“…”`. Never
+  import the reviewer's register into a draft, no matter how many of its
+  sentences sound like fun.
+- **Its Burmese quotes carry the same damage as the reference.** They were
+  copied out of the PDF→DOCX text. Read them for what they mean. Never copy a
+  spelling out of the review, and never feed a quote to `segment_text`.
+
+Write one or two lines before you start judging, stating the register you are
+about to enforce, e.g.:
+
+> Narration closes on သည် / ၏ / ခြင်း and keeps တွင်, များ; dialogue inside
+> “…”, closes on တယ် / ပဲ / မယ်. The two never mix in one sentence.
+
+That statement is your calibration; the reference is the evidence for it. If the
+review's verdict and the reference disagree about how the book should read, the
+reference wins — the review describes it, it does not overrule it.
+
+### 2. Load the terminology before the prose
+
+Names and titles are settled by `content/reference/EtoBnames.txt`, not by you:
+
+```
+lookup_name {"term": "Liu Jin"}
+lookup_name {}                 # every entry
+```
+
+Read the "Names and terms" section below before the first draft. Terminology
+first, style second: a paragraph with the right voice and the wrong name is
+still wrong.
+
+### 3. Get the text, and prove it is there
 
 ```
 read_chapter {"chapter": 194}
 ```
 
-Look at the `translation` block in the response:
+Look at the `translation` block:
 
 | field | meaning |
 |---|---|
 | `available` | a `ch0194.my.jsonl` exists for this chapter |
-| `attached` | how many paragraphs were matched to it by exact Chinese source |
-| `mismatched` | records whose source no longer matches — they were refused |
+| `attached` | paragraphs matched to it by exact Chinese source |
+| `mismatched` | records whose source no longer matches — refused |
 
 `available: true` with `attached` equal to the paragraph count means every
-paragraph carries a `my` field: **that is the AI translation you judge.** The
-reference lines are still in the same response, for voice only.
+paragraph carries a `my` field: **that is the AI translation you judge.**
+
+The `reference` block in the same response is the human Burmese for this chapter
+when it exists. It does not exist for 194 and later — `chapters: []`,
+`lines: 0` — so for those chapters the voice is calibrated from the review and
+from earlier chapters only. Do not treat an empty reference as a bug, and never
+fill it by translating the chapter from scratch.
 
 If `available` is false, or `attached` is 0, **stop**. Do not translate the
 chapter yourself, do not call `translate_chapters`, and do not work from the
@@ -41,13 +93,105 @@ English column. Tell the human:
 > Chapter 194 has no AI translation on disk. Run
 > `python3 mt/apicaller.py --run --env-file ~/.env` first.
 
+### 4. Check the names in the text
+
+```
+check_names {"text": "<one paragraph of my text>"}
+```
+
+Rewrite every reported variant to its canonical form before you judge the prose.
+That check is per paragraph, not per chapter.
+
+### 5. Then judge, paragraph by paragraph
+
+The procedure, the classes and the output contract are below. One chapter per
+session: 194, then stop and report; the next session takes 195.
+
 **Do not spend the API budget.** `translate_chapters` and `translate_text` cost
 money the human pays for. Use `translate_text` only for a short clause whose
 meaning you cannot settle from the Chinese, and never call
 `translate_chapters` unless the human asks for it in that turn.
 
-**One chapter per session.** 194, then stop and report. The next session takes
-195, then 196, and so on. Never work ahead of the chapter you were given.
+---
+
+## Names and terms — the list wins
+
+`content/reference/EtoBnames.txt` is the authority for how a name, title, sect,
+place or technical term is written in Burmese. It predates this pipeline and the
+human translation was written against it.
+
+**The rule, in one line:** if the list has a spelling, the text is rewritten to
+that spelling — even when the API's spelling is also correct Burmese, and even
+when the AI translation got the meaning right. Correctness is not a licence to
+diverge.
+
+Order of authority:
+
+1. **the list**, for how a thing is written — `Ye Nin = ယဲ့နင်` means ယဲ့နင်,
+   always, including in a sentence you would otherwise leave alone;
+2. **the review**, for a term a human has already ruled on — the ruling is
+   applied, not re-argued (the 太監 case below);
+3. the Chinese source, for what the thing *is*;
+4. your judgement — never, on spelling. You do not get a vote.
+
+What that means in practice:
+
+- **Before every `save_draft`**, run `check_names` on the paragraph's `my` text.
+  A reported variant is rewritten to `canonical`, and the evidence line cites
+  the entry: `check_names: လျိုကျင်း → လျိုချင်း (entry line 10)`.
+- **Existing entries are never edited, and never re-derived.** If the list says
+  လျိုချင်း, write လျိုချင်း. Do not improve it, do not modernise it, and do not
+  replace it with the term the API preferred.
+- **Two spellings for one concept is the defect this file exists to prevent.**
+  The list is not innocent here: for `eunuch` it carries *both* lines 93
+  `အထိန်းတော် = eunuch` and 94 `မိန်းမစိုး = eunuch`, and line 95 gives
+  `မိန်းမစိုး` to `court lady` as well. The review's ruling on it: one term for
+  the character, and the customary one is **`မိန်းမစိုး`**. `အထိန်းတော်` is not
+  wrong Burmese, it is the wrong *person* — a woman who nurses princes — which
+  is why it may stay wherever a genuine palace lady appears (ch 134,
+  `အထိန်းတော်ကြီး` ဝမ်သဲ့ဟိုင်) and must not be used for 劉瑾. Apply that
+  everywhere, report the duplicate in your honesty section, and invent no third
+  form.
+- **A list entry whose gloss is the mistranslation itself.** Line 35 is
+  `holy court = တော်ဝင်တရားရုံး`, and the review's defect 2 is that 聖院 — an
+  academy of saints, not a courthouse — came out as a court in ch 11 and ch 17.
+  The ch 11 text reads ပြည်သူ့တရားရုံး and ch 17 တော်ဝင်တရားရုံး; the list is
+  quoting that mistake, not licensing it. `Justic hall = တရားရုံး` (line 84)
+  is the word for an actual court and is fine in an actual court scene. The
+  list's only "school" words are temple names (lines 88, 92), so there is no
+  academy term to fall back on. For 聖院: **do not coin**, do not "fix" the
+  review, and do not enforce `တော်ဝင်တရားရုံး` just because the line exists.
+  Flag it:
+
+  > ⚑ 聖院 reads ပြည်သူ့တရားရုံး (ch11) and တော်ဝင်တရားရုံး (ch17). Line 35
+  > glosses it `holy court = တော်ဝင်တရားရုံး`, the same mistake, and the list
+  > has no academy term. I did not coin one. Needs a human ruling.
+
+  That flag is a first-class output. A silent rename is worse than no rename,
+  because it makes the next chapter inconsistent with this one.
+- **A term the review settles, you apply.** You do not split the difference by
+  using the right term in one paragraph and the old one in the next, and you do
+  not "improve" a ruling whose reasoning you dislike.
+- **Genuinely new entity, no entry anywhere?** Look first in the review's
+  character table and in the reference chapter; if the human already wrote it,
+  reuse that form byte-exactly. Only if it truly does not exist:
+
+  ```
+  register_name {"key": "Shen Ji", "burmese": "ရှန်းကျီ", "note": "ch194, 錦衣衛 commander"}
+  ```
+
+  Register once, at first appearance, then use that form for the rest of the
+  book. Do not register a second spelling of something already listed — the
+  tool will refuse, and the refusal is correct.
+- **A rendering the review flags but does not replace** — ch 38 uses လောင်လျို
+  for `老劉`, which turns an affectionate "Old Liu" into a proper name. The
+  review explains the loss and proposes nothing; the list has no entry. Keep
+  the existing form, do not coin an address form, and flag it. The same goes
+  for every rendering the review diagnoses without prescribing.
+
+Writing to this file is the **only** write you are permitted outside saved
+drafts. `master.json`, the POS tree, the caches, the reference, the review and
+every source file stay untouched.
 
 ---
 
@@ -73,6 +217,12 @@ Two rules that follow from this and must never be broken:
 
 Take the AI translation of one chapter. Compare it against the reference's
 voice. Fix what breaks the author's style. Do not retranslate.
+
+The human translation stops at Chinese chapter **193**. From **194** on, you are
+the only Burmese in the pipeline: there is no reference for these chapters, so
+the AI translation plus this brief plus `EtoBnames.txt` are all the evidence
+there is. That is exactly why the voice has to be calibrated from the review
+before the first draft, and why a name may never be improvised.
 
 You rewrite a sentence only when you can name the defect and point at the
 evidence that justifies the change. Otherwise you flag it and move on.
@@ -116,7 +266,9 @@ Reference particle counts, chapters 1 / 2 — the target distribution:
 **Step 1 — read the AI translation.** This is the text under judgement.
 
 **Step 2 — read the reference passage for the same beat.** Absorb voice, not
-spelling. If the reference writes `အေခြအေန` where the word is `အခြေအနေ`, that
+spelling. (For 194 and later there is no reference passage — the `reference`
+block is empty. Use the review's arc summary and the chapters you have already
+judged. Do not invent a reference.) If the reference writes `အေခြအေန` where the word is `အခြေအနေ`, that
 is PDF damage in the reference; do not copy it, and do not "fix" it either.
 The reference is not yours to edit.
 
@@ -158,18 +310,28 @@ that is a meaning error, not a style choice — fix the meaning and say so.
 - Does the AI sentence carry the reference's register?
 - Does it use the author's particles, or a flat neutral register?
 - Does it keep the author's sentence length, or chop/formality-mix?
-- Does it translate names, ranks, and cultivation terms the way the reference
-  does? Build the term list from the reference as you go and keep it
-  consistent across chapters.
+- Does it translate names, ranks, and cultivation terms the way
+  `EtoBnames.txt` does? That list is fixed; you consult it and add to it, you
+  do not build a rival glossary from the reference.
 
-**Step 7 — save with provenance.**
+**Step 7 — check the names, then save.**
 
 ```
-save_draft {"chapter": 7, "paragraph": "0007-042-3f9a1c2b",
+check_names {"text": "<your revised paragraph>"}
+```
+
+Rewrite every suspected variant to its `canonical` form. If the paragraph needs
+a term the list lacks, register it now (once) before saving, so the next
+chapter inherits it.
+
+**Step 8 — save with provenance.**
+
+```
+save_draft {"chapter": 194, "paragraph": "0194-042-3f9a1c2b",
             "ai_text": "<the AI sentence exactly as received>",
             "draft": "<your revision>",
             "model": "<your model name>",
-            "note": "register: AI closed narration on တယ် → သည်"}
+            "note": "register: AI closed narration on တယ် → သည်; လျိုကျင်း → လျိုချင်း"}
 ```
 
 `ai_text` must be byte-exact. The draft store keeps it so any revision can be
@@ -185,8 +347,9 @@ writes `တွင်`, `တွေ` where the author writes `များ`, or th
 dialogue. Align to the reference's distribution.
 
 **C. Terminology inconsistency** — a name, title, sect, or technique rendered
-differently from the reference, or differently between chapters. Build and
-consult a glossary; apply one form everywhere.
+differently from `EtoBnames.txt`, or differently between chapters. The list
+wins; `check_names` finds the variants. Apply one form everywhere, including in
+sentences that read perfectly well as they are.
 
 **D. Sentence shape** — AI translation shortens long subordinate clauses into
 choppy sentences, or merges dialogue beats into narration. Restore the author's
@@ -203,6 +366,10 @@ returns a proved repair. The AI text is clean enough that this is rare.
 ## What you must not touch
 
 - The reference. It is read-only, damage and all.
+- `EtoBnames.txt`'s existing entries. You append new terms with
+  `register_name`; you never edit, re-spell, or replace an entry that is there.
+- The review. It is the record of what a human ruled. You align to it; you do
+  not correct it, and you do not coin a term it left open. Flag instead.
 - Anything the engine labels `loan` — `ဗုဒ္ဓ`, `ခန္ဓာ`, `ကမ္ဘာ`, `သက္ကတ` split
   because the syllable inventory lacks Pali units. Not a spelling error.
 - Words where `lookup_word` says `no proved repair`.
@@ -215,19 +382,23 @@ returns a proved repair. The AI text is clean enough that this is rare.
 One record per changed sentence. Never emit bare rewritten prose.
 
 ```
-id       ch0007-042-3f9a1c2b
-ai       သူက နန်းတော်ကို သွားတယ်။
-draft    သူသည် နန်းတော်သို့ သွားသည်။
+id       ch0194-042-3f9a1c2b
+ai       လျိုကျင်းက နန်းတော်ကို သွားတယ်။
+draft    လျိုချင်းသည် နန်းတော်သို့ သွားသည်။
 class    A  register break
 evidence segment_text: AI tokens ['သူ','က','နန်းတော်','ကို','သွား','တယ်'] — narration
          reference ch1: 20 sentences close on သည်, 0 on တယ်
          → narration closes on သည် in 100% of reference narration
+class    C  terminology
+evidence check_names: လျိုကျင်း → လျိုချင်း (EtoBnames.txt line 10, Liu Jin)
 ```
 
 Rules:
 - `ai` is a byte-exact copy of the input sentence.
 - `evidence` names the tool call and what it returned, or the reference count.
 - If a sentence needs several fixes, one record per class, applied A → F.
+- A name-only rewrite is a `C` record even when the sentence's register was
+  fine. "The AI was already correct" is not a reason to leave it.
 - If the chapter needs nothing, say so with counts.
 
 ## Working method
@@ -250,6 +421,7 @@ Every turn, state:
 - how many paragraphs you read,
 - how many you changed, by class,
 - how many you flagged but did not change, and why,
+- which names were rewritten to the list, and any entry you think is wrong,
 - anything unverified.
 
 If a claim could not be checked with a tool, say "unverified". Do not present a
@@ -264,8 +436,13 @@ plausible revision as a proved one.
 | `read_chapter` | the chapter: stable paragraph ids, `my` (the AI translation), the reference lines, and the `translation` join block |
 | `segment_text` | run the engine on AI-translated text; tokens, units, splits, coverage |
 | `lookup_word` | dictionary fact + proved repairs for one spelling |
+| `review_brief` | the whole review in one round: characters, defects, verdict, every arc's opening |
 | `review_lookup` | one section of the background document (111 sections): characters, arcs, defects |
+| `lookup_name` | an entry of `EtoBnames.txt` by key or by Burmese form; no argument lists all |
+| `check_names` | canonical names in a paragraph, and suspected variant spellings |
+| `register_name` | append a genuinely new term to `EtoBnames.txt` |
 | `translate_text` / `translate_batch` | check a short clause against the Chinese when meaning is in doubt — costs quota, use sparingly |
+| `translate_chapters` | batch-translate whole chapters through the API — the human's call, never yours |
 | `detect_language` | confirm a stray fragment is Burmese |
 | `save_draft` | store a revision with its AI source text |
 | `export_drafts` | `chNNNN.draft.my.txt` + comparison file |
@@ -296,7 +473,10 @@ export_drafts {"chapter": 194}
 
 ## Self-check before finishing a chapter
 
+- [ ] `review_brief` was read once, and the register was stated before judging
 - [ ] `translation.available` was true before any sentence was judged
+- [ ] every name matches `EtoBnames.txt`; no entry was edited or replaced
+- [ ] anything the review flags but the list lacks was reported, not renamed
 - [ ] every `ai` string is a byte-exact copy of the paragraph's `my` text
 - [ ] the reference was never fed to `segment_text`
 - [ ] every rewrite cites a tool result or a reference count

@@ -318,6 +318,87 @@ def show(source: Path, section: dict, sections: list[dict] | None = None) -> str
     return f"### {section['title']}  [lines {start}-{end}]\n\n{text}{suffix}"
 
 
+def brief(source: Path, index: dict, *, chars_per_arc: int = 420,
+          budget: int = 14000) -> str:
+    """The whole document in one round: who, what went wrong, the plot.
+
+    The review is 7,279 lines and 673 KB. Reading it inside an agent session
+    would spend the context before the first paragraph is judged, so this
+    returns a bounded digest: the character table, the known translation
+    defects, the verdict, and each arc's title with its opening.
+
+    What it is *not*: a style guide. The reviewer writes in a chatty first
+    person on purpose and says so on line 7. The author's voice is the
+    reference, never this document.
+    """
+    lines = source.read_text(encoding="utf-8").splitlines()
+
+    def body(section: dict, limit: int | None = None) -> str:
+        start, end = section["lines"][0], section["lines"][1]
+        chunk = [line for line in lines[start:end] if line.strip()]
+        text = "\n".join(chunk)
+        if limit and len(text) > limit:
+            text = text[:limit].rstrip() + " …"
+        return text
+
+    sections = index["sections"]
+    out: list[str] = [
+        "# The review, in one round",
+        "",
+        f"Source: {source.relative_to(ROOT)} — {len(lines)} lines, "
+        f"{len(sections)} sections, {len(index['characters'])} characters.",
+        "",
+        "How to read this: facts and defects, not prose style. The reviewer's "
+        "voice is casual by design and is **not** the author's tone — never "
+        "imitate it. Burmese quoted here may carry the same PDF damage as the "
+        "reference; take the meaning, never feed the quotes to the segmenter.",
+        "",
+        "## Characters",
+        "",
+    ]
+    for row in index["characters"]:
+        out.append(f"- **{row['name']}** — {row['role']}; {row['relation']}")
+    out.append("")
+
+    issues = [section for section in sections if section["kind"] == "issue"]
+    out += ["## Known translation defects", ""]
+    for issue in issues:
+        out.append(f"### {issue['title']}  [{issue['id']}]")
+        out.append("")
+        out.append(body(issue, 700))
+        out.append("")
+
+    for section in sections:
+        if section["kind"] == "verdict":
+            out += ["## The reviewer's verdict", "", body(section, 900), ""]
+            break
+
+    out += ["## The story, part by part", ""]
+    arcs = [section for section in sections if section["kind"] == "arc"]
+    used = sum(len(chunk) for chunk in out)
+    for arc in arcs:
+        if used >= budget:
+            out.append(f"_… {len(arcs) - arcs.index(arc)} more parts; "
+                       "read them with review_lookup --chapter N_")
+            break
+        title = next((section["title"] for section in sections
+                      if section.get("parent") == arc["id"]
+                      and section["kind"] == "arc-title"), "")
+        story = next((section for section in sections
+                      if section.get("parent") == arc["id"]
+                      and section["kind"] == "story"), None)
+        chapters = arc.get("chapters") or []
+        span = f"chapters {chapters[0]}–{chapters[-1]}" if chapters else ""
+        out += [f"### {arc['title']} — {span}", ""]
+        if title:
+            out += [f"*{title}*", ""]
+        if story:
+            text = body(story, chars_per_arc)
+            used += len(text)
+            out += [text, ""]
+    return "\n".join(out).strip() + "\n"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
@@ -332,12 +413,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--titles", action="store_true", help="list section ids only")
     parser.add_argument("--limit", type=int, default=3, help="max sections printed by --find")
     parser.add_argument("--verify", action="store_true", help="check ranges against the source")
+    parser.add_argument("--brief", action="store_true",
+                        help="the whole document as one bounded digest: characters, "
+                             "defects, verdict, every arc's opening")
+    parser.add_argument("--chars-per-arc", type=int, default=420,
+                        help="story characters per arc in --brief (default: 420)")
     args = parser.parse_args(argv)
 
     if args.build:
         index = build(args.source, args.index)
         print(f"wrote {args.index} — {len(index['sections'])} sections, "
               f"{len(index['characters'])} characters, {index['lines']} lines")
+        return 0
+
+    if args.brief:
+        index = load(args.index)
+        print(brief(args.source, index, chars_per_arc=args.chars_per_arc))
         return 0
 
     index = load(args.index)

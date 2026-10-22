@@ -217,6 +217,76 @@ TOOLS = [
         },
     },
     {
+        "name": "review_brief",
+        "description": "The whole review in one round: the character table, the known "
+                       "translation defects, the reviewer's verdict, and every story "
+                       "arc's title with its opening. Call this ONCE at the start of a "
+                       "session instead of reading the 7,279-line document. Its voice "
+                       "is casual on purpose and is NOT the author's tone; its Burmese "
+                       "quotes may carry PDF damage.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "chars_per_arc": {"type": "integer", "default": 420,
+                                  "description": "Story characters per arc; lower it "
+                                                 "if the session is already long."},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "lookup_name",
+        "description": "The name list (content/reference/EtoBnames.txt) is the "
+                       "authority for how a name or term is written in Burmese. Look "
+                       "one up by its key (Ye Nin) or by a Burmese form (ယဲ့နင်). Omit "
+                       "`term` to list every entry. A term the list knows is written "
+                       "exactly as the list writes it.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "term": {"type": "string", "description": "Key or Burmese form."},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "check_names",
+        "description": "Report which listed names occur in a Burmese text, and which "
+                       "spellings look like a variant of a listed name. A report, not a "
+                       "rewriter: rewrite to the canonical form yourself. A name the "
+                       "list spells correctly wins even when the text's spelling is also "
+                       "correct Burmese.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "text": {"type": "string",
+                         "description": "One paragraph or sentence of Burmese."},
+            },
+            "required": ["text"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "register_name",
+        "description": "Append a genuinely new name or term to "
+                       "content/reference/EtoBnames.txt. Use it only when the entity is "
+                       "new to the book and no entry exists (check with lookup_name "
+                       "first). Never invent an alternative spelling for something "
+                       "already listed, and never replace an existing entry: if an entry "
+                       "looks wrong, flag it in your report instead.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "key": {"type": "string",
+                        "description": "The English or Chinese term, e.g. 'Shen Ji'."},
+                "burmese": {"type": "string", "description": "The Burmese form."},
+                "note": {"type": "string", "description": "Optional note stored with it."},
+            },
+            "required": ["key", "burmese"],
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "segment_text",
         "description": "Read-only segmentation probe. Runs the repository engine on the "
                        "text and returns every token with its smallest units and POS "
@@ -372,6 +442,14 @@ class Server:
             return segment(text)
         if name == "review_lookup":
             return self._review_lookup(arguments)
+        if name == "review_brief":
+            return self._review_brief(arguments)
+        if name == "lookup_name":
+            return self._lookup_name(arguments)
+        if name == "check_names":
+            return self._check_names(arguments)
+        if name == "register_name":
+            return self._register_name(arguments)
         if name == "translate_chapters":
             return self._translate_chapters(arguments)
         raise KeyError(name)
@@ -451,6 +529,97 @@ class Server:
                        for word in words)]
         return {"matches": [render(s) for s in hits[:limit]],
                 "characters": rows, "count": len(hits)}
+
+    @staticmethod
+    def _names_path(path: Path) -> str:
+        try:
+            return str(path.relative_to(ROOT))
+        except ValueError:
+            return str(path)
+
+    def _review_brief(self, arguments: dict) -> dict:
+        """The whole document in one bounded digest, for the start of a session."""
+        import overview_index  # noqa: PLC0415
+        index_path = ROOT / "content" / "review" / "overview.yaml"
+        source = ROOT / "content" / "review" / "burmese-overview.md"
+        if not index_path.is_file():
+            raise ValueError("content/review/overview.yaml is missing — run "
+                             "`python3 mt/overview_index.py --build`")
+        try:
+            per_arc = int(arguments.get("chars_per_arc", 420))
+        except (TypeError, ValueError):
+            raise ValueError("`chars_per_arc` must be a number") from None
+        index = overview_index.load(index_path)
+        text = overview_index.brief(source, index, chars_per_arc=per_arc)
+        return {
+            "markdown": text,
+            "characters": len(index["characters"]),
+            "sections": len(index["sections"]),
+            "note": "facts and defects only; the review's voice is not the "
+                    "author's tone, and its Burmese quotes may carry PDF damage",
+            "next": "read_chapter for the chapter, then judge one paragraph at a time",
+        }
+
+    def _lookup_name(self, arguments: dict) -> dict:
+        import names  # noqa: PLC0415
+        result = names.load()
+        term = arguments.get("term")
+        if term is None or not str(term).strip():
+            return {
+                "file": self._names_path(names.NAMES_FILE),
+                "count": len(result.entries),
+                "entries": [entry.as_dict() for entry in result.entries],
+                "note": "the list is the authority for spelling; reuse it, do not "
+                        "coin a new form for a term it already lists",
+            }
+        found = names.lookup(result.entries, str(term))
+        if not found:
+            return {
+                "file": self._names_path(names.NAMES_FILE),
+                "count": 0,
+                "entries": [],
+                "suggestion": "no entry; check a variant spelling, or register it with "
+                              "register_name if the entity is genuinely new",
+            }
+        return {"file": self._names_path(names.NAMES_FILE),
+                "count": len(found),
+                "entries": [entry.as_dict() for entry in found]}
+
+    def _check_names(self, arguments: dict) -> dict:
+        import names  # noqa: PLC0415
+        text = arguments.get("text")
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError("`text` must be a non-empty string")
+        result = names.load()
+        found = names.hits(text, result.entries)
+        suspects = names.variants(text, result.entries)
+        return {
+            "file": self._names_path(names.NAMES_FILE),
+            "hits": found,
+            "variants": suspects,
+            "verdict": ("clean" if not suspects else
+                        "rewrite each variant to its canonical form; the list wins "
+                        "even when the text's spelling is also correct Burmese"),
+        }
+
+    def _register_name(self, arguments: dict) -> dict:
+        import names  # noqa: PLC0415
+        key = arguments.get("key")
+        burmese = arguments.get("burmese")
+        if not isinstance(key, str) or not key.strip():
+            raise ValueError("`key` must be a non-empty string")
+        if not isinstance(burmese, str) or not burmese.strip():
+            raise ValueError("`burmese` must be a non-empty string")
+        note = arguments.get("note") or ""
+        try:
+            entry = names.add(names.NAMES_FILE, key, burmese, str(note))
+        except ValueError as error:
+            return {"added": None, "refused": str(error),
+                    "note": "do not work around this: reuse the existing entry, "
+                            "and flag the conflict in your report"}
+        return {"added": entry.as_dict(),
+                "file": self._names_path(names.NAMES_FILE),
+                "note": "registered; every later occurrence must use this spelling"}
 
     def _read_chapter(self, chapter: int, arguments: dict) -> dict:
         from agent_work import DEFAULT_OUT, read_chapter  # noqa: PLC0415
