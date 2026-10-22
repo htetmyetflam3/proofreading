@@ -393,6 +393,65 @@ TOOLS = [
 ]
 
 
+# ─── Tool groups ─────────────────────────────────────────────────────────
+#
+# The tool list is not paid for once — it is re-sent with every request, and on
+# a free Groq plan (8,000 tokens a minute) all sixteen schemas (~3k tokens) are
+# most of the budget before the model has read a word. `--tools` narrows what
+# this process advertises, so the fixed cost drops to whatever the phase needs.
+# Nothing is removed from the code: a phase that needs a name lookup just
+# declares it.
+TOOL_GROUPS = {
+    "read": ("read_chapter", "segment_text", "lookup_word", "detect_language"),
+    "review": ("review_brief", "review_lookup"),
+    "names": ("lookup_name", "check_names", "register_name"),
+    "verse": ("save_verse", "export_verse"),
+    "draft": ("save_draft", "export_drafts"),
+    "api": ("translate_text", "translate_batch", "translate_chapters"),
+}
+# Phase presets. `survey` is the first pass (no drafting, no spending), `edit`
+# is paragraph-by-paragraph rewriting, `translate` is the one paid step.
+TOOL_PRESETS = {
+    # `survey` — the read-only first pass: see the chapter, check names, record
+    # verse. 7.5k of schema characters, ~2.3k tokens.
+    "survey": ("read", "review", "names", "verse"),
+    # `edit` — rewriting paragraph by paragraph; no review digest, no API.
+    "edit": ("read", "names", "verse", "draft"),
+    # `lean` — the smallest loop that can still do the work: read ten
+    # paragraphs, segment them, check a name, draft one save. ~2.5k characters,
+    # under 1k tokens, which is what an 8,000-token minute can afford.
+    "lean": ("read_chapter", "segment_text", "lookup_word",
+             "check_names", "lookup_name", "save_draft", "save_verse"),
+    "translate": ("api", "read"),
+    "full": tuple(TOOL_GROUPS),
+}
+
+
+def resolve_tools(spec: str | None) -> set[str] | None:
+    """`"survey"`, `"read,names"`, or `""` (None) for every tool."""
+    if spec is None or not str(spec).strip():
+        return None
+    wanted: set[str] = set()
+    for raw in str(spec).split(","):
+        item = raw.strip().lower()
+        if not item:
+            continue
+        if item in TOOL_GROUPS:
+            wanted.update(TOOL_GROUPS[item])
+        elif item in TOOL_PRESETS:
+            # A preset may name groups or bare tool names, as `lean` does.
+            for member in TOOL_PRESETS[item]:
+                wanted.update(TOOL_GROUPS.get(member, (member,)))
+        elif item in {tool["name"] for tool in TOOLS}:
+            wanted.add(item)
+        else:
+            raise ValueError(
+                f"unknown tool or group {item!r}; groups are "
+                f"{', '.join(TOOL_GROUPS)}; presets are "
+                f"{', '.join(TOOL_PRESETS)}")
+    return wanted or None
+
+
 class Server:
     def __init__(self, *, cache_path: Path | str | None = None, enabled_cache: bool = True,
                  max_chars: int = MAX_REQUEST_CHARS,
@@ -402,7 +461,9 @@ class Server:
                  existing: Path | str | None = None,
                  out_dir: Path | str | None = None,
                  draft_store: Path | str | None = None,
-                 docx: Path | str | None = None) -> None:
+                 docx: Path | str | None = None,
+                 tools: set[str] | None = None) -> None:
+        self.tools = tools
         self.cache_path = cache_path
         self.enabled_cache = enabled_cache
         self.max_chars = max_chars
@@ -452,6 +513,10 @@ class Server:
         return value
 
     def call_tool(self, name: str, arguments: dict) -> dict:
+        if self.tools is not None and name not in self.tools:
+            raise ValueError(
+                f"tool {name!r} is not enabled in this server "
+                f"(--tools); restart with it if you need it")
         if name == "read_chapter":
             chapter = self._chapter_arg(arguments)
             return self._read_chapter(chapter, arguments)
@@ -830,7 +895,9 @@ class Server:
         if method == "ping":
             return self._result(request_id, {})
         if method == "tools/list":
-            return self._result(request_id, {"tools": TOOLS})
+            listed = ([tool for tool in TOOLS if tool["name"] in self.tools]
+                      if self.tools else TOOLS)
+            return self._result(request_id, {"tools": listed})
         if method == "tools/call":
             params = request.get("params") or {}
             name = params.get("name")
@@ -1094,6 +1161,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-items", type=int, default=MAX_REQUEST_ITEMS)
     parser.add_argument("--timeout", type=float, default=60.0)
     parser.add_argument("--attempts", type=int, default=3)
+    parser.add_argument("--tools", default=None, metavar="SPEC",
+                        help="advertise only these tools, to cut the per-request "
+                             "schema cost: a preset (" + ", ".join(TOOL_PRESETS) +
+                             "), groups (" + ", ".join(TOOL_GROUPS) +
+                             "), or tool names; comma-separated. Default: all")
+    parser.add_argument("--list-groups", action="store_true",
+                        help="print the tool groups and presets, with character "
+                             "cost of each, and exit")
     args = parser.parse_args(argv)
 
     if args.env_file is not None:
@@ -1103,6 +1178,25 @@ def main(argv: list[str] | None = None) -> int:
                   f"      printf 'RAPIDAPI_KEY=your-key\\n' > {args.env_file}",
                   file=sys.stderr)
             return 2
+
+    if args.list_groups:
+        report = {}
+        for name, members in TOOL_GROUPS.items():
+            subset = [tool for tool in TOOLS if tool["name"] in members]
+            report[name] = {
+                "tools": [tool["name"] for tool in subset],
+                "schema_chars": len(json.dumps(subset, ensure_ascii=False)),
+            }
+        report["_presets"] = {name: list(groups) for name, groups in TOOL_PRESETS.items()}
+        report["_all"] = {"tools": len(TOOLS),
+                         "schema_chars": len(json.dumps(TOOLS, ensure_ascii=False))}
+        print(json.dumps(report, indent=2))
+        return 0
+    try:
+        enabled = resolve_tools(args.tools)
+    except ValueError as error:
+        print(f"[mcp] {error}", file=sys.stderr)
+        return 2
 
     if args.print_config:
         print(config_snippet(args.client, args.env_file))
@@ -1143,7 +1237,7 @@ def main(argv: list[str] | None = None) -> int:
                     timeout=args.timeout, max_attempts=args.attempts,
                     source_file=args.source_file, existing=args.existing,
                     out_dir=args.out_dir, draft_store=args.draft_store,
-                    docx=args.docx)
+                    docx=args.docx, tools=enabled)
     return server.serve()
 
 
