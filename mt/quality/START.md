@@ -37,7 +37,9 @@ If `available` is false or `attached` is 0, stop and say:
 Groq gives this model **250k tokens per minute on the Developer plan and 8k on
 the free plan** — check which one your key is on before blaming the tool. A
 request costs its whole input, so the way a session dies is by re-sending big
-things:
+things. For scale: one `review_brief {}` at the default size is 8–13k tokens on
+its own, because the review is mostly Myanmar script and Myanmar tokenizes badly.
+Always pass `{"chars_per_arc": 60}` (4–6.5k).
 
 1. **Never re-read a file you already read.** If you need one section, say which.
 2. **Never pull a whole chapter.** `read_chapter` takes `start` and `count`;

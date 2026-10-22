@@ -426,15 +426,31 @@ first two turns already exceed 8k. Kilo then shows the failure as "context
 exceeds model limits" because compaction is what gives up first — read it as
 rate, not size.
 
-Measured costs, so you can budget rather than guess:
+Measured costs. Character counts are exact; token counts are a **range**, because
+the Myanmar script tokenizes far worse than English and no local tokenizer here
+can be trusted for it (the BPE file that `tiktoken` downloads is unreachable from
+this sandbox — do not try to install it on the VPS either, it needs the same
+host).
 
-| what | tokens |
-|---|---|
-| `mt/quality/START.md` | ~1.0k |
-| `mt/quality/finetune-agent-prompt.md` | ~8.0k |
-| 16 MCP tool schemas (sent every turn) | ~3.4k |
-| `review_brief {}` / `{"chars_per_arc": 60}` | ~4.5k / ~2.4k |
-| `read_chapter` 10 paragraphs / whole 166 | ~0.7k / ~13k |
+| what | chars | tokens (est.) |
+|---|---|---|
+| `mt/quality/START.md` | 3,419 | **0.9k – 1.2k** |
+| `mt/quality/finetune-agent-prompt.md` | 26,283 | **6.9k – 9.3k** |
+| 16 MCP tool schemas (every turn) | 10,731 | **2.7k – 3.6k** |
+| `review_brief {}` | 14,431 | **8.1k – 13.2k** |
+| `review_brief {"chars_per_arc": 60}` | 7,766 | **4.1k – 6.5k** |
+| `read_chapter` 10 paragraphs | 2,053 | **0.6k – 0.8k** |
+| `read_chapter` whole 166 | 13,255 | **4.6k – 6.5k** |
+
+Calibration: the console screenshot that started this showed **10.7k input** for
+the turn that read the manual with the tools attached — manual (~6.9k) plus
+schemas (~2.7k) plus Kilo's own prompt lands right on it. Trust the **low** end
+of each range when nothing is cached.
+
+The uncomfortable number is `review_brief`: the review is 10,495 characters of
+Myanmar script, so the default digest alone is roughly the whole of Groq's free
+minute. That is why `{"chars_per_arc": 60}` is the default in the card and the
+chain — and why the free plan cannot run this at all, at any trim.
 
 What fixes it, in order:
 
@@ -524,10 +540,40 @@ Later, if you go back to Groq, swap the `model` line back to
 `groq/openai/gpt-oss-120b` and keep everything else — the tools, the card and
 the chain are provider-independent.
 
-**Cost comparison for a real session** (10 turns, ~10k input and ~1k output
-each ≈ 100k in / 10k out): Groq `$0.015 + $0.006` ≈ **$0.021**; Cerebras
-`$0.035 + $0.008` ≈ **$0.043**. Cerebras is about twice the price per token and
-roughly 20× faster per second (≈3,000 tok/s); at this scale both are cents.
+### Which one to actually use
+
+Both serve **the same weights** — `gpt-oss-120b` is `gpt-oss-120b`. You are not
+picking a better model, you are picking a pipe. Quality of the Burmese is
+identical; only speed, ceiling and price differ. So the choice is made on the
+loop, not the language work.
+
+A working turn costs roughly **14k tokens in** (Kilo's prompt, 16 schemas,
+`START.md`, one `review_brief @60`, one 10-paragraph window) and **~1k out**.
+
+| | Groq Developer | Cerebras trial | Cerebras Developer |
+|---|---|---|---|
+| turns/min at 14k | ~17 | ~2 (and 5 RPM stops it first) | ~70 |
+| per turn | $0.0027 | $0.0057 | $0.0057 |
+| 20-turn chapter | $0.054 | $0.11 | $0.11 |
+| card needed | yes | **yes** | yes |
+| expires | no | **30 days** | no |
+
+**Use Groq Developer.** Not because of the context window — 65k is irrelevant
+here, a windowed turn never passes ~20k — but because Cerebras's trial gives you
+5 requests a minute where a tool turn is two or three requests, and its "free"
+$5 still requires a verified card. If you are adding a card anyway, Groq is
+half the price with 200× the request rate.
+
+**Keep Cerebras configured as the spare tire.** One file, two providers, and
+`-m` overrides for a single run without editing anything:
+
+```sh
+kilo run --auto -m cerebras/gpt-oss-120b --file mt/quality/START.md "…"
+```
+
+Reach for it when Groq returns 429 and you do not want to wait the minute, or
+when you want the ~3,000 tok/s speed for a quick check. Do not build the daily
+workflow on a 30-day trial.
 
 **The whole chain, one message.** The API call is deliberately not in the list:
 add `translate_chapters {"chapters": "194&195"}` only when step 2 reports
