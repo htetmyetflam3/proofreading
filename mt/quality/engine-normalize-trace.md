@@ -109,3 +109,54 @@ Two ways out, both keep the masking:
 checkout (`f50a1d6`, a squashed merge), so there is no history to name the commit
 or author that introduced `mapperNormalize`. The content difference against the
 architecture branch is the evidence, not a blame trail.
+
+## 7. Fix applied (2026-10-22)
+
+`Priority` is untouched — the dot-below stays last, exactly as intended.
+Three edits, all outside the sealed box:
+
+**`Engine/MonoSyllabism/generators/input.js`** — `mapperNormalize(block)` is
+replaced with `mapperStr(maskBlocks(normalize(block)))`. The English/digit
+masking that `reorderAndWrap` used to provide is done by a local `maskBlocks()`
+(identical wrap rule, no mark reordering). The encoder now emits `YE¿^`, the
+shape the tree was built with.
+
+**`Engine/MonoSyllabism/utilities/formatter.js`** — `houseOrder()` rewrites
+`U+1037 U+103A` back to `U+103A U+1037` in the three output formatters
+(`toSyllableLine`, `toBurmeseLine`, `toBurmeseLineWithPos`). Presentation only:
+matched tokens come back in NFC order because the tree was built that way, and
+this restores the house order on the way out. Nothing upstream changes.
+
+**`Engine/MonoSyllabism/generators/idmap.js`** — `burmeseToId()` keys both the
+table and the lookup through the same order canonicalisation. Without it a
+matched `သင့်` still printed `{?}`, because the mapped table stores the house
+order while the encoder handed back NFC order.
+
+### Result, chapters 1–2, full tagger path
+
+| | before | after |
+|---|---|---|
+| ch01 units | 2080 | 2031 |
+| ch01 mark-fragments | 111 (5.34%) | **63 (3.10%)** |
+| ch02 units | 2354 | 2281 |
+| ch02 mark-fragments | 136 (5.78%) | **62 (2.72%)** |
+| ch01 `{?}` | 228 / 1659 (13.7%) | **179 / 1591 (11.3%)** |
+| ch02 `{?}` | 283 / 1891 (15.0%) | **208 / 1799 (11.6%)** |
+
+Probe, one line each, both input orders:
+
+```
+သင့်  (U+103A U+1037 in)  →  သင့်{v,p}   U+103A U+1037 out
+သင့်  (U+1037 U+103A in)  →  သင့်{v,p}   U+103A U+1037 out
+ကြောင့် နှင့်            →  ကြောင့်{w}  နှင့်{w,cn,p}
+Hello 123 သင့် ok        →  Hello{?}  123{count}  သင့်{v,p}  ok{?}
+```
+
+`mt/tests`: 93 OK.
+
+### What is left, and it is not this bug
+
+`{?}` still ~11% — `ဧ`/`ရာဇ်` (not in the unit table), loan stacks
+(`္ဘ`, `္တ`), `သူ့` (tree root `Y452` carries an empty tag list), `၏` (mapped to
+`π002`, tree only has `π003`), punctuation, and the Zawgyi-order source damage
+(`ယေန့`, `အေခြအေန`) that no encoder can repair.

@@ -15,6 +15,15 @@ let _idToAscii = null;
 let _burmeseToId = null;
 let _idToBurmese = null;
 
+/* One key per syllable, whatever order the dot/asat pair arrived in.
+   The mapped table stores the house order (asat then dot, U+103A U+1037);
+   the encoder hands back the NFC order (U+1037 U+103A). Without this the id
+   lookup misses and the tagger prints {?} on a syllable it just matched. */
+const NFC_DOT_ASAT = /\u1037\u103a/g;
+function key(surface) {
+	return typeof surface === "string" ? surface.replace(NFC_DOT_ASAT, "\u103a\u1037") : surface;
+}
+
 function loadMappings() {
 	if (_asciiToId) return;
 
@@ -35,7 +44,7 @@ function loadMappings() {
 			_idToAscii.set(id, ascii);
 		}
 		if (burmese && id) {
-			_burmeseToId.set(burmese, id);
+			_burmeseToId.set(key(burmese), id);
 			_idToBurmese.set(id, burmese);
 		}
 	}
@@ -51,7 +60,7 @@ function loadMappings() {
 export function burmeseToId(syllable) {
 	if (!syllable) return null;
 	loadMappings();
-	return _burmeseToId.get(syllable) ?? null;
+	return _burmeseToId.get(key(syllable)) ?? null;
 }
 
 /** ASCII key-string → tree id (null when unmapped). */

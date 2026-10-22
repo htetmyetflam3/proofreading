@@ -29,10 +29,12 @@ export function splitSyllables(line) {
 }
 /** √-suffixed raw line → printed syllable line (writer's syllable file). */
 export function toSyllableLine(lineStr) {
-	return lineStr
-		.split(SYLLABLE_SUFFIX)
-		.filter((t) => t.trim())
-		.join(DELIM);
+	return houseOrder(
+		lineStr
+			.split(SYLLABLE_SUFFIX)
+			.filter((t) => t.trim())
+			.join(DELIM),
+	);
 }
 
 /* ── the <eos> boundary contract (tagger → line formatters) ── */
@@ -64,6 +66,23 @@ export function tokenIsBoundary(t) {
 	return isEosToken(tokenBurmese(t));
 }
 
+/* ── house mark order (presentation only) ──────────────────────────
+
+   This engine writes the dot-below (U+1037) last in a cluster: asat then
+   dot, "် ့". The cached tree and the mapped table were produced by an NFC
+   pass, and NFC sorts U+1037 before U+103A, so a *matched* token comes back
+   in the other order. Restore the house order on the way out.
+
+   Nothing upstream is rewritten: mapData.Priority, the tree and its hashes
+   stay exactly as shipped, and the encoder still feeds the tree the NFC
+   form it was built with. If the tree is ever rebuilt from non-NFC data,
+   delete this function and its three call sites. */
+const NFC_DOT_ASAT = /\u1037\u103a/g;
+const HOUSE_DOT_ASAT = "\u103a\u1037";
+export function houseOrder(text) {
+	return typeof text === "string" ? text.replace(NFC_DOT_ASAT, HOUSE_DOT_ASAT) : text;
+}
+
 /* ── line formatters: one lineResult → one printed line ── */
 
 /** Burmese only, flat syllables: "ကောင်း  ကင်" */
@@ -72,13 +91,14 @@ export function toBurmeseLine(lineResult) {
 	for (const token of lineResult.tokens ?? []) {
 		parts.push(...(token.syllables ?? []));
 	}
-	return parts.join(DELIM);
+	return houseOrder(parts.join(DELIM));
 }
 
 /** Burmese + pos tag, merged word: "ကောင်းကင်{n}"; a boundary prints bare. */
 export function toBurmeseLineWithPos(lineResult, posField = "finalPos") {
 	return (lineResult.tokens ?? [])
 		.map((t) => (tokenIsBoundary(t) ? tokenBurmese(t) : `${tokenBurmese(t)}{${t[posField] ?? "?"}}`))
+		.map(houseOrder)
 		.join(DELIM);
 }
 
