@@ -186,6 +186,29 @@ TOOLS = [
         },
     },
     {
+        "name": "review_lookup",
+        "description": "Read-only lookup into content/review/burmese-overview.md, the "
+                       "background document: characters, arcs, and the dossier of known "
+                       "translation errors in the human Burmese. Use it during editing "
+                       "when you have forgotten a character's nature, a rank, or how a "
+                       "term was ruled on. Returns one matching section, not the whole "
+                       "document. Never imitate its conversational register — it is "
+                       "notes about the novel, not the novel.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string",
+                          "description": "Character name, Chinese term, or words to find."},
+                "section": {"type": "string",
+                            "description": "Exact section id, skips the search."},
+                "chapter": {"type": "integer",
+                            "description": "Return the arc that covers this chapter."},
+                "limit": {"type": "integer", "default": 2},
+            },
+            "additionalProperties": False,
+        },
+    },
+    {
         "name": "segment_text",
         "description": "Read-only segmentation probe. Runs the repository engine on the "
                        "text and returns every token with its smallest units and POS "
@@ -335,6 +358,8 @@ class Server:
             text = self._text_arg(arguments, "text")
             from lexicon import segment  # noqa: PLC0415
             return segment(text)
+        if name == "review_lookup":
+            return self._review_lookup(arguments)
         if name == "translate_chapters":
             return self._translate_chapters(arguments)
         raise KeyError(name)
@@ -348,6 +373,72 @@ class Server:
             return int(value)
         except (TypeError, ValueError):
             raise ValueError("`chapter` must be a chapter number") from None
+
+    def _review_lookup(self, arguments: dict) -> dict:
+        """One section of the background document, never the whole file."""
+        import overview_index  # noqa: PLC0415
+        index_path = ROOT / "content" / "review" / "overview.yaml"
+        source = ROOT / "content" / "review" / "burmese-overview.md"
+        if not index_path.is_file():
+            raise ValueError("content/review/overview.yaml is missing — run "
+                             "`python3 mt/overview_index.py --build`")
+        index = overview_index.load(index_path)
+        lines = source.read_text(encoding="utf-8").splitlines()
+        limit = int(arguments.get("limit", 2))
+
+        def render(section: dict) -> dict:
+            start = section["lines"][0]
+            end = overview_index.own_end(section, index["sections"])
+            body = lines[start - 1:end]
+            return {
+                "id": section["id"],
+                "kind": section["kind"],
+                "title": section["title"],
+                "lines": [start, end],
+                "text": "\n".join(body[:overview_index.MAX_LINES]).strip(),
+                "truncated": len(body) > overview_index.MAX_LINES,
+            }
+
+        if arguments.get("section"):
+            wanted = str(arguments["section"]).strip()
+            match = next((s for s in index["sections"] if s["id"] == wanted), None)
+            if match is None:
+                raise ValueError(f"no section {wanted!r}; use `query` to search")
+            return {"matches": [render(match)], "count": 1}
+
+        if arguments.get("chapter") is not None:
+            chapter = int(arguments["chapter"])
+            arcs = [s for s in index["sections"] if s["kind"] == "arc"
+                    and len(s["chapters"]) == 2
+                    and s["chapters"][0] <= chapter <= s["chapters"][1]]
+            if not arcs:
+                raise ValueError(f"chapter {chapter} is outside the indexed arcs")
+            arc = arcs[0]
+            children = [s for s in index["sections"] if s.get("parent") == arc["id"]]
+            return {"chapter": chapter, "arc": render(arc),
+                    "parts": [{k: s[k] for k in ("id", "kind", "title", "lines")}
+                              for s in children],
+                    "count": 1 + len(children)}
+
+        query = str(arguments.get("query", "")).strip()
+        if not query:
+            raise ValueError("pass `query`, `section`, or `chapter`")
+        words = query.lower().split()
+        hits = []
+        for section in index["sections"]:
+            start = section["lines"][0]
+            end = overview_index.own_end(section, index["sections"])
+            body = "\n".join(lines[start - 1:end]).lower()
+            if all(word in section["title"].lower() or word in body for word in words):
+                hits.append(section)
+        rank = {"character": 0, "issue": 1, "arc-title": 2}
+        hits.sort(key=lambda s: (0 if s["title"].lower() == query.lower() else 1,
+                                 rank.get(s["kind"], 3), s["lines"][0]))
+        rows = [row for row in index.get("characters", [])
+                if all(word in (row["name"] + row["role"] + row["relation"]).lower()
+                       for word in words)]
+        return {"matches": [render(s) for s in hits[:limit]],
+                "characters": rows, "count": len(hits)}
 
     def _read_chapter(self, chapter: int, arguments: dict) -> dict:
         from agent_work import DEFAULT_OUT, read_chapter  # noqa: PLC0415

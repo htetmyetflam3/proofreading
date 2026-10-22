@@ -645,7 +645,7 @@ class McpTests(ApiTestCase):
         self.assertEqual(names, {"detect_language", "translate_text",
                                  "translate_batch", "translate_chapters",
                                  "read_chapter", "save_draft", "export_drafts",
-                                 "lookup_word", "segment_text"})
+                                 "lookup_word", "segment_text", "review_lookup"})
         called = process.request("tools/call", {
             "name": "translate_text",
             "arguments": {"text": "你好", "target": "my"},
@@ -756,8 +756,8 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(payload["tools"], ["detect_language", "translate_text",
                                             "translate_batch", "read_chapter",
                                             "save_draft", "export_drafts",
-                                            "lookup_word", "segment_text",
-                                            "translate_chapters"])
+                                            "lookup_word", "review_lookup",
+                                            "segment_text", "translate_chapters"])
         self.assertEqual(payload["key"], "missing")
 
     def test_install_config_creates_file_with_placeholder(self):
