@@ -34,5 +34,11 @@ class Lexicon(unittest.TestCase):
     def test_coverage_ignores_punctuation(self):
         self.assertEqual(coverage("မြန်မာစာသည် ရေးထားသည်။")["uncovered_count"], 0)
 
+    def test_coverage_does_not_jump_word_boundaries(self):
+        # Greedy longest-match used to take "ကိုက" out of "ကို" + "က" and leave a
+        # stray ြ and ် behind, reporting 0.89 for a perfectly clean sentence.
+        for text in ("ဗုဒ္ဓကိုကြည်ညိုတယ်", "ကမ္ဘာသစ် အန္တရာယ်", "သဒ္ဒါနဲ့ ဝိပဿနာ"):
+            self.assertEqual(coverage(text)["uncovered_count"], 0, text)
+
 if __name__ == "__main__":
     unittest.main(argv=["x", "-q"])

@@ -645,7 +645,9 @@ class McpTests(ApiTestCase):
         self.assertEqual(names, {"detect_language", "translate_text",
                                  "translate_batch", "translate_chapters",
                                  "read_chapter", "save_draft", "export_drafts",
-                                 "lookup_word", "segment_text", "review_lookup"})
+                                 "lookup_word", "segment_text", "review_lookup",
+                                 "review_brief", "lookup_name", "check_names",
+                                 "register_name", "save_verse", "export_verse"})
         called = process.request("tools/call", {
             "name": "translate_text",
             "arguments": {"text": "你好", "target": "my"},
@@ -776,6 +778,9 @@ class ConfigTests(unittest.TestCase):
                                             "translate_batch", "read_chapter",
                                             "save_draft", "export_drafts",
                                             "lookup_word", "review_lookup",
+                                            "review_brief", "lookup_name",
+                                            "check_names", "register_name",
+                                            "save_verse", "export_verse",
                                             "segment_text", "translate_chapters"])
         self.assertEqual(payload["key"], "missing")
 

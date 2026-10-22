@@ -131,8 +131,11 @@ Not needed by the proofreading agent.
 
 ## 1.5 Kilo
 
+Skip this block if `kilo --version` already answers; only the config below matters
+then.
+
 ```sh
-npm install -g @kilo-org/kilocode    # or: curl -fsSL https://kilo.ai/install | sh
+npm install -g @kilocode/cli         # or: curl -fsSL https://kilo.ai/install | sh
 kilo --version
 ```
 
@@ -143,9 +146,17 @@ mkdir -p ~/.config/kilo
 cat > ~/.config/kilo/kilo.jsonc <<EOF
 {
   "\$schema": "https://app.kilo.ai/config.json",
-  "model": "groq/moonshotai/kimi-k2-instruct",
+  "model": "groq/openai/gpt-oss-120b",
   "provider": {
-    "groq": { "options": { "apiKey": "{env:GROQ_API_KEY}" } }
+    "groq": {
+      "options": { "apiKey": "{env:GROQ_API_KEY}" },
+      "models": {
+        "openai/gpt-oss-120b": {
+          "tool_call": true,
+          "limit": { "context": 131072, "output": 32000 }
+        }
+      }
+    }
   },
   "mcp": {
     "rapidapi-translator": {
@@ -171,13 +182,32 @@ Three things that bite:
 - The model string is `provider/model`. Kilo has a built-in `groq` provider, so
   no base URL is needed.
 
+**Check the config took, before running anything.** A bad key or an unknown model
+id makes Kilo fall back to Auto Free silently, so `/status` is the only proof:
+
+```sh
+set -a; . ~/.env; set +a
+kilo models groq                          # your account's list; the id must appear
+kilo                                      # then, inside the TUI:
+#   /models   -> pick groq/openai/gpt-oss-120b
+#   /mcps     -> rapidapi-translator: on
+#   /status   -> the active model is the groq one, not Auto Free
+```
+
+If `openai/gpt-oss-120b` is not in `kilo models groq`, the `models` block above
+registers it by hand — that is what `provider.groq.models` is for.
+
 Model choice, for Burmese specifically:
 
 | model | note |
 |---|---|
-| `groq/moonshotai/kimi-k2-instruct` | strongest multilingual on Groq, 128K — start here |
+| `groq/openai/gpt-oss-120b` | 131,072 context, 65,536 max completion, reasoning model. Verbose by design — it narrates its thinking — which costs tokens but costs nothing in a `kilo run` session nobody reads. Default here because the context window fits a whole chapter plus the tool output |
+| `groq/moonshotai/kimi-k2-instruct` | strongest multilingual on Groq, 128K; shorter reasoning, more direct |
 | `groq/llama-3.3-70b-versatile` | cheap and fast, weak Burmese; fine for structure |
-| `groq/openai/gpt-oss-120b` | follows rules well, limited Burmese fluency |
+
+To quiet the reasoning, Groq accepts `reasoning_effort` of `low`, `medium` or
+`high`; pass it as a provider option if your build forwards it, or leave it —
+the chatter goes to the transcript, not to the draft.
 
 Every one of them is weak at Burmese relative to this task. The tools are what
 make output checkable; the model only makes it readable.
@@ -200,9 +230,18 @@ python3 mt/mcp_server.py --install-config --client kilo --env-file ~/.env
 `--install-config` merges into plain JSON only. If the target is JSONC with
 comments it refuses and prints the snippet, so nothing you wrote is lost.
 
-Ten tools: `detect_language`, `translate_text`, `translate_batch`, `read_chapter`,
-`save_draft`, `export_drafts`, `lookup_word`, `review_lookup`, `segment_text`,
+Sixteen tools. Reading and checking (free, no API request):
+`read_chapter`, `review_lookup`, `review_brief`, `lookup_word`, `lookup_name`,
+`check_names`, `segment_text`, `detect_language`. Writing, all local:
+`save_draft`, `export_drafts`, `register_name`, `save_verse`, `export_verse`.
+Paid, never on your behalf: `translate_text`, `translate_batch`,
 `translate_chapters`.
+
+Two things there are deliberately **not** tools: finding new names, and finding
+verse. Both are reading judgements the agent makes while it reads the AI text
+for tone; a scanner would produce candidates with no sense of which matter, and
+a verse regex cannot tell a couplet from a short sentence. The tools only write
+down what the agent decided.
 
 ---
 
@@ -271,24 +310,117 @@ stale file cannot shift Burmese onto the wrong sentence.
 
 ## 2.3 Run the agent
 
-Interactive:
+Interactive — start Kilo, then point it at the brief and give it one task:
 
 ```sh
 set -a; . ~/.env; set +a
 cd "$REPO" && kilo
 ```
 
+```
+Read mt/quality/finetune-agent-prompt.md and follow it exactly.
+
+Chapter 194. read_chapter first and check translation.available.
+Start at paragraph 1, stop after 5 drafts, then report.
+```
+
+Three lines, because the brief already contains everything else — the register,
+the procedure, the output contract, the honesty clause, and the rule that it must
+not translate a chapter itself or spend API quota. The first line is what makes
+the other two mean anything: without it the agent has opinions about Burmese and
+no instructions.
+
+Do not paste the brief into the chat: it is 300 lines, and pasting it into a
+phone terminal is how a session gets truncated before it starts. Read it from
+disk so the agent can re-read it when the context is compacted.
+
 Headless:
 
 ```sh
-kilo run --auto --file mt/quality/finetune-agent-prompt.md \
-  "Follow the brief. read_chapter chapter 1, confirm translation.available is true.
-   Take paragraphs 1-3: segment_text each 'my' text, lookup_word any word you doubt,
-   save_draft with ai_text set to the original. Stop after three."
+set -a; . ~/.env; set +a
+kilo run --auto -m groq/openai/gpt-oss-120b \
+  --file mt/quality/finetune-agent-prompt.md \
+  "Chapter 194. read_chapter first, confirm translation.available is true.
+   Paragraphs 1-5: segment_text each 'my' text, lookup_word any word you doubt,
+   save_draft with ai_text set to that same 'my' text. Stop after five."
 ```
 
-`--auto` is required for headless: without it every permission request is
-auto-rejected and the run exits 1 even though nothing was wrong.
+`-m` beats the config file and the last-used model, so a headless run cannot
+silently land on Auto Free. `--auto` is required for headless: without it every
+permission request is auto-rejected and the run exits 1 even though nothing was
+wrong.
+
+## 2.3b The chain, and the smallest first test
+
+Start Kilo in the repo with the keys exported, then send **text**, not shell:
+
+```sh
+set -a; . ~/.env; set +a
+cd "$REPO" && kilo
+```
+
+**First test — background only, costs nothing.** Paste this as one message:
+
+```
+Read mt/quality/finetune-agent-prompt.md and follow it exactly.
+Then review_brief {} and stop. Quote the register line it gives you and
+state the register you will enforce. Do not open burmese-overview.md.
+```
+
+You want back: 15 characters, the three known defects, the reviewer's verdict,
+every arc title. If the tool is missing from `/mcps`, the MCP server is not
+running — fix that before anything else.
+
+**The whole chain, one message.** Step 2 is the only paid one; drop it if the
+chapters are already translated. Step 7 is a report, not a rewrite — the tones
+are re-matched one paragraph at a time afterwards.
+
+```
+Read mt/quality/finetune-agent-prompt.md and follow it exactly.
+Chapter 194. Work through the chain, then stop and report:
+
+1. review_brief {}, then review_lookup {"chapter": 194}. One round each.
+2. translate_chapters {"chapters": "194&195"} — only if read_chapter says
+   translation.available is false. Say the request count out loud first.
+3. read_chapter {"chapter": 194}: report available, attached, mismatched,
+   and quote paragraph 1 Chinese next to its `my`.
+4. check_names on every paragraph's `my` text. List every variant and the
+   canonical form, per paragraph. Do not rewrite anything yet.
+5. segment_text on the same paragraphs. Report splits word/unit/loan/unknown
+   and coverage per sentence; list only the `unknown` ones.
+6. lookup_word for each token the segmenter split, and for each name variant
+   check_names reported. No repair without a dictionary hit.
+7. register_name for a genuinely new term only — and a term is not only a
+   person: weapon, martial art, bloodline ability, pill, rank, place. Left side
+   is the English of the zh-en column, right side the AI's form corrected if
+   needed. List what you would register and wait for me before writing.
+8. Re-match tone: for each paragraph say which register it is (narration or
+   dialogue), quote its closing particle, and name any sentence that breaks it.
+   Do not save_draft yet.
+9. save_verse for every poem, song, maxim or philosophy line you judged, with
+   its English — zh-en (`english_source: mt`) or your own (`own`). If the
+   chapter has none, `kind: none`. Then export_verse {"chapter": 194}.
+
+Nothing is rewritten in this pass. Report at the end.
+```
+
+`translate_chapters` is the only line that spends money: it refuses more than
+two chapters and prints the pair it would send. If the human translation is
+already on disk the step costs nothing — `read_chapter` tells you with
+`translation.available`.
+
+**What to check in the report** — these are the numbers you can verify yourself.
+`profile.py` and `tag.py` read the **reference** chapters (the human Burmese),
+so they give you the target to hold the AI text against, not the AI text itself:
+
+```sh
+python3 mt/quality/profile.py --chapter 1 --chapter 2   # target register + particles
+python3 mt/quality/tag.py --chapter 1                   # target word view with POS
+python3 mt/names.py --check --chapter 194               # canonical names, no agent
+```
+
+The AI translation is measured inside the session with `segment_text` (splits,
+coverage, tags) and `check_names` (variants) — that is what steps 4–5 do.
 
 ## 2.4 Inspect the result
 
@@ -376,6 +508,15 @@ same text.
 | `--draft-store` | SQLite file for agent drafts |
 | `--max-chars` `--max-items` `--timeout` `--attempts` | request limits |
 
+Fourteen tools. The four the agent needs before it judges anything:
+
+| tool | use |
+|---|---|
+| `review_brief` | the review in one round — characters, defects, verdict, arc openings |
+| `lookup_name` | one `EtoBnames.txt` entry by key or Burmese form |
+| `check_names` | names present in a paragraph, plus suspected variant spellings |
+| `register_name` | append a new term to `EtoBnames.txt` |
+
 ## `mt/translate.py` — Chinese/English routes
 
 | flag | meaning |
@@ -428,8 +569,82 @@ Read-only over `Engine/`. Never writes `master.json`, the tree, or the caches.
 
 CLI: `--lookup WORD`, `--coverage TEXT`, `--suggest TEXT`, `--segment TEXT`.
 
-Split verdicts: `word` (entry), `unit` (known syllable), `loan` (Pali virama stack,
-an engine gap — not an error), `unknown` (neither — the only suspect bucket).
+Split verdicts: `word` (entry), `unit` (known syllable), `loan` (a virama stack
+the inventory still cannot name — rare, since the tree now carries all 732 Pali
+units), `unknown` (neither — the only suspect bucket).
+
+### Rebuilding the syllable tree
+
+The tree in `Engine/.cache-tree/` is built from the sealed master in
+`Engine/MonoSyllabism/map/master.json.enc`. Rebuild it whenever the syllable
+lists or the builder change — never edit the four files by hand.
+
+```sh
+node --import ./scraper/wasm/box/runtime-guard.mjs mt/rebuild_tree.mjs
+```
+
+The guard import is required: the builder calls `MyNormalize()`, which lives in
+the WASM. It prints the unit count and the four hashes, then rewrites
+`Engine/CACHE-SOURCE.json` — `tag-text.mjs`, `mt/quality/tag-both.mjs` and
+`mt/quality/units.mjs` all verify the cache against that file, so a stale hash
+fails loudly instead of silently tagging with an old tree.
+
+The build is deterministic: burmese first, then pali, so every existing unit
+keeps its id. `--out DIR` writes elsewhere; `--no-record` leaves the manifest
+alone.
+
+`runBuild` writes only the four cache files. Do **not** use `runBuildPos` to
+regenerate them: it prunes dictionary rows from the master it is handed, which
+is why `tag-both.mjs` gives it a scratch copy.
+
+### Is the WASM current?
+
+```sh
+node scraper/wasm/box/tools/verify-payload.mjs
+```
+
+It decrypts the payload inside `box.wasm` and diffs all four modules and the
+API shim against the sources on disk. Exit 0 means the binary **is** the code
+you are reading — no rebuild. The tree is data: it lives outside the WASM, so a
+tree rebuild never needs a new binary.
+
+### Rebuilding the WASM, with or without `engine.wasm`
+
+`box.wasm` is two parts: `engine.wasm` (QuickJS compiled) plus a payload built
+from the four `mapbuilder/base` files and `mapData`. `build-payload.mjs`
+**inlines `mapData`**, so any edit to `master.json` needs a new binary, and a
+stale one is caught by the check above.
+
+Repack only — needs no C toolchain, uses the tracked `engine.wasm`:
+
+```sh
+cd scraper/wasm/box
+node build-payload.mjs && node tools/pack-box.mjs && node tools/record-build.mjs
+cd ../../.. && node scraper/wasm/box/tools/verify-payload.mjs
+```
+
+`record-build.mjs` is not optional: `host.mjs` refuses to boot a `box.wasm`
+whose sha256 does not equal `build-info.json.box_sha256`.
+
+Full rebuild from source — no `engine.wasm` required; it is generated, not
+authored:
+
+```sh
+python3 -m pip install "ziglang==0.17.0"
+git clone --depth 1 -b v0.17.0 https://github.com/quickjs-ng/quickjs.git /tmp/qjs-ng
+QJS_SRC=/tmp/qjs-ng sh scraper/wasm/rebuild-box.sh
+```
+
+Two facts worth knowing before trusting a hash:
+
+- `engine.wasm` **is** byte-reproducible (`8cef309a…`) as long as the output
+  file keeps that exact name — zig writes the output basename into the wasm
+  `name` section, so building to `engine-test.wasm` changes 25 KB of the file.
+- `payload.bin` and therefore `box.wasm` are **not** reproducible: the payload
+  is AES-256-GCM with a fresh IV, and the loader is obfuscated with a random
+  seed. Five packs of identical sources gave five different `box_sha256`
+  values. `verify-payload.mjs` is the check that matters; it compares decrypted
+  *contents*, not the file hash.
 
 ## `mt/overview_index.py` — the background document
 
@@ -444,6 +659,118 @@ an engine gap — not an error), `unknown` (neither — the only suspect bucket)
 | `--titles` | list ids only |
 | `--limit` | max sections printed by `--find` |
 | `--verify` | re-check every range against the markdown |
+| `--brief` | the whole review in one round: characters, defects, verdict, every arc's opening (≈35k chars) |
+| `--chars-per-arc N` | story characters per arc in `--brief`, default 420; `200` ≈ 25k, `60` ≈ 18k |
+
+## `mt/names.py` — the name list (`content/reference/EtoBnames.txt`)
+
+The list is the authority for Burmese spelling. The agent reads it before it
+judges and appends to it when a genuinely new term appears.
+
+| flag | meaning |
+|---|---|
+| `--list` | every entry, with line numbers |
+| `--lookup TERM` | one entry by English key or by Burmese form |
+| `--check --text '…'` | canonical names in a fragment, and suspected variants |
+| `--check --chapter N` | the same over `chNNNN.my.jsonl` |
+| `--add 'KEY = BURMESE'` | append a new entry, dated; refuses a duplicate key or a form owned by another key |
+| `--warnings` | duplicate forms, reversed lines, and prose skipped |
+| `--json` | the same report as one object |
+| `--file` / `--translations` | override the list or the `mtranslate` directory |
+
+Everything except `--add` is read-only. `--add` only appends; it never rewrites
+an existing line.
+
+An entry is two sides and nothing else, exactly as the 129 existing lines are:
+the **English** as the zh-en column writes it, and the **Burmese** form the AI
+translation used (corrected by the agent when wrong). No categories. A term is
+not only a person — a weapon, a martial art, a bloodline ability, a pill, a rank
+or a place is registered the same way, and `Golden Eagle Saber` is the case to
+remember: easy to translate is not the same as safe to leave to the API.
+
+A trailing `# …` note is stripped before the form is compared. Before that fix,
+`--add --note` wrote a note into the form and the entry could never match the
+text it was added for.
+
+```sh
+python3 mt/names.py --lookup "Liu Jin"
+python3 mt/names.py --check --chapter 194
+python3 mt/names.py --add 'Shen Ji = ရှန်းကျီ'
+```
+
+## `mt/verse.py` — poems and philosophy lines, for review
+
+**It does not find verse.** Whether a line is a poem, a song, a maxim or a
+throwaway quotation is a judgement, and the agent that re-matches tone is
+already holding the paragraph. A regex that guessed would either bury real
+couplets among ordinary sentences or miss them. The agent decides; this stores
+the decision and renders the section.
+
+```sh
+python3 mt/verse.py mt 194                    # numbered zh-en lines, to quote from
+python3 mt/verse.py add 194 --paragraph 161 --kind poem \
+    --english "Even the wind has grown weary of blowing." --source own \
+    --note "closes the elegy, four parallel lines"
+python3 mt/verse.py add 194 --kind none --note "read twice, no verse"   # or none
+python3 mt/verse.py list 194
+python3 mt/verse.py export 194                # -> content/mtranslate/verse/ch0194.verse.md
+```
+
+| flag | meaning |
+|---|---|
+| `--kind` | `poem`, `philosophy`, `song`, `inscription`, `maxim`, `other`, or `none` for "checked, nothing" |
+| `--paragraph` | 1-based index or paragraph id from `read_chapter`; required unless `kind none` |
+| `--english` | the English version — the point of the section |
+| `--source` | `mt` (zh-en verbatim), `own` (agent's rendering), `mixed` (quoted then rewritten) |
+| `--mt-english` | the zh-en line you started from, so both are visible |
+| `--note` | why it is verse, and what to watch in the Burmese |
+
+The store is `content/mtranslate/verse/chNNNN.verse.jsonl` — one record per
+paragraph, so a re-save replaces rather than appends. `export` writes the
+markdown the human reviews: Chinese, the zh-en line, the English, and the note.
+`mt/agent_work.py export` and the `export_drafts` tool append that section to
+the end of the chapter comparison file whenever verse exists, so the review copy
+and the verse sit together. Nothing here touches the draft text, the AI
+translation, the name list or the engine.
+
+## `mt/quality/profile.py` / `mt/quality/tag.py` — the numbers behind "tone"
+
+Both are read-only and take `--chapter N` (repeatable), and both read the
+**human Burmese chapters** — they measure the target, not the AI text. That is
+what makes a register claim checkable instead of an opinion.
+
+```sh
+python3 mt/quality/profile.py --chapter 1 --chapter 2 --json /tmp/profile.json
+python3 mt/quality/tag.py --chapter 1
+```
+
+`profile.py` prints sentence and word counts, words per sentence with median and
+p90, the top words, and the particle counts — `၏` / `ရဲ့`, `တွင်` / `မှာ`,
+`များ` / `တွေ` — which is exactly the narration/dialogue split the brief
+enforces. `tag.py` dumps the word view with POS families via
+`mt/quality/tag-both.mjs` (both views, scratch dir, nothing under `Engine/`
+written).
+
+To measure the AI text itself, use the MCP tools inside the session:
+`segment_text` returns tokens, units, tags, split counts and coverage, and
+`check_names` returns the canonical/variant pairs. There is no CLI equivalent
+on purpose — those two read whatever text you hand them, and the chapter files
+are not the only place the text lives.
+
+## `mt/mt_compare.py` — the reference audit (one-off, not per chapter)
+
+Read-only, zero API calls, but it profiles the **whole reference** first, so it
+is a once-per-checkout audit rather than a step in the chain:
+
+```sh
+python3 -m pip install --break-system-packages 'json5>=0.12,<1'   # its only dependency
+python3 format/tag_docx.py            # writes content/kmt-pos/ယဲ့နင်.raw_pos.txt (~6.3 MB of prose)
+python3 mt/mt_compare.py --profile    # writes content/analysis/reference-data-audit.json
+```
+
+`--input FILE.jsonl` scores MT candidate records against that profile and writes
+`output/mt/<name>-comparison.jsonl`. It does **not** by itself resolve
+compounds or sentences — its own output says so.
 
 ## `mt/fetch_engine.py` / `format/fetch_dicts.py`
 
@@ -465,10 +792,19 @@ an engine gap — not an error), `unknown` (neither — the only suspect bucket)
 |---|---|
 | `kilo run` exits 1 with a permission diagnostic | missing `--auto` |
 | `401` from Groq | `GROQ_API_KEY` value is wrong, or the line is still `groq=key` |
+| `/status` shows Auto Free after you set a model | the key was not exported, or the model id is not in `kilo models groq` |
+| edits look like a different model wrote them | a session-level pick overrode `kilo.jsonc`; `/models` to reset, or pass `-m` |
 | `/mcp` shows no server | `kilo.jsonc` path wrong, or python path in `command` is wrong |
 | `--194&195` returns to the prompt, then `195: command not found` | unquoted `&`; use `'--194&195'` or `--194+195` |
 | `2 at a time` refusal | intended: run the pairs it prints, in order |
 | `read_chapter` has no `my` field | `apicaller.py --run` has not produced that chapter |
+| Pali words split at every `္` (`ဗု · ဒ · ္ဓ`) | old cache: the loader stopped after `burmese`. Rebuild with `mt/rebuild_tree.mjs` |
+| `Original scraper cache hash mismatch` | the tree was edited by hand; rebuild it, never patch the four files |
+| `Master mapData.* differs from the built WASM` | `mapData` was edited; check with `scraper/wasm/box/tools/verify-payload.mjs` before rebuilding the binary |
+| `engine.wasm` missing / `zig: not found` | repack only: `build-payload.mjs`, `pack-box.mjs`, `record-build.mjs`; or install `ziglang==0.17.0` and see *Rebuilding the WASM* |
+| `box.wasm` hash changed after a rebuild | expected — payload IV and loader obfuscation are random; compare `verify-payload.mjs` output, not `box_sha256` |
+| a name keeps changing between chapters | it was never in `EtoBnames.txt`; `names.py --add` it once, then reuse |
+| `--add` refuses with "already owns" | the Burmese form belongs to another key — reuse that key, or pick a different form deliberately |
 | `translation.attached` is 0 but `available` is true | the jsonl exists but its `source` lines no longer match the Chinese — regenerate it |
 | `ModuleNotFoundError: No module named 'argostranslate'` | old copy of `mt/fetch_engine.py`; `git pull` — it unpacks the zip itself now |
 | `uv run` says the model is missing, `python3` finds it | two interpreters; see 1.1 and use `python3` |

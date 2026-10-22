@@ -99,3 +99,24 @@ On the Wikipedia paragraph: 158 units → 156, character-exact preserved, every
 `သက္ကတ` stays `သ · ဣ · တ` in both runs — because that one is rewritten by
 `mapData.IMPOSTER[ဣ].imposters = ["က္က"]` *before* segmentation. Two independent
 causes, confirmed as independent.
+
+## Fixed 2026-10-22
+
+`_syllablesFromLines` now streams every list under `"syllables"` — not just the
+first — and `Engine/.cache-tree/` was rebuilt from the sealed master. Burmese
+is still read first, so every existing id is unchanged (verified: 2,521 shared
+units, 0 id changes) and the 732 Pali units are appended after it.
+
+```
+$ node --input-type=module -e 'import {loadSyllablesData} from "./Engine/MonoSyllabism/main/grapheme/Tree.loaded.js"; const l = await loadSyllablesData(); console.log(l.length, l.includes("န္ဓာ"), l.includes("က္က"));'
+3215   true   true
+```
+
+| | before | after |
+|---|---|---|
+| units | 2,521 | 3,229 |
+| blocked dictionary entries | 1,216 | 0 |
+| `ဗုဒ္ဓ` | `ဗု · ဒ · ္ဓ` | one token, `ဗုဒ္ဓ{n}` |
+
+`Engine/CACHE-SOURCE.json` records the rebuild and the new hashes; `tag-text.mjs`,
+`tag-both.mjs` and `units.mjs` verify against it, so a stale cache now fails loudly.
