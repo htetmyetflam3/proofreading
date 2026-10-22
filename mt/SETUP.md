@@ -243,6 +243,9 @@ make output checkable; the model only makes it readable.
 python3 mt/mcp_server.py --selftest        # protocol round-trip, no network
 python3 mt/mcp_server.py --check           # config state, no request
 python3 mt/mcp_server.py --env-file ~/.env # run it (stdio; Kilo does this for you)
+
+# the same, advertising only the tools a reading pass needs (see `--tools`)
+python3 mt/mcp_server.py --env-file ~/.env --tools survey
 ```
 
 Register it with a client automatically instead of by hand:
@@ -261,6 +264,11 @@ Sixteen tools. Reading and checking (free, no API request):
 `save_draft`, `export_drafts`, `register_name`, `save_verse`, `export_verse`.
 Paid, never on your behalf: `translate_text`, `translate_batch`,
 `translate_chapters`.
+
+All sixteen are advertised by default, and their schemas — 10,720 characters,
+~3k tokens — are re-sent with **every** request. `--tools survey` (11 tools,
+7,501 characters) covers a reading pass and `--tools lean` (7 tools, 5,468)
+covers a drafting pass; details in *`mt/mcp_server.py`* under Part 3.
 
 Two things there are deliberately **not** tools: finding new names, and finding
 verse. Both are reading judgements the agent makes while it reads the AI text
@@ -473,7 +481,11 @@ What fixes it, in order:
 6. If a session already says `Compaction exhausted`, start a new one: the
    context is gone and retrying only spends more of the minute.
 
-### A bigger free budget: Cerebras (same model, different ceiling)
+### Cerebras (card-gated — skip unless a card exists)
+
+> **Both Cerebras tiers need a verified payment method.** With no card this
+> section is reference only; the card-free lanes are in *Which one to actually
+> use* below.
 
 `gpt-oss-120b` is served by Cerebras too, with the **per-minute token budget as
 the difference** — this is the number that matters, not the context window:
@@ -481,9 +493,9 @@ the difference** — this is the number that matters, not the context window:
 | provider / tier | TPM | RPM | daily | context |
 |---|---|---|---|---|
 | Groq free | 8,000 | 30 | 200,000 | 131,072 |
-| Groq Developer | 250,000 | 1,000 | none | 131,072 |
-| **Cerebras Free Trial** | **30,000 uncached / 90,000 total** | **5** | 1M tokens/day | **65,536** |
-| Cerebras Developer | 1,000,000 uncached / 3M total | 1,000 | none | 131,072 |
+| Groq Developer *(card)* | 250,000 | 1,000 | none | 131,072 |
+| **Cerebras Free Trial** *(card, 30 days)* | **30,000 uncached / 90,000 total** | **5** | 1M tokens/day | **65,536** |
+| Cerebras Developer *(card)* | 1,000,000 uncached / 3M total | 1,000 | none | 131,072 |
 
 Two things to read carefully:
 
@@ -540,92 +552,168 @@ Later, if you go back to Groq, swap the `model` line back to
 `groq/openai/gpt-oss-120b` and keep everything else — the tools, the card and
 the chain are provider-independent.
 
-### Which one to actually use
+### Which one to actually use — starting from no card
 
-Both serve **the same weights** — `gpt-oss-120b` is `gpt-oss-120b`. You are not
-picking a better model, you are picking a pipe. Quality of the Burmese is
-identical; only speed, ceiling and price differ. So the choice is made on the
-loop, not the language work.
+A card is a wall, not a price. Groq's Developer plan and both Cerebras tiers
+(Trial and Developer) require a verified payment method, so on this account they
+are not expensive — they are **unavailable**. Everything below is card-free:
 
-A working turn costs roughly **14k tokens in** (Kilo's prompt, 16 schemas,
-`START.md`, one `review_brief @60`, one 10-paragraph window) and **~1k out**.
-
-| | Groq Developer | Cerebras trial | Cerebras Developer |
+| lane | card | free ceiling | can it carry the loop? |
 |---|---|---|---|
-| turns/min at 14k | ~17 | ~2 (and 5 RPM stops it first) | ~70 |
-| per turn | $0.0027 | $0.0057 | $0.0057 |
-| 20-turn chapter | $0.054 | $0.11 | $0.11 |
-| card needed | yes | **yes** | yes |
-| expires | no | **30 days** | no |
+| **Gemini API** (AI Studio) | no | not published; per project, in AI Studio | best lane **if** your region is on the list |
+| **Cloudflare Workers AI** | no | 10,000 neurons/day | **~38 turns/day** — `@cf/openai/gpt-oss-120b`, the same weights |
+| **OpenRouter `:free`** | no | 50 requests/day, 20 RPM | ~2 ten-paragraph windows a day |
+| **Groq free** | no | 8,000 TPM, 200,000 TPD | no: dies around turn 5 (see below) |
 
-**Use Groq Developer.** Not because of the context window — 65k is irrelevant
-here, a windowed turn never passes ~20k — but because Cerebras's trial gives you
-5 requests a minute where a tool turn is two or three requests, and its "free"
-$5 still requires a verified card. If you are adding a card anyway, Groq is
-half the price with 200× the request rate.
+The RapidAPI translation step is untouched by any of this — that key is separate
+and still works. Only the agent needs a provider.
 
-**Keep Cerebras configured as the spare tire.** One file, two providers, and
-`-m` overrides for a single run without editing anything:
+**Run this first; it decides everything.** Gemini is the best of the four *if*
+you are allowed to call it. Myanmar is not on Google's available-regions list, so
+a key can exist while every request fails. One request, no configuration:
 
 ```sh
-kilo run --auto -m cerebras/gpt-oss-120b --file mt/quality/START.md "…"
+set -a; . ~/.env; set +a
+curl -s -w '\nHTTP %{http_code}\n' \
+  "https://generativelanguage.googleapis.com/v1beta/models?key=$GEMINI_API_KEY" \
+  | head -20
 ```
 
-Reach for it when Groq returns 429 and you do not want to wait the minute, or
-when you want the ~3,000 tok/s speed for a quick check. Do not build the daily
-workflow on a 30-day trial.
+* `HTTP 200` and a list of models → **use Gemini**, go to *Lane A*.
+* `HTTP 400` with `FAILED_PRECONDITION: User location is not supported` →
+  Google will not serve this account from here, whatever the key. Go to *Lane B*.
 
-**The whole chain, one message.** The API call is deliberately not in the list:
-add `translate_chapters {"chapters": "194&195"}` only when step 2 reports
-`available: false`, and only after saying the request count out loud. Step 7 is
-a report, not a rewrite — the tones are re-matched one paragraph at a time
-afterwards.
+#### Lane A — Gemini (only if the check passed)
 
-```
-Read mt/quality/START.md and follow it. Chapter 194. Work in windows of ten
-paragraphs and stop after two windows (paragraphs 1-20). Report only.
-
-1. review_brief {"chars_per_arc": 60}, then review_lookup {"chapter": 194}.
-2. read_chapter {"chapter": 194, "start": 1, "count": 10}. Report
-   available, attached, mismatched, and quote paragraph 1 Chinese + its `my`.
-3. check_names on those ten `my` texts. Table: paragraph, found, canonical.
-   Do not rewrite yet.
-4. segment_text on the same ten. Report splits and coverage; list only the
-   `unknown` ones.
-5. lookup_word for each split token and each name variant. No repair without
-   a dictionary hit.
-6. register_name for a genuinely new term only — and a term is not only a
-   person: weapon, martial art, bloodline ability, pill, rank, place. Left side
-   is the English of the zh-en column, right side the AI's form corrected if
-   needed. List what you would register; wait for me before writing.
-7. Tone: per paragraph say narration or dialogue, quote its closing particle,
-   name any sentence that breaks register. Do not save_draft.
-8. save_verse for any poem, song, maxim or philosophy line in these ten, with
-   its English — zh-en (english_source: mt) or your own (own). Then
-   export_verse {"chapter": 194}.
-9. read_chapter {"start": 11, "count": 10} and repeat 3-7 on that window.
-
-Nothing is rewritten in this pass. Do not paste tool results back; quote the
-field that decided it. Report at the end.
-```
-
-`translate_chapters` is the only line that spends money: it refuses more than
-two chapters and prints the pair it would send. If the human translation is
-already on disk the step costs nothing — `read_chapter` tells you with
-`translation.available`.
-
-**What to check in the report** — these are the numbers you can verify yourself.
-`profile.py` and `tag.py` read the **reference** chapters (the human Burmese),
-so they give you the target to hold the AI text against, not the AI text itself:
+Kilo has a built-in `google` provider; the key goes in
+`GOOGLE_GENERATIVE_AI_API_KEY` and the model is `google/<id>`. Take the id
+straight from the list the curl printed (strip the `models/` prefix):
 
 ```sh
-python3 mt/quality/profile.py --chapter 1 --chapter 2   # target register + particles
-python3 mt/quality/tag.py --chapter 1                   # target word view with POS
-python3 mt/names.py --check --chapter 194               # canonical names, no agent
+kilo models google        # or read the curl output: "name": "models/gemini-…"
 ```
 
-The AI translation is measured inside the session with `segment_text` (splits,
-coverage, tags) and `check_names` (variants) — that is what steps 4–5 do.
+```jsonc
+// ~/.config/kilo/kilo.jsonc
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "model": "google/<the-id-from-the-list>",
+  "provider": {
+    "google": { "options": { "apiKey": "{env:GOOGLE_GENERATIVE_AI_API_KEY}" } }
+  }
+}
+```
+
+Google no longer publishes RPM/TPM/RPD for the free tier — your own numbers are
+on the **AI Studio → rate limits** page for the project the key belongs to. Read
+them once before a long session. Keep `"output"` modest on free (`4096` is
+plenty for a ten-paragraph judgement) and start the MCP server with
+`--tools lean` so the request stays small (`--tools` is below).
+
+#### Lane B — Cloudflare Workers AI (no card, no region gate)
+
+Sign up at `dash.cloudflare.com` (email only, no card, no phone). Then
+**Workers & Pages → AI**, and create an API token with the *Workers AI* permission.
+You need two values: the **account id** (right-hand column of the dashboard) and
+the **token**.
+
+It serves `@cf/openai/gpt-oss-120b` — **the same weights as the Groq plan**, so
+every number in the comparison table above still applies to it.
+
+The allowance is neurons, not tokens:
+
+| | per 1M tokens | a ten-paragraph turn (~7k in, 600 out) |
+|---|---|---|
+| input | 31,818 neurons | ~223 |
+| output | 68,182 neurons | ~41 |
+| **total** | | **~264 neurons** |
+
+10,000 neurons a day / 264 ≈ **38 turns**. One two-window pass (20 paragraphs)
+is ~20 turns and ~5,300 neurons — about half the daily allowance, so one pass a
+day with enough left to retry a turn. A 166-paragraph chapter is eight such
+passes, so roughly **four to five days a chapter** on this lane, and 212
+chapters is not a schedule anyone should plan around. That is the honest
+arithmetic: free enough to build and judge the chain, not to finish the book.
+
+Kilo talks to it through the generic OpenAI-compatible provider:
+
+```sh
+printf 'CLOUDFLARE_API_TOKEN=...\nCLOUDFLARE_ACCOUNT_ID=...\n' >> ~/.env
+```
+
+```jsonc
+// ~/.config/kilo/kilo.jsonc
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "model": "workers-ai/@cf/openai/gpt-oss-120b",
+  "provider": {
+    "workers-ai": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Cloudflare Workers AI",
+      "options": {
+        "baseURL": "https://api.cloudflare.com/client/v4/accounts/{env:CLOUDFLARE_ACCOUNT_ID}/ai/v1",
+        "apiKey": "{env:CLOUDFLARE_API_TOKEN}"
+      },
+      "models": {
+        "@cf/openai/gpt-oss-120b": {
+          "name": "gpt-oss-120b (Workers AI)",
+          "tool_call": true,
+          "limit": { "context": 128000, "output": 4096 }
+        }
+      }
+    }
+  }
+}
+```
+
+Prove the pair of values before writing the config — the account id is in the
+URL, so a wrong one is a `7003` before the model is even reached:
+
+```sh
+set -a; . ~/.env; set +a
+curl -s "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/ai/v1/chat/completions" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"model":"@cf/openai/gpt-oss-120b","max_tokens":16,"messages":[{"role":"user","content":"hi"}]}'
+```
+
+If it complains the context is smaller than 128k, drop `limit.context` to
+`65536` — Kilo only uses that number to decide when to compact.
+
+#### Lane C — OpenRouter `:free` (the spare tire)
+
+No card, twenty requests a minute, **fifty a day** until the account has bought
+$10 of credits in its lifetime. A ten-paragraph window pass is ~20 requests, so
+this is two windows a day — comparable to Lane B, and useful as a second opinion
+on the same paragraph because it is a different serving stack.
+
+```sh
+printf 'OPENROUTER_API_KEY=...\n' >> ~/.env
+curl -s -H "Authorization: Bearer $OPENROUTER_API_KEY" \
+  https://openrouter.ai/api/v1/models | grep -o '"id":"openai/gpt-oss-120b:free"'
+```
+
+If that prints nothing, `gpt-oss-120b` is not in the free roster that week (it
+comes and goes) — pick any id ending in `:free` from the same list, and accept
+that the register judgement will differ from the Groq baseline. Kilo has a
+native provider, so the config is just `"model": "openrouter/<that-id>"`.
+
+#### Why Groq free still does not work
+
+Not the daily cap — the **per-minute** one. 8,000 TPM is the whole bucket, so a
+single request bigger than 8,000 tokens is refused before it is generated
+(`413 Limit 8000, Requested N`), and waiting does not help. Kilo re-sends the
+conversation each turn, so at ~1.2k tokens of growth per turn the fifth or sixth
+turn crosses 8k and every turn after it fails. `--tools lean` (schemas 10.7k →
+5.5k characters, ~3.4k → ~1.7k tokens) buys about two turns; it does not make
+the loop fit. Keep the key for one-shot questions; do not start a session on it.
+
+#### If a card ever appears
+
+Then, and only then, re-read the table: **Groq Developer** is ~17 turns a minute
+at $0.0027/turn (~$0.054 a chapter) against **Cerebras trial**'s ~2 turns a
+minute and 30-day expiry — same weights, so half the price and 200× the request
+rate wins on every axis that matters here.
+
 
 ## 2.4 Inspect the result
 
@@ -712,8 +800,32 @@ same text.
 | `--docx` | bilingual DOCX for chapter numbers |
 | `--draft-store` | SQLite file for agent drafts |
 | `--max-chars` `--max-items` `--timeout` `--attempts` | request limits |
+| `--tools` | advertise only some tools: a preset, a group, or names (below) |
+| `--list-groups` | print the groups, their sizes, and exit |
 
-Fourteen tools. The four the agent needs before it judges anything:
+**Sixteen tools — and you pay for all of them every turn.** The schemas are
+10,720 characters (~3.0–3.8k tokens) and Kilo re-sends them with every request,
+so on a small free budget they are a third of the minute before the model has
+read a word. `--tools` narrows what the process advertises:
+
+| spec | tools | schema chars | when |
+|---|---|---|---|
+| *(none)* | 16 | 10,720 | nothing to save |
+| `--tools lean` | 7 | 5,468 | the smallest loop that still edits: read ten, segment, check a name, save a draft |
+| `--tools survey` | 11 | 7,501 | the read-only first pass: review digest, names, verse |
+| `--tools edit` | 11 | 7,398 | rewriting paragraphs; no review digest, no API |
+| `--tools review,names` | 5 | 3,282 | groups instead of presets, comma-separated |
+
+Groups: `read` `review` `names` `verse` `draft` `api`. Presets: `survey` `edit`
+`lean` `translate` `full`. A tool that is not advertised is refused if called,
+with the flag named in the error — no silent empty answer. Verify the arithmetic
+on your own machine:
+
+```sh
+python3 mt/mcp_server.py --list-groups
+```
+
+The four the agent needs before it judges anything:
 
 | tool | use |
 |---|---|

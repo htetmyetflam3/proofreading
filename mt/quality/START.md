@@ -12,14 +12,15 @@ you actually start drafting. Every turn that re-reads it is a turn Groq bills.
 ## Turn one — three calls, nothing else
 
 ```
-review_brief {}
+review_brief {"chars_per_arc": 60}
 review_lookup {"chapter": 194}
 read_chapter {"chapter": 194, "start": 1, "count": 10}
 ```
 
 `review_brief` is the whole 7,279-line review in one digest: 15 characters, the
-three known defects, the verdict, every arc's opening. Pass
-`{"chars_per_arc": 60}` if the session is already long.
+three known defects, the verdict, every arc's opening. Always pass
+`{"chars_per_arc": 60}` — the default size is 8–13k tokens, the trimmed one
+4–6.5k, and the difference is a third of a free day.
 
 Then answer in this shape and stop:
 
@@ -34,12 +35,13 @@ If `available` is false or `attached` is 0, stop and say:
 
 ## The four rules that keep a session alive
 
-Groq gives this model **250k tokens per minute on the Developer plan and 8k on
-the free plan** — check which one your key is on before blaming the tool. A
-request costs its whole input, so the way a session dies is by re-sending big
-things. For scale: one `review_brief {}` at the default size is 8–13k tokens on
-its own, because the review is mostly Myanmar script and Myanmar tokenizes badly.
-Always pass `{"chars_per_arc": 60}` (4–6.5k).
+Every card-free lane is thin — about 10k tokens a minute or a few thousand
+tokens a turn, whichever provider you are on (`mt/SETUP.md`, *Which one to
+actually use*, has the numbers and how to check yours). Groq's 250k-per-minute
+plan needs a card. A request costs its whole input, so the way a session dies is
+by re-sending big things, and one `review_brief` at the default size is 8–13k
+tokens on its own: the review is mostly Myanmar script, and Myanmar tokenizes
+badly.
 
 1. **Never re-read a file you already read.** If you need one section, say which.
 2. **Never pull a whole chapter.** `read_chapter` takes `start` and `count`;
