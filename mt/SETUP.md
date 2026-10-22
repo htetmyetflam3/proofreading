@@ -527,6 +527,44 @@ API shim against the sources on disk. Exit 0 means the binary **is** the code
 you are reading — no rebuild. The tree is data: it lives outside the WASM, so a
 tree rebuild never needs a new binary.
 
+### Rebuilding the WASM, with or without `engine.wasm`
+
+`box.wasm` is two parts: `engine.wasm` (QuickJS compiled) plus a payload built
+from the four `mapbuilder/base` files and `mapData`. `build-payload.mjs`
+**inlines `mapData`**, so any edit to `master.json` needs a new binary, and a
+stale one is caught by the check above.
+
+Repack only — needs no C toolchain, uses the tracked `engine.wasm`:
+
+```sh
+cd scraper/wasm/box
+node build-payload.mjs && node tools/pack-box.mjs && node tools/record-build.mjs
+cd ../../.. && node scraper/wasm/box/tools/verify-payload.mjs
+```
+
+`record-build.mjs` is not optional: `host.mjs` refuses to boot a `box.wasm`
+whose sha256 does not equal `build-info.json.box_sha256`.
+
+Full rebuild from source — no `engine.wasm` required; it is generated, not
+authored:
+
+```sh
+python3 -m pip install "ziglang==0.17.0"
+git clone --depth 1 -b v0.17.0 https://github.com/quickjs-ng/quickjs.git /tmp/qjs-ng
+QJS_SRC=/tmp/qjs-ng sh scraper/wasm/rebuild-box.sh
+```
+
+Two facts worth knowing before trusting a hash:
+
+- `engine.wasm` **is** byte-reproducible (`8cef309a…`) as long as the output
+  file keeps that exact name — zig writes the output basename into the wasm
+  `name` section, so building to `engine-test.wasm` changes 25 KB of the file.
+- `payload.bin` and therefore `box.wasm` are **not** reproducible: the payload
+  is AES-256-GCM with a fresh IV, and the loader is obfuscated with a random
+  seed. Five packs of identical sources gave five different `box_sha256`
+  values. `verify-payload.mjs` is the check that matters; it compares decrypted
+  *contents*, not the file hash.
+
 ## `mt/overview_index.py` — the background document
 
 | flag | meaning |
@@ -597,6 +635,8 @@ python3 mt/names.py --add 'Shen Ji = ရှန်းကျီ'
 | Pali words split at every `္` (`ဗု · ဒ · ္ဓ`) | old cache: the loader stopped after `burmese`. Rebuild with `mt/rebuild_tree.mjs` |
 | `Original scraper cache hash mismatch` | the tree was edited by hand; rebuild it, never patch the four files |
 | `Master mapData.* differs from the built WASM` | `mapData` was edited; check with `scraper/wasm/box/tools/verify-payload.mjs` before rebuilding the binary |
+| `engine.wasm` missing / `zig: not found` | repack only: `build-payload.mjs`, `pack-box.mjs`, `record-build.mjs`; or install `ziglang==0.17.0` and see *Rebuilding the WASM* |
+| `box.wasm` hash changed after a rebuild | expected — payload IV and loader obfuscation are random; compare `verify-payload.mjs` output, not `box_sha256` |
 | a name keeps changing between chapters | it was never in `EtoBnames.txt`; `names.py --add` it once, then reuse |
 | `--add` refuses with "already owns" | the Burmese form belongs to another key — reuse that key, or pick a different form deliberately |
 | `translation.attached` is 0 but `available` is true | the jsonl exists but its `source` lines no longer match the Chinese — regenerate it |
