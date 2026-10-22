@@ -393,6 +393,55 @@ silently land on Auto Free. `--auto` is required for headless: without it every
 permission request is auto-rejected and the run exits 1 even though nothing was
 wrong.
 
+## 2.3a The first test: review only, no chapter, no API
+
+Nothing here reads the book, spends RapidAPI quota, or writes a file. It proves
+the three things that break independently: the key reaches Groq, the model id
+resolves through the config, and the MCP server is up with your review in it.
+
+**Step 1 — advertise only the two review tools.** In `~/.config/kilo/kilo.jsonc`,
+the MCP entry's `command` array ends with:
+
+```jsonc
+"--env-file", "/root/.env",
+"--tools", "review"
+```
+
+That is 2 tools and 1,460 characters of schema instead of 16 and 10,720 — the
+difference between fitting in an 8k minute and not.
+
+**Step 2 — paste this:**
+
+```sh
+set -a; . ~/.env; set +a
+cd ~/proofreading
+kilo run --auto "Call review_brief with chars_per_arc 40. Nothing else: no file
+reads, no other tools. Then answer with exactly three lines — characters,
+sections, brief length in characters — and stop."
+```
+
+**Pass looks like this**, and the numbers are checkable:
+
+| line | value |
+|---|---|
+| characters | `15` |
+| sections | `111` |
+| brief length | about `6890` (the raw Markdown; the JSON wrapper adds 511) |
+
+**What each failure actually means:**
+
+| what you see | cause |
+|---|---|
+| `tool 'read_chapter' is not enabled` | the model ignored "nothing else" — it still proved the server and the key work. Re-run with a firmer instruction; do not widen `--tools` |
+| `413 … Requested N` / `Rate limit reached` | the declared `output` in `kilo.jsonc` is too large; it must be `1024` on free |
+| `Model not found: groq/…` | the `models` block is missing, so Kilo is resolving against its stale catalog |
+| tool result but no numbers | it read `markdown` and gave up — ask for `characters` and `sections` fields by name |
+
+**Step 3 — only after that passes**, widen to the reading pass and switch to the
+real first turn: change `"review"` to `"survey"` (11 tools, 7,501 characters,
+adds `read_chapter`, `segment_text`, `lookup_word`, `check_names`,
+`register_name`, `save_verse`), then use the prompt in 2.3b.
+
 ## 2.3b The chain, and the smallest first test
 
 Start Kilo in the repo with the keys exported, then send **text**, not shell:
