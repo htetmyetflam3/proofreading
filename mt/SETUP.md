@@ -131,8 +131,11 @@ Not needed by the proofreading agent.
 
 ## 1.5 Kilo
 
+Skip this block if `kilo --version` already answers; only the config below matters
+then.
+
 ```sh
-npm install -g @kilo-org/kilocode    # or: curl -fsSL https://kilo.ai/install | sh
+npm install -g @kilocode/cli         # or: curl -fsSL https://kilo.ai/install | sh
 kilo --version
 ```
 
@@ -143,9 +146,17 @@ mkdir -p ~/.config/kilo
 cat > ~/.config/kilo/kilo.jsonc <<EOF
 {
   "\$schema": "https://app.kilo.ai/config.json",
-  "model": "groq/moonshotai/kimi-k2-instruct",
+  "model": "groq/openai/gpt-oss-120b",
   "provider": {
-    "groq": { "options": { "apiKey": "{env:GROQ_API_KEY}" } }
+    "groq": {
+      "options": { "apiKey": "{env:GROQ_API_KEY}" },
+      "models": {
+        "openai/gpt-oss-120b": {
+          "tool_call": true,
+          "limit": { "context": 131072, "output": 32000 }
+        }
+      }
+    }
   },
   "mcp": {
     "rapidapi-translator": {
@@ -171,13 +182,32 @@ Three things that bite:
 - The model string is `provider/model`. Kilo has a built-in `groq` provider, so
   no base URL is needed.
 
+**Check the config took, before running anything.** A bad key or an unknown model
+id makes Kilo fall back to Auto Free silently, so `/status` is the only proof:
+
+```sh
+set -a; . ~/.env; set +a
+kilo models groq                          # your account's list; the id must appear
+kilo                                      # then, inside the TUI:
+#   /models   -> pick groq/openai/gpt-oss-120b
+#   /mcps     -> rapidapi-translator: on
+#   /status   -> the active model is the groq one, not Auto Free
+```
+
+If `openai/gpt-oss-120b` is not in `kilo models groq`, the `models` block above
+registers it by hand — that is what `provider.groq.models` is for.
+
 Model choice, for Burmese specifically:
 
 | model | note |
 |---|---|
-| `groq/moonshotai/kimi-k2-instruct` | strongest multilingual on Groq, 128K — start here |
+| `groq/openai/gpt-oss-120b` | 131,072 context, 65,536 max completion, reasoning model. Verbose by design — it narrates its thinking — which costs tokens but costs nothing in a `kilo run` session nobody reads. Default here because the context window fits a whole chapter plus the tool output |
+| `groq/moonshotai/kimi-k2-instruct` | strongest multilingual on Groq, 128K; shorter reasoning, more direct |
 | `groq/llama-3.3-70b-versatile` | cheap and fast, weak Burmese; fine for structure |
-| `groq/openai/gpt-oss-120b` | follows rules well, limited Burmese fluency |
+
+To quiet the reasoning, Groq accepts `reasoning_effort` of `low`, `medium` or
+`high`; pass it as a provider option if your build forwards it, or leave it —
+the chatter goes to the transcript, not to the draft.
 
 Every one of them is weak at Burmese relative to this task. The tools are what
 make output checkable; the model only makes it readable.
@@ -281,14 +311,18 @@ cd "$REPO" && kilo
 Headless:
 
 ```sh
-kilo run --auto --file mt/quality/finetune-agent-prompt.md \
-  "Follow the brief. read_chapter chapter 1, confirm translation.available is true.
+set -a; . ~/.env; set +a
+kilo run --auto -m groq/openai/gpt-oss-120b \
+  --file mt/quality/finetune-agent-prompt.md \
+  "Follow the brief. read_chapter chapter 194, confirm translation.available is true.
    Take paragraphs 1-3: segment_text each 'my' text, lookup_word any word you doubt,
    save_draft with ai_text set to the original. Stop after three."
 ```
 
-`--auto` is required for headless: without it every permission request is
-auto-rejected and the run exits 1 even though nothing was wrong.
+`-m` beats the config file and the last-used model, so a headless run cannot
+silently land on Auto Free. `--auto` is required for headless: without it every
+permission request is auto-rejected and the run exits 1 even though nothing was
+wrong.
 
 ## 2.4 Inspect the result
 
@@ -465,6 +499,8 @@ an engine gap — not an error), `unknown` (neither — the only suspect bucket)
 |---|---|
 | `kilo run` exits 1 with a permission diagnostic | missing `--auto` |
 | `401` from Groq | `GROQ_API_KEY` value is wrong, or the line is still `groq=key` |
+| `/status` shows Auto Free after you set a model | the key was not exported, or the model id is not in `kilo models groq` |
+| edits look like a different model wrote them | a session-level pick overrode `kilo.jsonc`; `/models` to reset, or pass `-m` |
 | `/mcp` shows no server | `kilo.jsonc` path wrong, or python path in `command` is wrong |
 | `--194&195` returns to the prompt, then `195: command not found` | unquoted `&`; use `'--194&195'` or `--194+195` |
 | `2 at a time` refusal | intended: run the pairs it prints, in order |
