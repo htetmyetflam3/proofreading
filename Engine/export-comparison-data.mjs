@@ -19,7 +19,41 @@ const read = relative => fs.readFileSync(path.join(ROOT, relative));
 const masterPath = 'Engine/knowledge/isTreasure/master.json';
 const rulesPath = 'Engine/knowledge/isTreasure/mainrules.js';
 const masterBytes = read(masterPath), rulesBytes = read(rulesPath);
-const master = JSON.parse(masterBytes), rules = JSON.parse(rulesBytes);
+
+// mainrules.js is a JSON object followed by a JavaScript block —
+// `const MYANMAR_GRAMMAR_SEQUENCES = [...]`, single-quoted and commented. It is
+// not a JSON document end to end, so parse the JSON head only; the sequence
+// array is the engine's business and `mt/mt_compare.py` reads it as text. No
+// JavaScript is evaluated here. Trailing commas in the head (the owner's hand
+// edits leave one) are dropped outside string literals.
+function parseRules(bytes) {
+  const text = bytes.toString('utf8');
+  const marker = text.search(/\bconst\s+MYANMAR_GRAMMAR_SEQUENCES\s*=/);
+  const head = marker >= 0 ? text.slice(0, marker) : text;
+  let out = '', inString = false, escaped = false;
+  for (let i = 0; i < head.length; i++) {
+    const ch = head[i];
+    if (inString) {
+      out += ch;
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') { inString = true; out += ch; continue; }
+    if (ch === ',') {
+      let j = i + 1;
+      while (j < head.length && /\s/.test(head[j])) j++;
+      if (head[j] === '}' || head[j] === ']') continue;
+    }
+    out += ch;
+  }
+  out = out.replace(/\s+$/, '');
+  if (!out.endsWith('}')) throw new Error('mainrules.js JSON head does not close with }');
+  return JSON.parse(out);
+}
+
+const master = JSON.parse(masterBytes), rules = parseRules(rulesBytes);
 if (!master.top || !master.resolution) throw new Error('Master top/resolution sections are required for comparison');
 assertMapData(master.mapData);
 getBox();

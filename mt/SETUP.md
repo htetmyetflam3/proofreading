@@ -230,9 +230,11 @@ python3 mt/mcp_server.py --install-config --client kilo --env-file ~/.env
 `--install-config` merges into plain JSON only. If the target is JSONC with
 comments it refuses and prints the snippet, so nothing you wrote is lost.
 
-Ten tools: `detect_language`, `translate_text`, `translate_batch`, `read_chapter`,
-`save_draft`, `export_drafts`, `lookup_word`, `review_lookup`, `segment_text`,
-`translate_chapters`.
+Fourteen tools. Reading and checking (free, no API request):
+`read_chapter`, `review_lookup`, `review_brief`, `lookup_word`, `lookup_name`,
+`check_names`, `segment_text`, `detect_language`. Writing, all local:
+`save_draft`, `export_drafts`, `register_name`. Paid, never on your behalf:
+`translate_text`, `translate_batch`, `translate_chapters`.
 
 ---
 
@@ -340,6 +342,73 @@ kilo run --auto -m groq/openai/gpt-oss-120b \
 silently land on Auto Free. `--auto` is required for headless: without it every
 permission request is auto-rejected and the run exits 1 even though nothing was
 wrong.
+
+## 2.3b The chain, and the smallest first test
+
+Start Kilo in the repo with the keys exported, then send **text**, not shell:
+
+```sh
+set -a; . ~/.env; set +a
+cd "$REPO" && kilo
+```
+
+**First test — background only, costs nothing.** Paste this as one message:
+
+```
+Read mt/quality/finetune-agent-prompt.md and follow it exactly.
+Then review_brief {} and stop. Quote the register line it gives you and
+state the register you will enforce. Do not open burmese-overview.md.
+```
+
+You want back: 15 characters, the three known defects, the reviewer's verdict,
+every arc title. If the tool is missing from `/mcps`, the MCP server is not
+running — fix that before anything else.
+
+**The whole chain, one message.** Step 2 is the only paid one; drop it if the
+chapters are already translated. Step 7 is a report, not a rewrite — the tones
+are re-matched one paragraph at a time afterwards.
+
+```
+Read mt/quality/finetune-agent-prompt.md and follow it exactly.
+Chapter 194. Work through the chain, then stop and report:
+
+1. review_brief {}, then review_lookup {"chapter": 194}. One round each.
+2. translate_chapters {"chapters": "194&195"} — only if read_chapter says
+   translation.available is false. Say the request count out loud first.
+3. read_chapter {"chapter": 194}: report available, attached, mismatched,
+   and quote paragraph 1 Chinese next to its `my`.
+4. check_names on every paragraph's `my` text. List every variant and the
+   canonical form, per paragraph. Do not rewrite anything yet.
+5. segment_text on the same paragraphs. Report splits word/unit/loan/unknown
+   and coverage per sentence; list only the `unknown` ones.
+6. lookup_word for each token the segmenter split, and for each name variant
+   check_names reported. No repair without a dictionary hit.
+7. register_name for a genuinely new term only — list what you would register
+   and wait for me before writing. Never a second spelling of a listed term.
+8. Re-match tone: for each paragraph say which register it is (narration or
+   dialogue), quote its closing particle, and name any sentence that breaks it.
+   Do not save_draft yet.
+
+Nothing is rewritten in this pass. Report at the end.
+```
+
+`translate_chapters` is the only line that spends money: it refuses more than
+two chapters and prints the pair it would send. If the human translation is
+already on disk the step costs nothing — `read_chapter` tells you with
+`translation.available`.
+
+**What to check in the report** — these are the numbers you can verify yourself.
+`profile.py` and `tag.py` read the **reference** chapters (the human Burmese),
+so they give you the target to hold the AI text against, not the AI text itself:
+
+```sh
+python3 mt/quality/profile.py --chapter 1 --chapter 2   # target register + particles
+python3 mt/quality/tag.py --chapter 1                   # target word view with POS
+python3 mt/names.py --check --chapter 194               # canonical names, no agent
+```
+
+The AI translation is measured inside the session with `segment_text` (splits,
+coverage, tags) and `check_names` (variants) — that is what steps 4–5 do.
 
 ## 2.4 Inspect the result
 
@@ -605,6 +674,45 @@ python3 mt/names.py --lookup "Liu Jin"
 python3 mt/names.py --check --chapter 194
 python3 mt/names.py --add 'Shen Ji = ရှန်းကျီ'
 ```
+
+## `mt/quality/profile.py` / `mt/quality/tag.py` — the numbers behind "tone"
+
+Both are read-only and take `--chapter N` (repeatable), and both read the
+**human Burmese chapters** — they measure the target, not the AI text. That is
+what makes a register claim checkable instead of an opinion.
+
+```sh
+python3 mt/quality/profile.py --chapter 1 --chapter 2 --json /tmp/profile.json
+python3 mt/quality/tag.py --chapter 1
+```
+
+`profile.py` prints sentence and word counts, words per sentence with median and
+p90, the top words, and the particle counts — `၏` / `ရဲ့`, `တွင်` / `မှာ`,
+`များ` / `တွေ` — which is exactly the narration/dialogue split the brief
+enforces. `tag.py` dumps the word view with POS families via
+`mt/quality/tag-both.mjs` (both views, scratch dir, nothing under `Engine/`
+written).
+
+To measure the AI text itself, use the MCP tools inside the session:
+`segment_text` returns tokens, units, tags, split counts and coverage, and
+`check_names` returns the canonical/variant pairs. There is no CLI equivalent
+on purpose — those two read whatever text you hand them, and the chapter files
+are not the only place the text lives.
+
+## `mt/mt_compare.py` — the reference audit (one-off, not per chapter)
+
+Read-only, zero API calls, but it profiles the **whole reference** first, so it
+is a once-per-checkout audit rather than a step in the chain:
+
+```sh
+python3 -m pip install --break-system-packages 'json5>=0.12,<1'   # its only dependency
+python3 format/tag_docx.py            # writes content/kmt-pos/ယဲ့နင်.raw_pos.txt (~6.3 MB of prose)
+python3 mt/mt_compare.py --profile    # writes content/analysis/reference-data-audit.json
+```
+
+`--input FILE.jsonl` scores MT candidate records against that profile and writes
+`output/mt/<name>-comparison.jsonl`. It does **not** by itself resolve
+compounds or sentences — its own output says so.
 
 ## `mt/fetch_engine.py` / `format/fetch_dicts.py`
 

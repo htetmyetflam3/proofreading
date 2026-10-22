@@ -35,3 +35,6 @@ Engine/knowledge/dicts/
 kilo.json
 kilo.jsonc
 .kilo/
+
+# Comparison-data cache written by mt/mt_compare.py (rebuildable, 300 KB+)
+content/mtranslate/comparison/
