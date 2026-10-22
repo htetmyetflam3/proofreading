@@ -209,8 +209,11 @@ Three things that bite:
 - The `models` block above is not decoration. Kilo's built-in Groq catalog is
   stale — after Groq's 2026 retirements it may list **only**
   `meta-llama/llama-prompt-guard-2-22m` and `-86m`, which are input-security
-  classifiers, not chat models: they return a risk score and cannot follow an
-  instruction or call a tool. Declaring `openai/gpt-oss-120b` here is what makes
+  classifiers, not chat models: a 512-token window, and the output is one 0–1
+  jailbreak score rather than text — they cannot follow an instruction or call a
+  tool. (The limits Kilo prints beside them are requests and tokens per minute or
+  day, not context; Groq's own page says 512 in, 512 out.) Declaring
+  `openai/gpt-oss-120b` here is what makes
   `groq/openai/gpt-oss-120b` resolvable at run time, even when `kilo models groq`
   still does not print it.
 
@@ -1118,7 +1121,7 @@ compounds or sentences — its own output says so.
 | `kilo run` exits 1 with a permission diagnostic | missing `--auto` |
 | `401` from Groq | `GROQ_API_KEY` value is wrong, or the line is still `groq=key` |
 | `/status` shows Auto Free after you set a model | the key was not exported, or the model id is not in `kilo models groq` |
-| `kilo models groq` lists only `meta-llama/llama-prompt-guard-2-*` | those are prompt-injection **classifiers** (a risk score in, nothing out), not chat models; Kilo's Groq catalog is stale after the 2026 retirements. Declare `openai/gpt-oss-120b` under `provider.groq.models` — the declaration is what makes it resolvable |
+| `kilo models groq` lists only `meta-llama/llama-prompt-guard-2-*` | those are prompt-injection **classifiers**: 22M/86M parameters, a **512-token** window, and the answer is a single 0–1 score, not prose. Kilo's Groq catalog is stale after the 2026 retirements and these are what survived. Declare `openai/gpt-oss-120b` under `provider.groq.models` — the declaration is what makes it resolvable |
 | `Model not found: groq/llama-3.3-70b-versatile` | Groq **retired that id on 2026-08-16** for free and developer keys (enterprise keeps it). There is no Groq setting to enable — the id is gone. Use `openai/gpt-oss-120b`, the replacement Groq itself names |
 | `Model not found` for an id that *is* in `kilo models groq` | one malformed entry under `provider.<id>.models` rejects the whole provider block (Kilo issue #14766). Every entry needs both `limit.context` and `limit.output` |
 | bare `kilo` exits with `UnknownError … ref err_…` | a Kilo-side crash, not a Groq refusal; use `kilo run`, and check the config parses with `kilo models groq` before reading anything into it |
