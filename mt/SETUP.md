@@ -175,9 +175,28 @@ EOF
 
 Why `output` is 16,000 and not 32,000: Kilo subtracts the output reservation
 from the context before it compacts, and every token the model **generates** is
-billed against the same 250k-per-minute Groq budget as its input. This model
-narrates its reasoning by design, so a 32k ceiling is 32k of narration per turn
-that you pay for and never read. 16,000 still fits a 20-record report.
+billed against the same per-minute Groq budget as its input (8k on the free
+plan, 250k on Developer). This model narrates its reasoning by design, so a 32k
+ceiling is 32k of narration per turn that you pay for and never read. 16,000
+still fits a 20-record report.
+
+**If you are on the free plan, set `"output": 2048` instead.** On 8k TPM there
+is no room for a 16k reservation, and some Groq endpoints reject a request whose
+declared `max_tokens` alone breaks the ceiling (413 "Limit 8000, Requested
+8271") before generating anything. Better still: put a card on the account — see
+*If the session dies with "Compaction exhausted"* below.
+
+Which plan is this key on? The response headers say so:
+
+```sh
+set -a; . ~/.env; set +a
+curl -s -D - -o /dev/null https://api.groq.com/openai/v1/chat/completions \
+  -H "Authorization: Bearer $GROQ_API_KEY" -H 'Content-Type: application/json' \
+  -d '{"model":"openai/gpt-oss-120b","max_tokens":1,"messages":[{"role":"user","content":"hi"}]}' \
+  | grep -i 'x-ratelimit-limit-tokens'
+```
+
+`8000` is free, `250000` is Developer.
 
 Three things that bite:
 
@@ -384,12 +403,28 @@ running — fix that before anything else.
 
 ### If the session dies with "Compaction exhausted"
 
-That is a token-budget failure, not a broken tool. Groq allows **250k tokens per
-minute** for this model, and every request pays for its entire input — the
-transcript, every tool result so far, and the system prompt. A session that
-re-reads the 490-line manual and pulls a whole 166-paragraph chapter is sending
-~25k tokens per turn; three turns inside a minute and the fourth gets 429, Kilo
-retries, compaction fails three times, and the session is unrecoverable.
+That is a token-budget failure, not a broken tool. **Check which Groq plan the
+key belongs to before changing anything else**, because the two plans are not
+close:
+
+| plan | TPM | RPM | RPD | TPD |
+|---|---|---|---|---|
+| **Free** (no card) | **8,000** | 30 | 1,000 | 200,000 |
+| Developer (card on file) | 250,000 | 1,000 | 500,000 | none |
+
+`openai/gpt-oss-120b` is the same model on both; only the ceilings differ. The
+8,000 figure is what the console shows as "Rate Limit" on the usage chart, and
+`150% consumed` means one turn asked for 12k tokens in a minute that allowed 8k.
+
+The exact limits for your own organisation are on the limits page in the Groq
+console (Settings → Limits) — the docs table is a sample.
+
+**On the free plan an agent loop cannot run at all**, and trimming does not save
+it: the 16 MCP tool schemas alone are ~3.4k tokens, and they are re-sent with
+every request. Add `START.md` (~1.0k) and one `review_brief` (~2.4k) and the
+first two turns already exceed 8k. Kilo then shows the failure as "context
+exceeds model limits" because compaction is what gives up first — read it as
+rate, not size.
 
 Measured costs, so you can budget rather than guess:
 
@@ -403,14 +438,23 @@ Measured costs, so you can budget rather than guess:
 
 What fixes it, in order:
 
-1. **Start from `START.md`, never from the manual.**
-2. **Window `read_chapter`** — `{"start": 1, "count": 10}`, then follow
+1. **Put a card on the Groq account (Developer plan).** No minimum spend; you
+   pay only for tokens. A 10-turn session at ~10k input per turn is ~100k
+   input tokens ≈ **$0.015**, plus a few thousand output tokens. This is the
+   only fix that makes the free 8k ceiling stop mattering, and it changes
+   nothing in the config — the model id stays `groq/openai/gpt-oss-120b`.
+2. **Start from `START.md`, never from the manual** — worth ~7k on turn one even
+   on the paid plan, because every turn re-sends the transcript.
+3. **Window `read_chapter`** — `{"start": 1, "count": 10}`, then follow
    `window.next_start`. Ten at a time is ~0.7k; the whole chapter is ~13k and
    is re-sent on every later turn.
-3. **`"output": 16000`** in the config, not 32,000. Generated tokens are billed
-   against the same 250k, and this model narrates.
-4. **One chapter per session.** Not two.
-5. If a session already says `Compaction exhausted`, start a new one: the
+4. **`"output": 16000`** on the Developer plan, down from 32,000 — generated
+   tokens are billed against the same budget and this model narrates. On the
+   **free** plan use `2048`: some Groq endpoints reject a request whose declared
+   `max_tokens` alone exceeds the ceiling (413 "Limit 8000, Requested 8271"),
+   so a 16k reservation can fail before a single token is generated.
+5. **One chapter per session.** Not two.
+6. If a session already says `Compaction exhausted`, start a new one: the
    context is gone and retrying only spends more of the minute.
 
 **The whole chain, one message.** The API call is deliberately not in the list:

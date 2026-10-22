@@ -10,7 +10,9 @@ judges **AI-translated text**, and rewrites it into the author's voice.
 
 **If this is the first turn of a session, read `mt/quality/START.md` instead.**
 It is 3,320 characters against this file's 25,791, it carries the same order and
-the token budget, and Groq gives 250k tokens per minute for the whole session.
+the token budget. Groq's per-minute ceiling for this model is 250k on the
+Developer plan and 8k on the free plan — on the free plan an agent loop cannot
+run, because the tool schemas alone are 3.4k and they are re-sent every turn.
 Come back here when you actually start drafting — and then read this file once,
 not once per turn.
 

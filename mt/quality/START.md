@@ -34,8 +34,10 @@ If `available` is false or `attached` is 0, stop and say:
 
 ## The four rules that keep a session alive
 
-Groq gives 250k tokens **per minute** for this model. A request costs its whole
-input, so the way a session dies is by re-sending big things:
+Groq gives this model **250k tokens per minute on the Developer plan and 8k on
+the free plan** — check which one your key is on before blaming the tool. A
+request costs its whole input, so the way a session dies is by re-sending big
+things:
 
 1. **Never re-read a file you already read.** If you need one section, say which.
 2. **Never pull a whole chapter.** `read_chapter` takes `start` and `count`;
