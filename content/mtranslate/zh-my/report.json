@@ -1,0 +1,18 @@
+{
+  "route": "zh-my",
+  "engine": "glossary",
+  "chapters": 2,
+  "sentences": 165,
+  "empty": 0,
+  "skipped": 0,
+  "tokens": 471,
+  "unresolved": 193,
+  "started": 1792674120.8166852,
+  "seconds": 0.0,
+  "status": "ok",
+  "detail": "format/dicts.py (CC-CEDICT + English-Myanmar)",
+  "files": [
+    "content/mtranslate/zh-my/chapters/ch0001.my.txt",
+    "content/mtranslate/zh-my/chapters/ch0002.my.txt"
+  ]
+}

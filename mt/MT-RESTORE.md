@@ -108,6 +108,30 @@ python3 mt/translate.py --route zh-my --engine cmd --cmd-template "$B" \
 
 `mt/pivot.py --compare` diffs them.
 
+## The glossary route is not MT
+
+`--engine glossary` reads two dictionaries (CC-CEDICT, then English→Burmese) and
+prints one line per Chinese word:
+
+```
+世界→ကမ္ဘာ/ကမ္ဘာမြေ
+穿越→ဖြတ်သည်/ကျော်သည်
+帝都→∅
+```
+
+That is a **sense list**, not a translation: word order is the source order, no
+grammar is applied, and 36% of words in chapters 1–2 have no entry at all
+(`∅`). It is the right tool for "what can this word mean", and the wrong tool
+for "how does this sentence read". Never place it beside the AI translation as
+a peer — it belongs with the dictionary, not with the MT columns.
+
+The dictionaries are committed nowhere and rebuild in seconds:
+
+```sh
+python3 format/fetch_dicts.py           # CC-CEDICT 8.6 MB + en-my 16.7 MB, sha256 verified
+python3 mt/translate.py --route zh-my --engine glossary --only 1 --only 2
+```
+
 ## How the MT is used, and how it is not
 
 It is **evidence, not truth**. For each AI-translated sentence the agent may
