@@ -1,5 +1,8 @@
 # Machine translation (`mt/`)
 
+> Setup, keys, Kilo, the MCP server and every command flag live in
+> [`SETUP.md`](SETUP.md). This file only explains the two translation routes.
+
 Two routes, one runner. Engine availability is checked before anything runs, and
 the output directory records which engine actually produced the text.
 

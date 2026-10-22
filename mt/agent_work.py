@@ -429,7 +429,8 @@ def main(argv: list[str] | None = None) -> int:
     group.add_argument("--draft", help="the adjusted Burmese text")
     group.add_argument("--draft-file", type=Path,
                        help="read the text from a file (UTF-8)")
-    save.add_argument("--mt", help="machine text this draft started from")
+    save.add_argument("--ai-text", help="AI translation this draft started from")
+    save.add_argument("--mt", help="deprecated alias of --ai-text")
     save.add_argument("--model", help="which model wrote the draft")
     save.add_argument("--note", help="free-form note")
 
@@ -464,7 +465,7 @@ def main(argv: list[str] | None = None) -> int:
                 else:
                     text = args.draft
                 selected = _select(paragraphs, args.paragraph)
-                payload = store.save(selected, text, mt_text=args.mt,
+                payload = store.save(selected, text, ai_text=args.ai_text or args.mt,
                                      model=args.model, note=args.note)
             elif args.command == "note":
                 payload = store.note(args.chapter, args.paragraph, args.text)

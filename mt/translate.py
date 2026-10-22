@@ -349,7 +349,7 @@ class CommandEngine(Engine):
     was installed last, this engine runs a command you supply and records it in
     the report. The template gets the text on stdin and must answer on stdout:
 
-        --cmd-template "nllb-translate --from zho_Hans --to mya_MM"
+        --cmd-template "my-translator --from {source} --to {target}"
 
     `{text}` may be used instead of stdin; it is replaced with the text and the
     process is run without a pipe. `{source}` and `{target}` are substituted
@@ -480,13 +480,13 @@ def run_route(route: str, engine_name: str, limit: int | None, out_dir: Path,
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--route", action="append", choices=sorted(ROUTES), default=[],
-                        help="route to run; repeatable, default: all four")
+                        help="route to run; repeatable, default: both")
     parser.add_argument("--engine", choices=["offline", "azure", "cmd"], default="offline")
     parser.add_argument("--cmd-template", default=None,
                         help="shell command for --engine cmd; {text} or stdin")
     parser.add_argument("--engine-note", default=None,
                         help="model id/version recorded in report.json, e.g. "
-                             "'nllb-200-distilled-600M-int8'")
+                             "'argos zh-en 1.0'")
     parser.add_argument("--source-file", type=Path, default=None,
                         help="Chinese text; default content/source/chinese-0511241012-from-8011_1.txt")
     parser.add_argument("--limit", type=int, default=None, help="only the first N chapters")
@@ -495,7 +495,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--list", action="store_true", help="show route availability and exit")
     parser.add_argument("--resume", action="store_true", help="skip chapters that already have output")
     parser.add_argument("--cascade", action="store_true",
-                        help="run zh-en, then en-zh (which reads zh-en), then zh-my")
+                        help="run zh-en first, then en-zh, which reads the zh-en output")
     args = parser.parse_args(argv)
 
     if args.list:
@@ -524,12 +524,7 @@ def main(argv: list[str] | None = None) -> int:
         print("[mt] no chapters selected", file=sys.stderr)
         return 2
 
-    if args.cascade:
-        routes = ["zh-en", "en-zh", "zh-my"]
-    else:
-        routes = args.route or sorted(ROUTES)
-    # zh-my has no translation model; --cascade uses the documented dictionary walk
-    # for that leg unless an API engine was asked for explicitly.
+    routes = ["zh-en", "en-zh"] if args.cascade else (args.route or sorted(ROUTES))
     reports = []
     for route in routes:
         out_dir = args.out_dir / route
