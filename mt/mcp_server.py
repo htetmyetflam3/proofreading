@@ -140,8 +140,11 @@ TOOLS = [
                               "description": "1-based index or a paragraph id from "
                                              "read_chapter."},
                 "draft": {"type": "string", "description": "Adjusted Burmese text."},
+                "ai_text": {"type": "string",
+                            "description": "AI translation (RapidAPI output) this draft "
+                                           "started from. Not the legacy MT column."},
                 "mt": {"type": "string",
-                       "description": "Machine translation this draft started from."},
+                       "description": "Deprecated alias of ai_text, kept for old callers."},
                 "model": {"type": "string", "description": "Which model wrote it."},
                 "note": {"type": "string", "description": "Optional note."},
             },
@@ -162,6 +165,40 @@ TOOLS = [
                 "require_all": {"type": "boolean", "default": False},
             },
             "required": ["chapter"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "lookup_word",
+        "description": "Read-only dictionary probe. Says whether a spelling is an entry, "
+                       "its POS families, whether the POS tree can reach it, and returns "
+                       "dictionary-proved repairs for storage-order damage "
+                       "(e.g. အေခြအေန -> အခြေအနေ, ဘ၀ -> ဘဝ). A suggestion is only "
+                       "returned when the written form is not an entry and the repaired "
+                       "form is.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "word": {"type": "string", "description": "The spelling to check."},
+            },
+            "required": ["word"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "segment_text",
+        "description": "Read-only segmentation probe. Runs the repository engine on the "
+                       "text and returns every token with its smallest units and POS "
+                       "candidates, plus which tokens are split clusters and why "
+                       "(word / unit / loan / unknown), plus character coverage. "
+                       "Use it before rewriting a sentence; {?} tags are NOT error "
+                       "signals on their own.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "text": {"type": "string", "description": "One or more sentences."},
+            },
+            "required": ["text"],
             "additionalProperties": False,
         },
     },
@@ -288,6 +325,16 @@ class Server:
                 "requests": result.requests,
                 "cached": result.cached,
             }
+        if name == "lookup_word":
+            word = self._text_arg(arguments, "word")
+            from lexicon import lookup, suggest  # noqa: PLC0415
+            result = lookup(word)
+            result["repairs"] = suggest(word)
+            return result
+        if name == "segment_text":
+            text = self._text_arg(arguments, "text")
+            from lexicon import segment  # noqa: PLC0415
+            return segment(text)
         if name == "translate_chapters":
             return self._translate_chapters(arguments)
         raise KeyError(name)
@@ -332,7 +379,8 @@ class Server:
         draft = arguments.get("draft")
         if not isinstance(draft, str) or not draft.strip():
             raise ValueError("`draft` must be a non-empty string")
-        return self.drafts.save(paragraph, draft, mt_text=arguments.get("mt"),
+        ai_text = arguments.get("ai_text") or arguments.get("mt")
+        return self.drafts.save(paragraph, draft, ai_text=ai_text,
                                 model=arguments.get("model"),
                                 note=arguments.get("note"))
 

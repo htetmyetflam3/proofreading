@@ -1,5 +1,17 @@
 # RapidAPI translator — chapter runs and MCP
 
+## Vocabulary, because two of these are easy to confuse
+
+| name | produced by | what it is |
+|---|---|---|
+| **AI translation** | this RapidAPI caller | the text the proofreading agent judges and rewrites |
+| **MT** | `mt/translate.py` (Argos, offline) → `content/mtranslate/<route>/` | legacy machine translation, kept for reference only |
+| **reference** | `content/merged/episodes.docx` | human Burmese translation; style oracle, carries PDF→DOCX encoding damage |
+
+The API does **not** return MT. It returns AI-translated text, which is
+materially better than the Argos output and should never be referred to as MT
+in prompts, notes, or column names (`save_draft` takes `ai_text`).
+
 Three files:
 
 | file | what it is |

@@ -212,8 +212,18 @@ class DraftStore:
 
     # -- writing ------------------------------------------------------
 
-    def save(self, paragraph: Paragraph, draft_text: str, *, mt_text: str | None = None,
-             model: str | None = None, note: str | None = None) -> dict:
+    def save(self, paragraph: Paragraph, draft_text: str, *, ai_text: str | None = None,
+             mt_text: str | None = None, model: str | None = None,
+             note: str | None = None) -> dict:
+        """Store one revised paragraph.
+
+        `ai_text` is the AI translation the revision started from (the RapidAPI
+        output). `mt_text` is the legacy machine-translated column and is kept
+        only for rows written before the AI column existed; it is not the same
+        thing and must not be conflated. The column is still called `mt_text`
+        in SQLite so existing stores stay readable.
+        """
+        source_text = ai_text if ai_text is not None else mt_text
         text = (draft_text or "").strip()
         if not text:
             raise DraftError("draft text is empty")
@@ -228,7 +238,7 @@ class DraftStore:
                    note = COALESCE(excluded.note, drafts.note),
                    updated_at = datetime('now')""",
             (paragraph.chapter, paragraph.id, paragraph.index, paragraph.text,
-             text, mt_text, model, note),
+             text, source_text, model, note),
         )
         self.db.commit()
         return {"status": "saved", "chapter": paragraph.chapter,

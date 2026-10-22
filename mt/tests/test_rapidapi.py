@@ -644,7 +644,8 @@ class McpTests(ApiTestCase):
         names = {tool["name"] for tool in listed["result"]["tools"]}
         self.assertEqual(names, {"detect_language", "translate_text",
                                  "translate_batch", "translate_chapters",
-                                 "read_chapter", "save_draft", "export_drafts"})
+                                 "read_chapter", "save_draft", "export_drafts",
+                                 "lookup_word", "segment_text"})
         called = process.request("tools/call", {
             "name": "translate_text",
             "arguments": {"text": "你好", "target": "my"},
@@ -755,6 +756,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(payload["tools"], ["detect_language", "translate_text",
                                             "translate_batch", "read_chapter",
                                             "save_draft", "export_drafts",
+                                            "lookup_word", "segment_text",
                                             "translate_chapters"])
         self.assertEqual(payload["key"], "missing")
 

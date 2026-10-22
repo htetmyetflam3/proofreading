@@ -34,6 +34,8 @@ import argparse
 import json
 import os
 import re
+import shlex
+import subprocess
 import sys
 import time
 from dataclasses import dataclass, field
@@ -341,6 +343,60 @@ class AzureEngine(Engine):
         return results
 
 
+class CommandEngine(Engine):
+    """Any installed translator, driven by a shell command template.
+
+    The official Argos index has no Burmese package, so a zh->my or en->my
+    engine has to be installed separately. Rather than hard-code whichever one
+    was installed last, this engine runs a command you supply and records it in
+    the report. The template gets the text on stdin and must answer on stdout:
+
+        --cmd-template "nllb-translate --from zho_Hans --to mya_MM"
+
+    `{text}` may be used instead of stdin; it is replaced with the text and the
+    process is run without a pipe. `{source}` and `{target}` are substituted
+    with the route's language codes.
+    """
+
+    name = "cmd"
+    TIMEOUT = 120
+
+    def __init__(self, source: str, target: str, template: str | None = None) -> None:
+        self.source = source
+        self.target = target
+        self.template = template or os.environ.get("MT_ENGINE_COMMAND", "")
+        self.detail = self.template or "MT_ENGINE_COMMAND is not set"
+
+    def available(self) -> tuple[bool, str]:
+        if not self.template.strip():
+            return False, ("no command template: pass --cmd-template or export "
+                           "MT_ENGINE_COMMAND (see mt/MT-RESTORE.md)")
+        return True, self.template
+
+    def _render(self, text: str) -> str:
+        return (self.template
+                .replace("{source}", self.source)
+                .replace("{target}", self.target)
+                .replace("{text}", shlex.quote(text)))
+
+    def translate(self, texts: list[str], source: str, target: str) -> list[str]:
+        results: list[str] = []
+        for text in texts:
+            command = self._render(text)
+            if "{text}" in self.template:
+                completed = subprocess.run(command, shell=True, capture_output=True,
+                                           text=True, timeout=self.TIMEOUT)
+            else:
+                completed = subprocess.run(command, shell=True, input=text,
+                                           capture_output=True, text=True,
+                                           timeout=self.TIMEOUT)
+            if completed.returncode != 0:
+                raise RuntimeError(f"{command} exited {completed.returncode}: "
+                                   f"{completed.stderr.strip()[:200]}")
+            results.append(completed.stdout.strip())
+        return results
+
+
 class GlossaryEngine(Engine):
     """Dictionary look-up, not a translation engine."""
 
@@ -395,9 +451,12 @@ class GlossaryEngine(Engine):
         return results
 
 
-def resolve(engine: str, source: str, target: str) -> Engine:
+def resolve(engine: str, source: str, target: str,
+            cmd_template: str | None = None) -> Engine:
     if engine == "azure":
         return AzureEngine()
+    if engine == "cmd":
+        return CommandEngine(source, target, cmd_template)
     if engine == "glossary":
         return GlossaryEngine()
     return OfflineEngine(source, target)
@@ -424,10 +483,14 @@ class Report:
 
 
 def run_route(route: str, engine_name: str, limit: int | None, out_dir: Path,
-              chapters: list[Chapter], resume: bool = False) -> Report:
+              chapters: list[Chapter], resume: bool = False,
+              cmd_template: str | None = None,
+              engine_note: str | None = None) -> Report:
     source, target = ROUTES[route]
-    engine = resolve(engine_name, source, target)
+    engine = resolve(engine_name, source, target, cmd_template)
     ok, detail = engine.available()
+    if engine_name == "cmd" and engine_note:
+        detail = f"{detail}  [# {engine_note}]"
     report = Report(route=route, engine=engine.name, detail=detail)
     out_dir.mkdir(parents=True, exist_ok=True)
     if not ok:
@@ -479,7 +542,13 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--route", action="append", choices=sorted(ROUTES), default=[],
                         help="route to run; repeatable, default: all four")
-    parser.add_argument("--engine", choices=["offline", "azure", "glossary"], default="offline")
+    parser.add_argument("--engine", choices=["offline", "azure", "glossary", "cmd"],
+                        default="offline")
+    parser.add_argument("--cmd-template", default=None,
+                        help="shell command for --engine cmd; {text} or stdin")
+    parser.add_argument("--engine-note", default=None,
+                        help="model id/version recorded in report.json, e.g. "
+                             "'nllb-200-distilled-600M-int8'")
     parser.add_argument("--source-file", type=Path, default=None,
                         help="Chinese text; default content/source/chinese-0511241012-from-8011_1.txt")
     parser.add_argument("--limit", type=int, default=None, help="only the first N chapters")
@@ -538,7 +607,9 @@ def main(argv: list[str] | None = None) -> int:
                                   detail="run --route zh-en first"))
             continue
         engine_for_route = route_engine.get(route, args.engine)
-        reports.append(run_route(route, engine_for_route, args.limit, out_dir, route_chapters, args.resume))
+        reports.append(run_route(route, engine_for_route, args.limit, out_dir,
+                                 route_chapters, args.resume, args.cmd_template,
+                                 args.engine_note))
 
     summary = {
         "engine": args.engine,
