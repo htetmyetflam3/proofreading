@@ -6,6 +6,51 @@ judges **AI-translated text**, and rewrites it into the author's voice.
 
 ---
 
+## Start here — the first turn of a session
+
+This brief is the whole job description. The human gives you one chapter number
+and a stop point; everything else comes from here and from the tools.
+
+**Where the work starts.** The human translation (the reference) covers Chinese
+chapters 1–193. Everything after that is untranslated, so the first chapter to
+judge is **194**, and the AI text for it is produced by the human with
+`mt/apicaller.py`, two chapters per call.
+
+**Before you touch a sentence, prove the text is there.**
+
+```
+read_chapter {"chapter": 194}
+```
+
+Look at the `translation` block in the response:
+
+| field | meaning |
+|---|---|
+| `available` | a `ch0194.my.jsonl` exists for this chapter |
+| `attached` | how many paragraphs were matched to it by exact Chinese source |
+| `mismatched` | records whose source no longer matches — they were refused |
+
+`available: true` with `attached` equal to the paragraph count means every
+paragraph carries a `my` field: **that is the AI translation you judge.** The
+reference lines are still in the same response, for voice only.
+
+If `available` is false, or `attached` is 0, **stop**. Do not translate the
+chapter yourself, do not call `translate_chapters`, and do not work from the
+English column. Tell the human:
+
+> Chapter 194 has no AI translation on disk. Run
+> `python3 mt/apicaller.py --run --env-file ~/.env` first.
+
+**Do not spend the API budget.** `translate_chapters` and `translate_text` cost
+money the human pays for. Use `translate_text` only for a short clause whose
+meaning you cannot settle from the Chinese, and never call
+`translate_chapters` unless the human asks for it in that turn.
+
+**One chapter per session.** 194, then stop and report. The next session takes
+195, then 196, and so on. Never work ahead of the chapter you were given.
+
+---
+
 ## The three texts — do not confuse them
 
 | name | where it lives | what it is | what it is for |
@@ -216,18 +261,22 @@ plausible revision as a proved one.
 
 | tool | use |
 |---|---|
-| `read_chapter` | chapter with stable paragraph ids + existing reference lines |
+| `read_chapter` | the chapter: stable paragraph ids, `my` (the AI translation), the reference lines, and the `translation` join block |
 | `segment_text` | run the engine on AI-translated text; tokens, units, splits, coverage |
 | `lookup_word` | dictionary fact + proved repairs for one spelling |
-| `translate_text` / `translate_batch` | check a clause against the Chinese when meaning is in doubt |
+| `review_lookup` | one section of the background document (111 sections): characters, arcs, defects |
+| `translate_text` / `translate_batch` | check a short clause against the Chinese when meaning is in doubt — costs quota, use sparingly |
 | `detect_language` | confirm a stray fragment is Burmese |
 | `save_draft` | store a revision with its AI source text |
 | `export_drafts` | `chNNNN.draft.my.txt` + comparison file |
 
+`read_chapter` is the only source of the AI text. The `my` field is that text;
+do not reconstruct it from the English or from memory.
+
 Chapter start:
 
 ```
-read_chapter {"chapter": 7, "reference_lines": 60}
+read_chapter {"chapter": 194, "reference_lines": 60}
 ```
 
 Per sentence:
@@ -235,18 +284,20 @@ Per sentence:
 ```
 segment_text {"text": "သူက နန်းတော်ကို သွားတယ်။"}
 lookup_word  {"word": "သွားတယ်"}
-save_draft   {"chapter": 7, "paragraph": "0007-042-3f9a1c2b",
+save_draft   {"chapter": 194, "paragraph": "0194-042-3f9a1c2b",
               "ai_text": "...", "draft": "...", "note": "class A"}
 ```
 
 Chapter end:
 
 ```
-export_drafts {"chapter": 7}
+export_drafts {"chapter": 194}
 ```
 
 ## Self-check before finishing a chapter
 
+- [ ] `translation.available` was true before any sentence was judged
+- [ ] every `ai` string is a byte-exact copy of the paragraph's `my` text
 - [ ] the reference was never fed to `segment_text`
 - [ ] every rewrite cites a tool result or a reference count
 - [ ] `unknown` splits did not increase

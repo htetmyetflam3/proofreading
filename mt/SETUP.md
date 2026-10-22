@@ -301,12 +301,29 @@ stale file cannot shift Burmese onto the wrong sentence.
 
 ## 2.3 Run the agent
 
-Interactive:
+Interactive — start Kilo, then point it at the brief and give it one task:
 
 ```sh
 set -a; . ~/.env; set +a
 cd "$REPO" && kilo
 ```
+
+```
+Read mt/quality/finetune-agent-prompt.md and follow it exactly.
+
+Chapter 194. read_chapter first and check translation.available.
+Start at paragraph 1, stop after 5 drafts, then report.
+```
+
+Three lines, because the brief already contains everything else — the register,
+the procedure, the output contract, the honesty clause, and the rule that it must
+not translate a chapter itself or spend API quota. The first line is what makes
+the other two mean anything: without it the agent has opinions about Burmese and
+no instructions.
+
+Do not paste the brief into the chat: it is 300 lines, and pasting it into a
+phone terminal is how a session gets truncated before it starts. Read it from
+disk so the agent can re-read it when the context is compacted.
 
 Headless:
 
@@ -314,9 +331,9 @@ Headless:
 set -a; . ~/.env; set +a
 kilo run --auto -m groq/openai/gpt-oss-120b \
   --file mt/quality/finetune-agent-prompt.md \
-  "Follow the brief. read_chapter chapter 194, confirm translation.available is true.
-   Take paragraphs 1-3: segment_text each 'my' text, lookup_word any word you doubt,
-   save_draft with ai_text set to the original. Stop after three."
+  "Chapter 194. read_chapter first, confirm translation.available is true.
+   Paragraphs 1-5: segment_text each 'my' text, lookup_word any word you doubt,
+   save_draft with ai_text set to that same 'my' text. Stop after five."
 ```
 
 `-m` beats the config file and the last-used model, so a headless run cannot
