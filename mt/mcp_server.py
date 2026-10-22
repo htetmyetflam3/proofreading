@@ -112,16 +112,23 @@ TOOLS = [
     },
     {
         "name": "read_chapter",
-        "description": "Read one Chinese chapter with stable paragraph ids. Each "
+        "description": "Read paragraphs of one Chinese chapter with stable ids. Each "
                        "paragraph carries `my`, the API's Burmese, once "
-                       "api_translate.py has produced it; the existing human Burmese "
-                       "of the same chapter comes back as a style reference; and the "
-                       "response says which paragraphs already have drafts. Call this "
-                       "first.",
+                       "api_translate.py has produced it. Call it with `start` and "
+                       "`count` — ten paragraphs at a time is enough to judge, and a "
+                       "whole 166-paragraph chapter is ~13k tokens that come back on "
+                       "every later turn. The `window` block reports the chapter total "
+                       "and `next_start`, so nothing is skipped. Omit `count` only when "
+                       "you genuinely need the whole chapter in one view.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "chapter": {"type": "integer", "description": "Chinese chapter number."},
+                "start": {"type": "integer", "default": 1,
+                          "description": "First paragraph, 1-based."},
+                "count": {"type": "integer",
+                          "description": "How many paragraphs; default is the rest of "
+                                         "the chapter. 10 keeps a turn small."},
                 "translations": {"type": "string",
                                  "description": "Directory holding chNNNN.my.jsonl from "
                                                 "api_translate.py; default "
@@ -129,7 +136,7 @@ TOOLS = [
                 "reference_lines": {"type": "integer",
                                     "description": "How many existing Burmese lines to "
                                                    "include as a style reference.",
-                                    "default": 60},
+                                    "default": 0},
             },
             "required": ["chapter"],
             "additionalProperties": False,
@@ -268,19 +275,12 @@ TOOLS = [
     },
     {
         "name": "register_name",
-        "description": "Append a genuinely new term to content/reference/EtoBnames.txt. "
-                       "The record has two sides and nothing else: `key` is the English "
-                       "as the zh-en column writes it, `burmese` is the form the AI "
-                       "translation used (corrected by you when it is wrong). No "
-                       "categories. A term is not only a person: a weapon, a martial "
-                       "art, a bloodline ability, a pill, a rank or a place is "
-                       "registered the same way when it will recur — 'Golden Eagle "
-                       "Saber' must be registered even though it translates cleanly on "
-                       "its own, because the API will not spell it the same way in "
-                       "chapter 212. Use it only when no entry exists (check with "
-                       "lookup_name first), never invent an alternative spelling for "
-                       "something already listed, and never replace an existing entry: "
-                       "if an entry looks wrong, flag it in your report instead.",
+        "description": "Append a new recurring term to EtoBnames.txt: two sides, no "
+                       "category — `key` is the English of the zh-en column, `burmese` "
+                       "the AI translation's form, corrected if wrong. Not only people: "
+                       "a weapon, martial art, bloodline ability, pill, rank or place "
+                       "qualifies when it will recur. Only when no entry exists; never "
+                       "a second spelling, never an edit — flag instead.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -299,17 +299,11 @@ TOOLS = [
     },
     {
         "name": "save_verse",
-        "description": "Record ONE line you judged to be verse — a poem, a song, a "
-                       "maxim, an inscription, a philosophy line — with an English "
-                       "version for the human to review. YOU decide what is verse: no "
-                       "tool extracts it, because the boundary between a short sentence "
-                       "and a line of poetry is a reading judgement and you are the one "
-                       "reading. Do this while you re-match tone, when you already have "
-                       "the paragraph in front of you. Write the English yourself or "
-                       "quote the zh-en column (`mt/verse.py mt <chapter>` prints it "
-                       "numbered); say which with `english_source`. Use kind `none` once "
-                       "if the chapter genuinely has no verse — that is different from "
-                       "never having looked.",
+        "description": "Record ONE line YOU judged to be verse — poem, song, maxim, "
+                       "inscription, philosophy line — with an English version for the "
+                       "human. No tool extracts verse: it is a reading judgement, made "
+                       "while you re-match tone. `kind: none` means the chapter was "
+                       "checked and has none, which is not the same as never looking.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -342,11 +336,9 @@ TOOLS = [
     },
     {
         "name": "export_verse",
-        "description": "Write the chapter's verse section — Chinese, the zh-en line, "
-                       "your English, and why — to content/mtranslate/verse/"
-                       "chNNNN.verse.md, which is the 'separate section for careful "
-                       "review' at the end of the chapter. Returns the file, the line "
-                       "count and whether the chapter was checked at all (`none`).",
+        "description": "Write the chapter's verse section (Chinese, English, why) to "
+                       "content/mtranslate/verse/chNNNN.verse.md — the separate section "
+                       "the human reviews at the end of the chapter.",
         "inputSchema": {
             "type": "object",
             "properties": {"chapter": {"type": "integer"}},
@@ -730,19 +722,29 @@ class Server:
         from agent_work import DEFAULT_OUT, read_chapter  # noqa: PLC0415
         from api_translate import BURMESE, CHINESE, DOCX  # noqa: PLC0415
         try:
-            limit = int(arguments.get("reference_lines", 60))
+            limit = int(arguments.get("reference_lines", 0))
         except (TypeError, ValueError):
             raise ValueError("`reference_lines` must be a number") from None
+        try:
+            start = int(arguments["start"]) if arguments.get("start") else None
+            count = int(arguments["count"]) if arguments.get("count") else None
+        except (TypeError, ValueError):
+            raise ValueError("`start` and `count` must be numbers") from None
         translations = arguments.get("translations")
-        return read_chapter(
-            chapter,
-            source=Path(self.source_file or CHINESE),
-            existing=Path(self.existing or BURMESE),
-            docx=Path(self.docx or DOCX),
-            store=self.drafts,
-            reference_lines_limit=max(0, limit),
-            translations=Path(translations) if translations else None,
-        )
+        from agent_work import DraftError  # noqa: PLC0415
+        try:
+            return read_chapter(
+                chapter,
+                source=Path(self.source_file or CHINESE),
+                existing=Path(self.existing or BURMESE),
+                docx=Path(self.docx or DOCX),
+                store=self.drafts,
+                reference_lines_limit=max(0, limit),
+                translations=Path(translations) if translations else None,
+                start=start, count=count,
+            )
+        except DraftError as error:
+            raise ValueError(str(error)) from None
 
     def _save_draft(self, arguments: dict) -> dict:
         from agent_work import DraftError, chapter_paragraphs_by_number, _select  # noqa: PLC0415

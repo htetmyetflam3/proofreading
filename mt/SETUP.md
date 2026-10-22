@@ -153,7 +153,7 @@ cat > ~/.config/kilo/kilo.jsonc <<EOF
       "models": {
         "openai/gpt-oss-120b": {
           "tool_call": true,
-          "limit": { "context": 131072, "output": 32000 }
+          "limit": { "context": 131072, "output": 16000 }
         }
       }
     }
@@ -172,6 +172,12 @@ cat > ~/.config/kilo/kilo.jsonc <<EOF
 }
 EOF
 ```
+
+Why `output` is 16,000 and not 32,000: Kilo subtracts the output reservation
+from the context before it compacts, and every token the model **generates** is
+billed against the same 250k-per-minute Groq budget as its input. This model
+narrates its reasoning by design, so a 32k ceiling is 32k of narration per turn
+that you pay for and never read. 16,000 still fits a 20-record report.
 
 Three things that bite:
 
@@ -362,46 +368,83 @@ cd "$REPO" && kilo
 **First test — background only, costs nothing.** Paste this as one message:
 
 ```
-Read mt/quality/finetune-agent-prompt.md and follow it exactly.
-Then review_brief {} and stop. Quote the register line it gives you and
-state the register you will enforce. Do not open burmese-overview.md.
+Read mt/quality/START.md and follow it. Then review_brief {"chars_per_arc": 60}
+and stop. Report the 15 characters, the three known defects, the reviewer's
+verdict and every arc title, then state the register you will enforce.
 ```
+
+`START.md` is 3,320 characters; `finetune-agent-prompt.md` is 25,791. The card
+is the difference between a first turn that costs ~1k tokens and one that costs
+~8k before any work happens — and the manual is not read at all until you start
+drafting.
 
 You want back: 15 characters, the three known defects, the reviewer's verdict,
 every arc title. If the tool is missing from `/mcps`, the MCP server is not
 running — fix that before anything else.
 
-**The whole chain, one message.** Step 2 is the only paid one; drop it if the
-chapters are already translated. Step 7 is a report, not a rewrite — the tones
-are re-matched one paragraph at a time afterwards.
+### If the session dies with "Compaction exhausted"
+
+That is a token-budget failure, not a broken tool. Groq allows **250k tokens per
+minute** for this model, and every request pays for its entire input — the
+transcript, every tool result so far, and the system prompt. A session that
+re-reads the 490-line manual and pulls a whole 166-paragraph chapter is sending
+~25k tokens per turn; three turns inside a minute and the fourth gets 429, Kilo
+retries, compaction fails three times, and the session is unrecoverable.
+
+Measured costs, so you can budget rather than guess:
+
+| what | tokens |
+|---|---|
+| `mt/quality/START.md` | ~1.0k |
+| `mt/quality/finetune-agent-prompt.md` | ~8.0k |
+| 16 MCP tool schemas (sent every turn) | ~3.4k |
+| `review_brief {}` / `{"chars_per_arc": 60}` | ~4.5k / ~2.4k |
+| `read_chapter` 10 paragraphs / whole 166 | ~0.7k / ~13k |
+
+What fixes it, in order:
+
+1. **Start from `START.md`, never from the manual.**
+2. **Window `read_chapter`** — `{"start": 1, "count": 10}`, then follow
+   `window.next_start`. Ten at a time is ~0.7k; the whole chapter is ~13k and
+   is re-sent on every later turn.
+3. **`"output": 16000`** in the config, not 32,000. Generated tokens are billed
+   against the same 250k, and this model narrates.
+4. **One chapter per session.** Not two.
+5. If a session already says `Compaction exhausted`, start a new one: the
+   context is gone and retrying only spends more of the minute.
+
+**The whole chain, one message.** The API call is deliberately not in the list:
+add `translate_chapters {"chapters": "194&195"}` only when step 2 reports
+`available: false`, and only after saying the request count out loud. Step 7 is
+a report, not a rewrite — the tones are re-matched one paragraph at a time
+afterwards.
 
 ```
-Read mt/quality/finetune-agent-prompt.md and follow it exactly.
-Chapter 194. Work through the chain, then stop and report:
+Read mt/quality/START.md and follow it. Chapter 194. Work in windows of ten
+paragraphs and stop after two windows (paragraphs 1-20). Report only.
 
-1. review_brief {}, then review_lookup {"chapter": 194}. One round each.
-2. translate_chapters {"chapters": "194&195"} — only if read_chapter says
-   translation.available is false. Say the request count out loud first.
-3. read_chapter {"chapter": 194}: report available, attached, mismatched,
-   and quote paragraph 1 Chinese next to its `my`.
-4. check_names on every paragraph's `my` text. List every variant and the
-   canonical form, per paragraph. Do not rewrite anything yet.
-5. segment_text on the same paragraphs. Report splits word/unit/loan/unknown
-   and coverage per sentence; list only the `unknown` ones.
-6. lookup_word for each token the segmenter split, and for each name variant
-   check_names reported. No repair without a dictionary hit.
-7. register_name for a genuinely new term only — and a term is not only a
+1. review_brief {"chars_per_arc": 60}, then review_lookup {"chapter": 194}.
+2. read_chapter {"chapter": 194, "start": 1, "count": 10}. Report
+   available, attached, mismatched, and quote paragraph 1 Chinese + its `my`.
+3. check_names on those ten `my` texts. Table: paragraph, found, canonical.
+   Do not rewrite yet.
+4. segment_text on the same ten. Report splits and coverage; list only the
+   `unknown` ones.
+5. lookup_word for each split token and each name variant. No repair without
+   a dictionary hit.
+6. register_name for a genuinely new term only — and a term is not only a
    person: weapon, martial art, bloodline ability, pill, rank, place. Left side
    is the English of the zh-en column, right side the AI's form corrected if
-   needed. List what you would register and wait for me before writing.
-8. Re-match tone: for each paragraph say which register it is (narration or
-   dialogue), quote its closing particle, and name any sentence that breaks it.
-   Do not save_draft yet.
-9. save_verse for every poem, song, maxim or philosophy line you judged, with
-   its English — zh-en (`english_source: mt`) or your own (`own`). If the
-   chapter has none, `kind: none`. Then export_verse {"chapter": 194}.
+   needed. List what you would register; wait for me before writing.
+7. Tone: per paragraph say narration or dialogue, quote its closing particle,
+   name any sentence that breaks register. Do not save_draft.
+8. save_verse for any poem, song, maxim or philosophy line in these ten, with
+   its English — zh-en (english_source: mt) or your own (own). Then
+   export_verse {"chapter": 194}.
+9. read_chapter {"start": 11, "count": 10} and repeat 3-7 on that window.
 
-Nothing is rewritten in this pass. Report at the end.
+Nothing is rewritten in this pass. Do not paste tool results back; quote the
+field that decided it. Report at the end.
 ```
 
 `translate_chapters` is the only line that spends money: it refuses more than

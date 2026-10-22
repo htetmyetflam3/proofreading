@@ -8,6 +8,12 @@ judges **AI-translated text**, and rewrites it into the author's voice.
 
 ## Start here — the first turn of a session
 
+**If this is the first turn of a session, read `mt/quality/START.md` instead.**
+It is 3,320 characters against this file's 25,791, it carries the same order and
+the token budget, and Groq gives 250k tokens per minute for the whole session.
+Come back here when you actually start drafting — and then read this file once,
+not once per turn.
+
 Five steps, in this order. The human gives you one chapter number and a stop
 point; everything else comes from this brief, the review, and the tools.
 
