@@ -68,7 +68,7 @@ content/mtranslate/manifest.json                   every route of the last run
 glosses through the English-Myanmar dictionary, and prints what it resolved:
 
 ```
-这些→∅ 人口→လူဦးရေ/ဦးရေ 底子→အောက်ခြေ/အောက်ခံ 若是→လျှင်/ချ့လျှင် …
+这些人口，可都是大周的底子  →  人口→လူဦးရေ/ဦးရေ 底子→အောက်ခြေ/အောက်ခံ
 ```
 
 It measures dictionary coverage (`unresolved` / `tokens` in `report.json`), which
