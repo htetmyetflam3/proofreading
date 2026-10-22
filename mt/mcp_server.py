@@ -111,13 +111,20 @@ TOOLS = [
     },
     {
         "name": "read_chapter",
-        "description": "Read one Chinese chapter with stable paragraph ids, plus the "
-                       "existing human Burmese of the same chapter (when it exists) "
-                       "and which paragraphs already have agent drafts.",
+        "description": "Read one Chinese chapter with stable paragraph ids. Each "
+                       "paragraph carries `my`, the API's Burmese, once "
+                       "api_translate.py has produced it; the existing human Burmese "
+                       "of the same chapter comes back as a style reference; and the "
+                       "response says which paragraphs already have drafts. Call this "
+                       "first.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "chapter": {"type": "integer", "description": "Chinese chapter number."},
+                "translations": {"type": "string",
+                                 "description": "Directory holding chNNNN.my.jsonl from "
+                                                "api_translate.py; default "
+                                                "content/mtranslate/rapidapi."},
                 "reference_lines": {"type": "integer",
                                     "description": "How many existing Burmese lines to "
                                                    "include as a style reference.",
@@ -447,6 +454,7 @@ class Server:
             limit = int(arguments.get("reference_lines", 60))
         except (TypeError, ValueError):
             raise ValueError("`reference_lines` must be a number") from None
+        translations = arguments.get("translations")
         return read_chapter(
             chapter,
             source=Path(self.source_file or CHINESE),
@@ -454,6 +462,7 @@ class Server:
             docx=Path(self.docx or DOCX),
             store=self.drafts,
             reference_lines_limit=max(0, limit),
+            translations=Path(translations) if translations else None,
         )
 
     def _save_draft(self, arguments: dict) -> dict:

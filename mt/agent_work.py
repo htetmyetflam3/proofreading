@@ -93,6 +93,7 @@ class Paragraph:
     chapter: int
     index: int
     text: str
+    translation: str = ""
 
     @property
     def id(self) -> str:
@@ -126,10 +127,52 @@ def chapter_paragraphs_by_number(number: int, *, source: Path = CHINESE,
                                                             keep_notes=keep_notes), 1)]
 
 
+DEFAULT_TRANSLATIONS = ROOT / "content" / "mtranslate" / "rapidapi"
+
+
+def load_translation(chapter: int, paragraphs: list["Paragraph"],
+                     directory: Path | None = None) -> dict:
+    """The API's Burmese for one chapter, aligned to paragraphs by index.
+
+    Written by `mt/api_translate.py --run` as `ch0001.my.jsonl`. Alignment is
+    checked, not assumed: a record is only attached when its `source` equals the
+    paragraph's Chinese text, so a stale file cannot silently shift the Burmese
+    onto the wrong sentence.
+    """
+    directory = Path(directory) if directory is not None else DEFAULT_TRANSLATIONS
+    path = directory / f"ch{chapter:04d}.my.jsonl"
+    if not path.is_file():
+        return {"available": False, "file": None, "attached": 0,
+                "mismatched": 0, "detail": f"no API translation at {path}"}
+    by_index: dict[int, dict] = {}
+    with path.open(encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            record = json.loads(line)
+            by_index[int(record.get("index", 0))] = record
+    attached = mismatched = 0
+    for paragraph in paragraphs:
+        record = by_index.get(paragraph.index)
+        if record is None:
+            continue
+        if record.get("source", "").strip() != paragraph.text.strip():
+            record["aligned"] = False
+            mismatched += 1
+            continue
+        paragraph.translation = record.get("target", "")
+        attached += 1
+    return {"available": True, "file": str(path), "attached": attached,
+            "mismatched": mismatched,
+            "detail": "aligned by index and verified against the source text"}
+
+
 def read_chapter(number: int, *, source: Path = CHINESE, existing: Path = BURMESE,
                  docx: Path = DOCX, chapter_map: ChapterMap | None = None,
                  store: "DraftStore | None" = None, reference_lines_limit: int = 60,
-                 with_reference: bool = True) -> dict:
+                 with_reference: bool = True,
+                 translations: Path | None = None) -> dict:
     """Everything an agent needs before translating one chapter."""
     chapters = _chapters(source)
     paragraphs = chapter_paragraphs_by_number(number, source=source)  # raises if absent
@@ -146,10 +189,13 @@ def read_chapter(number: int, *, source: Path = CHINESE, existing: Path = BURMES
         for ref in numbers:
             if ref in burmese:
                 reference.extend(reference_lines(burmese[ref]))
+    translation = load_translation(number, paragraphs, translations)
     payload = {
         "chapter": number,
         "title": chapter.title,
-        "paragraphs": [{"id": item.id, "index": item.index, "zh": item.text}
+        "translation": {key: value for key, value in translation.items() if key != "file"},
+        "paragraphs": [{"id": item.id, "index": item.index, "zh": item.text,
+                        **({"my": item.translation} if item.translation else {})}
                        for item in paragraphs],
         "reference": {
             "chapters": numbers,
