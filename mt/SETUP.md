@@ -814,6 +814,7 @@ read a word. `--tools` narrows what the process advertises:
 | `--tools lean` | 7 | 5,468 | the smallest loop that still edits: read ten, segment, check a name, save a draft |
 | `--tools survey` | 11 | 7,501 | the read-only first pass: review digest, names, verse |
 | `--tools edit` | 11 | 7,398 | rewriting paragraphs; no review digest, no API |
+| `--tools review` | 2 | 1,460 | one `review_brief` question on an 8k-per-minute key |
 | `--tools review,names` | 5 | 3,282 | groups instead of presets, comma-separated |
 
 Groups: `read` `review` `names` `verse` `draft` `api`. Presets: `survey` `edit`
@@ -1110,6 +1111,9 @@ compounds or sentences — its own output says so.
 | `kilo run` exits 1 with a permission diagnostic | missing `--auto` |
 | `401` from Groq | `GROQ_API_KEY` value is wrong, or the line is still `groq=key` |
 | `/status` shows Auto Free after you set a model | the key was not exported, or the model id is not in `kilo models groq` |
+| `Model not found: groq/llama-3.3-70b-versatile` | Groq **retired that id on 2026-08-16** for free and developer keys (enterprise keeps it). There is no Groq setting to enable — the id is gone. Use `openai/gpt-oss-120b`, the replacement Groq itself names |
+| `Model not found` for an id that *is* in `kilo models groq` | one malformed entry under `provider.<id>.models` rejects the whole provider block (Kilo issue #14766). Every entry needs both `limit.context` and `limit.output` |
+| bare `kilo` exits with `UnknownError … ref err_…` | a Kilo-side crash, not a Groq refusal; use `kilo run`, and check the config parses with `kilo models groq` before reading anything into it |
 | edits look like a different model wrote them | a session-level pick overrode `kilo.jsonc`; `/models` to reset, or pass `-m` |
 | `/mcp` shows no server | `kilo.jsonc` path wrong, or python path in `command` is wrong |
 | `--194&195` returns to the prompt, then `195: command not found` | unquoted `&`; use `'--194&195'` or `--194+195` |
