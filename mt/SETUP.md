@@ -457,6 +457,78 @@ What fixes it, in order:
 6. If a session already says `Compaction exhausted`, start a new one: the
    context is gone and retrying only spends more of the minute.
 
+### A bigger free budget: Cerebras (same model, different ceiling)
+
+`gpt-oss-120b` is served by Cerebras too, with the **per-minute token budget as
+the difference** — this is the number that matters, not the context window:
+
+| provider / tier | TPM | RPM | daily | context |
+|---|---|---|---|---|
+| Groq free | 8,000 | 30 | 200,000 | 131,072 |
+| Groq Developer | 250,000 | 1,000 | none | 131,072 |
+| **Cerebras Free Trial** | **30,000 uncached / 90,000 total** | **5** | 1M tokens/day | **65,536** |
+| Cerebras Developer | 1,000,000 uncached / 3M total | 1,000 | none | 131,072 |
+
+Two things to read carefully:
+
+- **"120" in the product name is the parameter count** — 120 billion — not a
+  token count. The context is 65k on the free trial and 131k paid, so a Kilo
+  config that says `131072` will over-commit on the free tier and compact too
+  late; the provider answers with a 400. Set `65536` there.
+- **5 RPM is the real constraint**, not the 30k TPM: a tool-calling turn is two
+  or three requests (model → tool, tool result → model), so the free trial
+  affords roughly two turns a minute. That is fine for a human typing, useless
+  for a loop. Cerebras also publishes 30k *uncached* against 90k *total* TPM,
+  which means the repeated static prefix — the 16 tool schemas and
+  `START.md` — can be discounted by prompt caching. Confirm on your own usage
+  page rather than trusting it.
+
+The trial needs a verified card for $5 of credit that expires after 30 days;
+there is no permanently free tier. Kilo ships a built-in `cerebras` provider,
+so nothing but the config changes:
+
+```sh
+echo 'CEREBRAS_API_KEY=your_key' >> ~/.env
+set -a; . ~/.env; set +a
+
+cat > ~/.config/kilo/kilo.jsonc <<EOF
+{
+  "\$schema": "https://app.kilo.ai/config.json",
+  "model": "cerebras/gpt-oss-120b",
+  "provider": {
+    "cerebras": {
+      "env": ["CEREBRAS_API_KEY"],
+      "models": {
+        "gpt-oss-120b": {
+          "tool_call": true,
+          "limit": { "context": 65536, "output": 16000 }
+        }
+      }
+    }
+  },
+  "mcp": {
+    "rapidapi-translator": {
+      "type": "local",
+      "command": ["$(command -v python3)", "$REPO/mt/mcp_server.py",
+                  "--env-file", "$HOME/.env"],
+      "enabled": true
+    }
+  }
+}
+EOF
+
+kilo models cerebras          # the id must appear before you rely on it
+```
+
+Later, if you go back to Groq, swap the `model` line back to
+`groq/openai/gpt-oss-120b` and keep everything else — the tools, the card and
+the chain are provider-independent.
+
+**Cost comparison for a real session** (10 turns, ~10k input and ~1k output
+each ≈ 100k in / 10k out): Groq `$0.015 + $0.006` ≈ **$0.021**; Cerebras
+`$0.035 + $0.008` ≈ **$0.043**. Cerebras is about twice the price per token and
+roughly 20× faster per second (≈3,000 tok/s); at this scale both are cents.
+
 **The whole chain, one message.** The API call is deliberately not in the list:
 add `translate_chapters {"chapters": "194&195"}` only when step 2 reports
 `available: false`, and only after saying the request count out loud. Step 7 is
