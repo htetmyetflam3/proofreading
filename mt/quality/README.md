@@ -42,7 +42,12 @@ tagger never built:
 entries). The split is upstream of both, so `{?}` on a mark is an engine
 artifact, never evidence of bad text.
 
-Genuine gaps found so far: `ကမ္ဘာ` is absent from `master.json` entirely (`ကမ္ဘ`
-= 0 hits; only Pali `သမ္ဘာ` and friends), `ဧ`/`ဦး` are absent from the unit
-table, and `syllables.pali` (704 units, e.g. `န္ဓာ`) is never merged into
-`syllable.mapped.txt`, so every Pali-cluster entry is unreachable at build time.
+Genuine gaps:
+
+- **Fixed** — `syllables.pali` (732 units, e.g. `န္ဓာ`, `ဒ္ဓ`, `က္က`) used to be
+  dropped by the syllable loader, so no Pali dictionary entry could be reached
+  and every `္` cluster split. The loader now reads both lists and the cache is
+  rebuilt: 3,229 units, 0 blocked entries, `ဗုဒ္ဓ` and `ခန္ဓာ` whole.
+- Still open: `ကမ္ဘာ` is absent from the dictionary (`ကမ္ဘ` = 0 hits; only Pali
+  `သမ္ဘာ` and friends). It now segments as `က · မ္ဘာ` — the correct smallest
+  units — but no entry joins them into a word.

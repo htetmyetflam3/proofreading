@@ -283,9 +283,11 @@ Read three things from the result:
 
 - **token boundaries** — is the AI text forming words the dictionary knows?
 - **splits** — each split cluster is labelled `word`, `unit`, `loan`, or
-  `unknown`. `loan` means a Pali/virama cluster the inventory cannot name:
-  ignore it, it is an engine gap. `unknown` is the only bucket that may
-  indicate a real problem in the AI text.
+  `unknown`. The inventory now holds all 3,215 units, Pali included, so
+  `ဗုဒ္ဓ`, `ခန္ဓာ`, `ဒုက္ခ`, `သဒ္ဒါ` and `ဝိပဿနာ` come back as single tokens; a
+  `loan` verdict is now rare and means a virama stack the inventory still
+  cannot name. `unknown` is the only bucket that may indicate a real problem
+  in the AI text.
 - **coverage** — characters no entry can explain. `1.0` means every Burmese
   character is accounted for by a word or a syllable.
 
@@ -370,8 +372,9 @@ returns a proved repair. The AI text is clean enough that this is rare.
   `register_name`; you never edit, re-spell, or replace an entry that is there.
 - The review. It is the record of what a human ruled. You align to it; you do
   not correct it, and you do not coin a term it left open. Flag instead.
-- Anything the engine labels `loan` — `ဗုဒ္ဓ`, `ခန္ဓာ`, `ကမ္ဘာ`, `သက္ကတ` split
-  because the syllable inventory lacks Pali units. Not a spelling error.
+- A Pali stack the engine still reports as `loan`. The 732 Pali units are in
+  the tree, so this is the leftover inventory gap, not a spelling error — flag
+  it, do not re-spell it.
 - Words where `lookup_word` says `no proved repair`.
 - The house particles: `၏`, `တွင်`, `များ` in narration.
 - Sentence length, for its own sake. Long is the house style.

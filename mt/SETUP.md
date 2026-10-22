@@ -488,8 +488,44 @@ Read-only over `Engine/`. Never writes `master.json`, the tree, or the caches.
 
 CLI: `--lookup WORD`, `--coverage TEXT`, `--suggest TEXT`, `--segment TEXT`.
 
-Split verdicts: `word` (entry), `unit` (known syllable), `loan` (Pali virama stack,
-an engine gap — not an error), `unknown` (neither — the only suspect bucket).
+Split verdicts: `word` (entry), `unit` (known syllable), `loan` (a virama stack
+the inventory still cannot name — rare, since the tree now carries all 732 Pali
+units), `unknown` (neither — the only suspect bucket).
+
+### Rebuilding the syllable tree
+
+The tree in `Engine/.cache-tree/` is built from the sealed master in
+`Engine/MonoSyllabism/map/master.json.enc`. Rebuild it whenever the syllable
+lists or the builder change — never edit the four files by hand.
+
+```sh
+node --import ./scraper/wasm/box/runtime-guard.mjs mt/rebuild_tree.mjs
+```
+
+The guard import is required: the builder calls `MyNormalize()`, which lives in
+the WASM. It prints the unit count and the four hashes, then rewrites
+`Engine/CACHE-SOURCE.json` — `tag-text.mjs`, `mt/quality/tag-both.mjs` and
+`mt/quality/units.mjs` all verify the cache against that file, so a stale hash
+fails loudly instead of silently tagging with an old tree.
+
+The build is deterministic: burmese first, then pali, so every existing unit
+keeps its id. `--out DIR` writes elsewhere; `--no-record` leaves the manifest
+alone.
+
+`runBuild` writes only the four cache files. Do **not** use `runBuildPos` to
+regenerate them: it prunes dictionary rows from the master it is handed, which
+is why `tag-both.mjs` gives it a scratch copy.
+
+### Is the WASM current?
+
+```sh
+node scraper/wasm/box/tools/verify-payload.mjs
+```
+
+It decrypts the payload inside `box.wasm` and diffs all four modules and the
+API shim against the sources on disk. Exit 0 means the binary **is** the code
+you are reading — no rebuild. The tree is data: it lives outside the WASM, so a
+tree rebuild never needs a new binary.
 
 ## `mt/overview_index.py` — the background document
 
@@ -558,6 +594,9 @@ python3 mt/names.py --add 'Shen Ji = ရှန်းကျီ'
 | `--194&195` returns to the prompt, then `195: command not found` | unquoted `&`; use `'--194&195'` or `--194+195` |
 | `2 at a time` refusal | intended: run the pairs it prints, in order |
 | `read_chapter` has no `my` field | `apicaller.py --run` has not produced that chapter |
+| Pali words split at every `္` (`ဗု · ဒ · ္ဓ`) | old cache: the loader stopped after `burmese`. Rebuild with `mt/rebuild_tree.mjs` |
+| `Original scraper cache hash mismatch` | the tree was edited by hand; rebuild it, never patch the four files |
+| `Master mapData.* differs from the built WASM` | `mapData` was edited; check with `scraper/wasm/box/tools/verify-payload.mjs` before rebuilding the binary |
 | a name keeps changing between chapters | it was never in `EtoBnames.txt`; `names.py --add` it once, then reuse |
 | `--add` refuses with "already owns" | the Burmese form belongs to another key — reuse that key, or pick a different form deliberately |
 | `translation.attached` is 0 but `available` is true | the jsonl exists but its `source` lines no longer match the Chinese — regenerate it |

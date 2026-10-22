@@ -14,11 +14,13 @@ is *why*:
 
   word       the joined form is a dictionary entry           -> fine
   unit       the joined form is a known syllable             -> fine
-  loan       the joined form needs a virama stack (Pali)     -> engine gap
+  loan       a virama stack the unit table cannot name       -> rare, report it
   unknown    neither                                         -> suspect text
 
 Only `unknown` justifies a repair, and only together with a dictionary hit for
-the proposed spelling.
+the proposed spelling. Since the tree carries both syllable lists, Pali stacks
+such as `ဒ္ဓ` and `န္ဓာ` are ordinary units: `ဗုဒ္ဓ` and `ခန္ဓာ` come back as one
+token each, not three fragments.
 """
 
 from __future__ import annotations
@@ -170,30 +172,45 @@ def _known() -> tuple[frozenset[str], int]:
 
 
 def coverage(text: str, min_span: int = 1) -> dict:
-    """Greedy longest-match coverage: what does no dictionary word explain?
+    """How much of the text can some entry or unit explain?
 
     Only catches text that no entry or unit can name — genuinely unknown
     characters. It CANNOT see a same-inventory misassembly such as
     `အေခြ` for `အခြေ`, because `အေ` and `ခြ` are both valid units; use
     suggest() for that class.
+
+    The parse maximises the number of covered characters, per position, rather
+    than taking the longest match at each stop. Greedy longest-match used to
+    jump word boundaries — `ဗုဒ္ဓကိုကြည်ညို` matched `ကိုက` across `ကို` + `က`
+    and left the `ြ` and the `်` orphaned — so clean text was reported at 0.89
+    and the agent chased characters that were never damaged.
     """
     known, longest = _known()
     # Punctuation is not a word; counting it as uncovered would drown the signal.
     skip = set("\u104a\u104b\u104c\u104d.,;:!?\u201c\u201d\u2018\u2019()[]-\u2026")
     chars = [c for c in text if not c.isspace() and c not in skip]
     n = len(chars)
+    flat = canonical("".join(chars))
+
+    # best[i] = most characters explainable from i onward; take[i] = span used.
+    best = [0] * (n + 1)
+    take = [0] * (n + 1)
+    for i in range(n - 1, -1, -1):
+        best[i] = best[i + 1]            # leaving chars[i] uncovered is legal
+        for size in range(1, min(longest, n - i) + 1):
+            if flat[i:i + size] in known:
+                score = size + best[i + size]
+                if score > best[i]:
+                    best[i], take[i] = score, size
+
     covered = [False] * n
     i = 0
     while i < n:
-        for size in range(min(longest, n - i), 0, -1):
-            candidate = canonical("".join(chars[i:i + size]))
-            if candidate in known:
-                for j in range(i, i + size):
-                    covered[j] = True
-                i += size
-                break
-        else:
-            i += 1
+        size = take[i]
+        if size:
+            for j in range(i, i + size):
+                covered[j] = True
+        i += size or 1
 
     spans = []
     i = 0

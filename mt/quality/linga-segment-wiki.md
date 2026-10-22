@@ -76,3 +76,23 @@ Two data fixes, no walker change:
 
 1. drop or narrow the `က္က → ဣ` imposter entry
 2. merge `syllables.pali` into the syllable lookup that `runBuild` consumes
+
+## Status 2026-10-22 — fix 2 is in; fix 1 is still open
+
+`Tree.loaded.js` now reads every list under `syllables`, and the cache was
+rebuilt from the sealed master. Burmese is read first, so no existing id moved.
+
+| | before | after |
+|---|---|---|
+| units in `syllable.mapped.txt` | 2,521 | 3,229 |
+| dictionary entries reachable | 29,151 | 29,571 |
+| entries blocked at POS build | 1,216 | **0** |
+| `ဗုဒ္ဓ` | `ဗု · ဒ · ္ဓ` | `ဗု · ဒ္ဓ` — one token `ဗုဒ္ဓ{n}` |
+| `ဒုက္ခ` | `ဒု · က · ္ခ` | `ဒု · က္ခ` — one token `ဒုက္ခ{n}` |
+| `ခန္ဓာ` | `ခ · န · ္ဓ · ာ` | `ခ · န္ဓာ` — one token `ခန္ဓာ{n}` |
+
+Old ids are byte-identical for all 2,521 shared units; the rebuild only adds.
+`သက္ကတ` still comes out `သ · ဣ · တ`, because that one is the `က္က → ဣ`
+imposter rule, not the inventory. Fix 1 (narrowing `IMPOSTER`) is untouched: it
+is deliberate data in `mapData`, and the owner's instruction is that the mark
+order and `mapData` stay as shipped.

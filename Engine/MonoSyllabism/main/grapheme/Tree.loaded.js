@@ -95,28 +95,49 @@ export function hasPosStep(node, stepNum) {
 // ============================================
 
 /* master.json keeps the syllable list either at  "syllables": [ ... ]
-   or nested as  "syllables": { "burmese": [ ... ] }. Both shapes stream
-   through one line loop — only the moment the string array OPENS differs.
-   `for await` accepts a plain array as well as a readline interface, so the
-   decrypted-text path and the plaintext-file path share this machine. */
+   or nested as  "syllables": { "burmese": [ ... ], "pali": [ ... ] }.
+   Both shapes stream through one line loop — only the moment the string
+   array OPENS differs. `for await` accepts a plain array as well as a
+   readline interface, so the decrypted-text path and the plaintext-file path
+   share this machine.
+
+   EVERY list under the nested shape is read, not just the first one. The
+   732 Pali units (`န္ဓာ`, `က္က`, `ဋ္ဌ` — the virama stacks) live in the second
+   list, and stopping at the end of `burmese` left them out of the tree
+   entirely: every Pali dictionary entry was unreachable and the segmentor
+   split `ဗုဒ္ဓ` into `ဗု · ဒ · ္ဓ`. Burmese is read first so its ids stay
+   exactly as they were; Pali units are appended after them. */
+const NESTED_LIST = /^"(?:burmese|pali)"\s*:\s*\[\s*$/;
+
 async function* _syllablesFromLines(lines) {
   let inSection = false;   // saw the "syllables" key
-  let collecting = false;  // inside its string array
+  let collecting = false;  // inside one of its string arrays
+  let bare = false;        // "syllables": [ ... ] — one unnamed list
   for await (const line of lines) {
     const trimmed = line.trim();
     if (!inSection) {
       const m = trimmed.match(/^"syllables"\s*:\s*([\[{])/);
       if (m) {
         inSection = true;
-        collecting = m[1] === '['; // bare array opens the list at once
+        bare = m[1] === '[';
+        collecting = bare; // bare array opens the list at once
       }
       continue;
     }
-    if (!collecting) {
-      if (/^"burmese"\s*:\s*\[\s*$/.test(trimmed)) collecting = true;
-      continue;
+    if (bare) {
+      if (trimmed.startsWith(']')) break;
+    } else {
+      if (trimmed.startsWith('}')) break;          // end of the syllables object
+      if (NESTED_LIST.test(trimmed)) {             // next list opens
+        collecting = true;
+        continue;
+      }
+      if (collecting && trimmed.startsWith(']')) { // one list closed, keep going
+        collecting = false;
+        continue;
+      }
     }
-    if (trimmed === ']' || trimmed.startsWith('],')) break;
+    if (!collecting) continue;
     const match = line.match(/^\s*("(?:\\.|[^"\\])*")/);
     if (match) yield JSON.parse(match[1]);
   }

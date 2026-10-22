@@ -96,3 +96,25 @@ dictionary a little more; the tree keeps only what survived.
    the tree dir instead. Otherwise the source of truth erodes.
 
 Fix 1 alone takes the two chapters from ~15% unknown to ~7–8%.
+
+## 2026-10-22 — what was copied, what was patched, what needed no rebuild
+
+Compared against `linga@57c7742` (`architecture`) with `diff -rq`:
+
+| path | difference | action |
+|---|---|---|
+| `MonoSyllabism/graph/build.js`, `shape.js` | none | nothing to copy — the tree builder **is** linga's |
+| `MonoSyllabism/graph/disassembler.js` | `export const POS_MAP` | keep: `Engine/export-comparison-data.mjs` imports it |
+| `MonoSyllabism/main/grapheme/Tree.loaded.js` | none in linga — the Pali defect is in **both** | patched here: read every list under `syllables` |
+| `generators/idmap.js`, `generators/input.js`, `utilities/formatter.js`, `map/loader.js` | local fixes for mark order and the WASM runtime | unchanged |
+
+So "copy the tree builder from linga" would have copied the bug: `graph/` was
+already in sync, and the defect was in the syllable loader two directories
+away. `Tree.loaded.js` stopped at the end of the `burmese` array, so
+`syllables.pali` never reached `runBuild()` even though the builder itself was
+fine.
+
+The WASM needed no rebuild. Its payload decrypts to exactly the four
+`mapbuilder/base` modules and the `mapData` tables that are on disk
+(`node scraper/wasm/box/tools/verify-payload.mjs` → all `ok`). The tree is
+data outside the capsule, so a tree fix is a data change.
