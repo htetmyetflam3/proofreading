@@ -279,6 +279,22 @@ class McpDraftTests(ApiTestCase):
         self.assertEqual(payload["reference"]["chapters"], [61])
         self.assertEqual(payload["drafts"]["saved"], 0)
 
+    def test_read_chapter_window_keeps_turns_small(self):
+        """A whole 166-paragraph chapter is ~13k tokens, re-sent every turn."""
+        payload = self.call("read_chapter", chapter=61, start=2, count=1)
+        self.assertEqual([item["index"] for item in payload["paragraphs"]], [2])
+        self.assertEqual(payload["window"],
+                         {"start": 2, "count": 1, "total": 3,
+                          "more": True, "next_start": 3})
+        last = self.call("read_chapter", chapter=61, start=3, count=10)
+        self.assertFalse(last["window"]["more"])
+        self.assertIsNone(last["window"]["next_start"])
+        self.assertEqual(len(last["paragraphs"]), 1)
+
+    def test_read_chapter_window_outside_the_chapter_is_an_error(self):
+        with self.assertRaises(ValueError):
+            self.call("read_chapter", chapter=61, start=99)
+
     def test_save_then_read_and_export(self):
         payload = self.call("read_chapter", chapter=61)
         first = payload["paragraphs"][0]["id"]

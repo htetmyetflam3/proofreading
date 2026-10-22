@@ -172,8 +172,17 @@ def read_chapter(number: int, *, source: Path = CHINESE, existing: Path = BURMES
                  docx: Path = DOCX, chapter_map: ChapterMap | None = None,
                  store: "DraftStore | None" = None, reference_lines_limit: int = 60,
                  with_reference: bool = True,
-                 translations: Path | None = None) -> dict:
-    """Everything an agent needs before translating one chapter."""
+                 translations: Path | None = None,
+                 start: int | None = None, count: int | None = None) -> dict:
+    """Everything an agent needs before translating one chapter.
+
+    `start` and `count` window the paragraphs (1-based, inclusive). They exist
+    because the whole chapter is the single most expensive thing an agent can
+    ask for: 166 paragraphs of Chinese plus Burmese is ~13k tokens, it is resent
+    on every later turn, and Groq's TPM budget is 250k for the whole minute. Ten
+    paragraphs at a time is enough to judge, and the `window` block says how
+    much is left so nothing gets skipped.
+    """
     chapters = _chapters(source)
     paragraphs = chapter_paragraphs_by_number(number, source=source)  # raises if absent
     chapter = chapters[number]
@@ -190,13 +199,21 @@ def read_chapter(number: int, *, source: Path = CHINESE, existing: Path = BURMES
             if ref in burmese:
                 reference.extend(reference_lines(burmese[ref]))
     translation = load_translation(number, paragraphs, translations)
+    total = len(paragraphs)
+    first = max(1, int(start)) if start else 1
+    last = total if count is None else min(total, first + max(1, int(count)) - 1)
+    if first > total:
+        raise DraftError(f"paragraph {first} is outside this chapter's 1–{total}")
+    window = paragraphs[first - 1:last]
     payload = {
         "chapter": number,
         "title": chapter.title,
         "translation": {key: value for key, value in translation.items() if key != "file"},
+        "window": {"start": first, "count": len(window), "total": total,
+                   "more": last < total, "next_start": last + 1 if last < total else None},
         "paragraphs": [{"id": item.id, "index": item.index, "zh": item.text,
                         **({"my": item.translation} if item.translation else {})}
-                       for item in paragraphs],
+                       for item in window],
         "reference": {
             "chapters": numbers,
             "lines": len(reference),
@@ -214,7 +231,7 @@ def read_chapter(number: int, *, source: Path = CHINESE, existing: Path = BURMES
     }
     if store is not None:
         saved = store.ids_for(number)
-        payload["drafts"] = {"saved": len(saved), "missing": len(paragraphs) - len(saved),
+        payload["drafts"] = {"saved": len(saved), "missing": total - len(saved),
                              "ids": saved}
     return payload
 

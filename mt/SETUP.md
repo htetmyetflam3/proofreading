@@ -153,7 +153,7 @@ cat > ~/.config/kilo/kilo.jsonc <<EOF
       "models": {
         "openai/gpt-oss-120b": {
           "tool_call": true,
-          "limit": { "context": 131072, "output": 32000 }
+          "limit": { "context": 131072, "output": 16000 }
         }
       }
     }
@@ -172,6 +172,31 @@ cat > ~/.config/kilo/kilo.jsonc <<EOF
 }
 EOF
 ```
+
+Why `output` is 16,000 and not 32,000: Kilo subtracts the output reservation
+from the context before it compacts, and every token the model **generates** is
+billed against the same per-minute Groq budget as its input (8k on the free
+plan, 250k on Developer). This model narrates its reasoning by design, so a 32k
+ceiling is 32k of narration per turn that you pay for and never read. 16,000
+still fits a 20-record report.
+
+**If you are on the free plan, set `"output": 2048` instead.** On 8k TPM there
+is no room for a 16k reservation, and some Groq endpoints reject a request whose
+declared `max_tokens` alone breaks the ceiling (413 "Limit 8000, Requested
+8271") before generating anything. Better still: put a card on the account — see
+*If the session dies with "Compaction exhausted"* below.
+
+Which plan is this key on? The response headers say so:
+
+```sh
+set -a; . ~/.env; set +a
+curl -s -D - -o /dev/null https://api.groq.com/openai/v1/chat/completions \
+  -H "Authorization: Bearer $GROQ_API_KEY" -H 'Content-Type: application/json' \
+  -d '{"model":"openai/gpt-oss-120b","max_tokens":1,"messages":[{"role":"user","content":"hi"}]}' \
+  | grep -i 'x-ratelimit-limit-tokens'
+```
+
+`8000` is free, `250000` is Developer.
 
 Three things that bite:
 
@@ -362,46 +387,226 @@ cd "$REPO" && kilo
 **First test — background only, costs nothing.** Paste this as one message:
 
 ```
-Read mt/quality/finetune-agent-prompt.md and follow it exactly.
-Then review_brief {} and stop. Quote the register line it gives you and
-state the register you will enforce. Do not open burmese-overview.md.
+Read mt/quality/START.md and follow it. Then review_brief {"chars_per_arc": 60}
+and stop. Report the 15 characters, the three known defects, the reviewer's
+verdict and every arc title, then state the register you will enforce.
 ```
+
+`START.md` is 3,320 characters; `finetune-agent-prompt.md` is 25,791. The card
+is the difference between a first turn that costs ~1k tokens and one that costs
+~8k before any work happens — and the manual is not read at all until you start
+drafting.
 
 You want back: 15 characters, the three known defects, the reviewer's verdict,
 every arc title. If the tool is missing from `/mcps`, the MCP server is not
 running — fix that before anything else.
 
-**The whole chain, one message.** Step 2 is the only paid one; drop it if the
-chapters are already translated. Step 7 is a report, not a rewrite — the tones
-are re-matched one paragraph at a time afterwards.
+### If the session dies with "Compaction exhausted"
+
+That is a token-budget failure, not a broken tool. **Check which Groq plan the
+key belongs to before changing anything else**, because the two plans are not
+close:
+
+| plan | TPM | RPM | RPD | TPD |
+|---|---|---|---|---|
+| **Free** (no card) | **8,000** | 30 | 1,000 | 200,000 |
+| Developer (card on file) | 250,000 | 1,000 | 500,000 | none |
+
+`openai/gpt-oss-120b` is the same model on both; only the ceilings differ. The
+8,000 figure is what the console shows as "Rate Limit" on the usage chart, and
+`150% consumed` means one turn asked for 12k tokens in a minute that allowed 8k.
+
+The exact limits for your own organisation are on the limits page in the Groq
+console (Settings → Limits) — the docs table is a sample.
+
+**On the free plan an agent loop cannot run at all**, and trimming does not save
+it: the 16 MCP tool schemas alone are ~3.4k tokens, and they are re-sent with
+every request. Add `START.md` (~1.0k) and one `review_brief` (~2.4k) and the
+first two turns already exceed 8k. Kilo then shows the failure as "context
+exceeds model limits" because compaction is what gives up first — read it as
+rate, not size.
+
+Measured costs. Character counts are exact; token counts are a **range**, because
+the Myanmar script tokenizes far worse than English and no local tokenizer here
+can be trusted for it (the BPE file that `tiktoken` downloads is unreachable from
+this sandbox — do not try to install it on the VPS either, it needs the same
+host).
+
+| what | chars | tokens (est.) |
+|---|---|---|
+| `mt/quality/START.md` | 3,419 | **0.9k – 1.2k** |
+| `mt/quality/finetune-agent-prompt.md` | 26,283 | **6.9k – 9.3k** |
+| 16 MCP tool schemas (every turn) | 10,731 | **2.7k – 3.6k** |
+| `review_brief {}` | 14,431 | **8.1k – 13.2k** |
+| `review_brief {"chars_per_arc": 60}` | 7,766 | **4.1k – 6.5k** |
+| `read_chapter` 10 paragraphs | 2,053 | **0.6k – 0.8k** |
+| `read_chapter` whole 166 | 13,255 | **4.6k – 6.5k** |
+
+Calibration: the console screenshot that started this showed **10.7k input** for
+the turn that read the manual with the tools attached — manual (~6.9k) plus
+schemas (~2.7k) plus Kilo's own prompt lands right on it. Trust the **low** end
+of each range when nothing is cached.
+
+The uncomfortable number is `review_brief`: the review is 10,495 characters of
+Myanmar script, so the default digest alone is roughly the whole of Groq's free
+minute. That is why `{"chars_per_arc": 60}` is the default in the card and the
+chain — and why the free plan cannot run this at all, at any trim.
+
+What fixes it, in order:
+
+1. **Put a card on the Groq account (Developer plan).** No minimum spend; you
+   pay only for tokens. A 10-turn session at ~10k input per turn is ~100k
+   input tokens ≈ **$0.015**, plus a few thousand output tokens. This is the
+   only fix that makes the free 8k ceiling stop mattering, and it changes
+   nothing in the config — the model id stays `groq/openai/gpt-oss-120b`.
+2. **Start from `START.md`, never from the manual** — worth ~7k on turn one even
+   on the paid plan, because every turn re-sends the transcript.
+3. **Window `read_chapter`** — `{"start": 1, "count": 10}`, then follow
+   `window.next_start`. Ten at a time is ~0.7k; the whole chapter is ~13k and
+   is re-sent on every later turn.
+4. **`"output": 16000`** on the Developer plan, down from 32,000 — generated
+   tokens are billed against the same budget and this model narrates. On the
+   **free** plan use `2048`: some Groq endpoints reject a request whose declared
+   `max_tokens` alone exceeds the ceiling (413 "Limit 8000, Requested 8271"),
+   so a 16k reservation can fail before a single token is generated.
+5. **One chapter per session.** Not two.
+6. If a session already says `Compaction exhausted`, start a new one: the
+   context is gone and retrying only spends more of the minute.
+
+### A bigger free budget: Cerebras (same model, different ceiling)
+
+`gpt-oss-120b` is served by Cerebras too, with the **per-minute token budget as
+the difference** — this is the number that matters, not the context window:
+
+| provider / tier | TPM | RPM | daily | context |
+|---|---|---|---|---|
+| Groq free | 8,000 | 30 | 200,000 | 131,072 |
+| Groq Developer | 250,000 | 1,000 | none | 131,072 |
+| **Cerebras Free Trial** | **30,000 uncached / 90,000 total** | **5** | 1M tokens/day | **65,536** |
+| Cerebras Developer | 1,000,000 uncached / 3M total | 1,000 | none | 131,072 |
+
+Two things to read carefully:
+
+- **"120" in the product name is the parameter count** — 120 billion — not a
+  token count. The context is 65k on the free trial and 131k paid, so a Kilo
+  config that says `131072` will over-commit on the free tier and compact too
+  late; the provider answers with a 400. Set `65536` there.
+- **5 RPM is the real constraint**, not the 30k TPM: a tool-calling turn is two
+  or three requests (model → tool, tool result → model), so the free trial
+  affords roughly two turns a minute. That is fine for a human typing, useless
+  for a loop. Cerebras also publishes 30k *uncached* against 90k *total* TPM,
+  which means the repeated static prefix — the 16 tool schemas and
+  `START.md` — can be discounted by prompt caching. Confirm on your own usage
+  page rather than trusting it.
+
+The trial needs a verified card for $5 of credit that expires after 30 days;
+there is no permanently free tier. Kilo ships a built-in `cerebras` provider,
+so nothing but the config changes:
+
+```sh
+echo 'CEREBRAS_API_KEY=your_key' >> ~/.env
+set -a; . ~/.env; set +a
+
+cat > ~/.config/kilo/kilo.jsonc <<EOF
+{
+  "\$schema": "https://app.kilo.ai/config.json",
+  "model": "cerebras/gpt-oss-120b",
+  "provider": {
+    "cerebras": {
+      "env": ["CEREBRAS_API_KEY"],
+      "models": {
+        "gpt-oss-120b": {
+          "tool_call": true,
+          "limit": { "context": 65536, "output": 16000 }
+        }
+      }
+    }
+  },
+  "mcp": {
+    "rapidapi-translator": {
+      "type": "local",
+      "command": ["$(command -v python3)", "$REPO/mt/mcp_server.py",
+                  "--env-file", "$HOME/.env"],
+      "enabled": true
+    }
+  }
+}
+EOF
+
+kilo models cerebras          # the id must appear before you rely on it
+```
+
+Later, if you go back to Groq, swap the `model` line back to
+`groq/openai/gpt-oss-120b` and keep everything else — the tools, the card and
+the chain are provider-independent.
+
+### Which one to actually use
+
+Both serve **the same weights** — `gpt-oss-120b` is `gpt-oss-120b`. You are not
+picking a better model, you are picking a pipe. Quality of the Burmese is
+identical; only speed, ceiling and price differ. So the choice is made on the
+loop, not the language work.
+
+A working turn costs roughly **14k tokens in** (Kilo's prompt, 16 schemas,
+`START.md`, one `review_brief @60`, one 10-paragraph window) and **~1k out**.
+
+| | Groq Developer | Cerebras trial | Cerebras Developer |
+|---|---|---|---|
+| turns/min at 14k | ~17 | ~2 (and 5 RPM stops it first) | ~70 |
+| per turn | $0.0027 | $0.0057 | $0.0057 |
+| 20-turn chapter | $0.054 | $0.11 | $0.11 |
+| card needed | yes | **yes** | yes |
+| expires | no | **30 days** | no |
+
+**Use Groq Developer.** Not because of the context window — 65k is irrelevant
+here, a windowed turn never passes ~20k — but because Cerebras's trial gives you
+5 requests a minute where a tool turn is two or three requests, and its "free"
+$5 still requires a verified card. If you are adding a card anyway, Groq is
+half the price with 200× the request rate.
+
+**Keep Cerebras configured as the spare tire.** One file, two providers, and
+`-m` overrides for a single run without editing anything:
+
+```sh
+kilo run --auto -m cerebras/gpt-oss-120b --file mt/quality/START.md "…"
+```
+
+Reach for it when Groq returns 429 and you do not want to wait the minute, or
+when you want the ~3,000 tok/s speed for a quick check. Do not build the daily
+workflow on a 30-day trial.
+
+**The whole chain, one message.** The API call is deliberately not in the list:
+add `translate_chapters {"chapters": "194&195"}` only when step 2 reports
+`available: false`, and only after saying the request count out loud. Step 7 is
+a report, not a rewrite — the tones are re-matched one paragraph at a time
+afterwards.
 
 ```
-Read mt/quality/finetune-agent-prompt.md and follow it exactly.
-Chapter 194. Work through the chain, then stop and report:
+Read mt/quality/START.md and follow it. Chapter 194. Work in windows of ten
+paragraphs and stop after two windows (paragraphs 1-20). Report only.
 
-1. review_brief {}, then review_lookup {"chapter": 194}. One round each.
-2. translate_chapters {"chapters": "194&195"} — only if read_chapter says
-   translation.available is false. Say the request count out loud first.
-3. read_chapter {"chapter": 194}: report available, attached, mismatched,
-   and quote paragraph 1 Chinese next to its `my`.
-4. check_names on every paragraph's `my` text. List every variant and the
-   canonical form, per paragraph. Do not rewrite anything yet.
-5. segment_text on the same paragraphs. Report splits word/unit/loan/unknown
-   and coverage per sentence; list only the `unknown` ones.
-6. lookup_word for each token the segmenter split, and for each name variant
-   check_names reported. No repair without a dictionary hit.
-7. register_name for a genuinely new term only — and a term is not only a
+1. review_brief {"chars_per_arc": 60}, then review_lookup {"chapter": 194}.
+2. read_chapter {"chapter": 194, "start": 1, "count": 10}. Report
+   available, attached, mismatched, and quote paragraph 1 Chinese + its `my`.
+3. check_names on those ten `my` texts. Table: paragraph, found, canonical.
+   Do not rewrite yet.
+4. segment_text on the same ten. Report splits and coverage; list only the
+   `unknown` ones.
+5. lookup_word for each split token and each name variant. No repair without
+   a dictionary hit.
+6. register_name for a genuinely new term only — and a term is not only a
    person: weapon, martial art, bloodline ability, pill, rank, place. Left side
    is the English of the zh-en column, right side the AI's form corrected if
-   needed. List what you would register and wait for me before writing.
-8. Re-match tone: for each paragraph say which register it is (narration or
-   dialogue), quote its closing particle, and name any sentence that breaks it.
-   Do not save_draft yet.
-9. save_verse for every poem, song, maxim or philosophy line you judged, with
-   its English — zh-en (`english_source: mt`) or your own (`own`). If the
-   chapter has none, `kind: none`. Then export_verse {"chapter": 194}.
+   needed. List what you would register; wait for me before writing.
+7. Tone: per paragraph say narration or dialogue, quote its closing particle,
+   name any sentence that breaks register. Do not save_draft.
+8. save_verse for any poem, song, maxim or philosophy line in these ten, with
+   its English — zh-en (english_source: mt) or your own (own). Then
+   export_verse {"chapter": 194}.
+9. read_chapter {"start": 11, "count": 10} and repeat 3-7 on that window.
 
-Nothing is rewritten in this pass. Report at the end.
+Nothing is rewritten in this pass. Do not paste tool results back; quote the
+field that decided it. Report at the end.
 ```
 
 `translate_chapters` is the only line that spends money: it refuses more than
