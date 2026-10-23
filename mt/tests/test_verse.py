@@ -132,6 +132,17 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["paragraph_id"], "0194-161-deadbeef")
 
+    def test_mt_lines_reads_consolidated_zh_en_file(self):
+        with tempfile.TemporaryDirectory() as temp:
+            onefile = Path(temp) / "zh-en.txt"
+            onefile.write_text(
+                "===== Chapter 194 — title =====\n\nThe wind is tired.\nA second line.\n\n"
+                "===== Chapter 195 — title =====\n\nAnother chapter.\n\n",
+                encoding="utf-8")
+            self.assertEqual(verse.mt_lines(194, onefile),
+                             ["The wind is tired.", "A second line."])
+            self.assertEqual(verse.mt_lines(196, onefile), [])
+
     def test_mt_lines_reads_the_zh_en_chapter(self):
         chapters = self.dir / "zh-en"
         chapters.mkdir()

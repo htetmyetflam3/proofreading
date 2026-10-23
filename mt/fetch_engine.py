@@ -15,7 +15,8 @@ Exactly two routes, because `mt/translate.py` runs exactly two:
     en-zh   English -> Chinese    translate-en_zh-1_0    ~86 MB
 
 There is no Burmese model anywhere. Argos publishes a hundred packages and none
-is `my`; Burmese comes from the translator API.
+is `my`. The current tracked API translation is English-only; the retained human
+Burmese source is separate and has known encoding damage.
 
 Nothing has to be installed to run this file. An `.argosmodel` is a zip, and it
 is unpacked here with `zipfile` — `argostranslate` is neither imported nor

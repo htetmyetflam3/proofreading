@@ -24,7 +24,8 @@ from chapter_map import ChapterMapError, load_or_derive  # noqa: E402
 
 DEFAULT_API_FILE = ROOT / "content" / "mtranslate" / "english.txt"
 DEFAULT_API_DIR = ROOT / "content" / "mtranslate" / "rapidapi"
-DEFAULT_MACHINE_DIR = ROOT / "content" / "mtranslate" / "zh-en" / "chapters"
+DEFAULT_MACHINE_FILE = ROOT / "content" / "mtranslate" / "zh-en.txt"
+DEFAULT_MACHINE_DIR = ROOT / "content" / "mtranslate" / "zh-en" / "chapters"  # explicit legacy override only
 DEFAULT_DOCX = ROOT / "content" / "merged" / "episodes.docx"
 DEFAULT_BURMESE = ROOT / "content" / "source" / "ယဲ့နင်.txt"
 
@@ -73,7 +74,18 @@ def _chapter_txt(path: Path) -> list[str]:
 
 def _api_english(number: int, paragraphs: list[str], api_file: Path | None,
                  api_dir: Path | None) -> tuple[list[str], dict]:
-    """Load API English, preferring source-verifiable JSONL when it exists."""
+    """Load the retained one-file API English; alternate paths are explicit only."""
+    if api_file is None and api_dir is None:
+        one_file = DEFAULT_API_FILE
+        if not one_file.is_file():
+            raise FileNotFoundError(f"API English file not found: {one_file}")
+        rows = _chapter_block(one_file, number)
+        _same_count("API English", len(paragraphs), len(rows), one_file)
+        return rows, {"file": str(one_file),
+                      "alignment": "ordered chapter paragraphs; count verified",
+                      "source_checked": False}
+
+    jsonl: Path | None = None
     if api_file is not None:
         path = api_file.expanduser()
         if path.is_dir():
@@ -96,22 +108,6 @@ def _api_english(number: int, paragraphs: list[str], api_file: Path | None,
     directory = api_dir or DEFAULT_API_DIR
     chapter_jsonl = jsonl or directory.expanduser() / f"ch{number:04d}.en.jsonl"
     chapter_txt = directory.expanduser() / f"ch{number:04d}.en.txt"
-    one_file = DEFAULT_API_FILE
-    # Prefer the default one-file API deliverable when supplied. An explicit
-    # per-chapter directory means use that directory instead.
-    if api_file is None and api_dir is None and one_file.is_file():
-        try:
-            rows = _chapter_block(one_file, number)
-        except ValueError as error:
-            # The batch file may still be in progress. Per-chapter output can
-            # provide a fallback for this chapter.
-            if ("has no chapter" not in str(error)
-                    or not (chapter_jsonl.is_file() or chapter_txt.is_file())):
-                raise
-        else:
-            _same_count("API English", len(paragraphs), len(rows), one_file)
-            return rows, {"file": str(one_file), "alignment": "ordered chapter paragraphs; count verified",
-                          "source_checked": False}
     if chapter_jsonl.is_file():
         by_index: dict[int, dict] = {}
         with chapter_jsonl.open(encoding="utf-8") as stream:
@@ -156,19 +152,48 @@ def _same_count(label: str, expected: int, found: int, path: Path) -> None:
                          f"but {path} has {found}; no rows were paired")
 
 
+def _onefile_machine_block(path: Path, number: int) -> list[str]:
+    """Read one translated chapter body from the consolidated zh-en file."""
+    active = False
+    found = False
+    body: list[str] = []
+    with path.open(encoding="utf-8") as stream:
+        for raw in stream:
+            line = raw.rstrip("\r\n")
+            marker = _API_MARK.match(line)
+            if marker:
+                if active:
+                    break
+                active = int(marker.group(1)) == number
+                found = found or active
+                continue
+            if active:
+                body.append(line)
+    if not found:
+        raise ValueError(f"local machine-English file {path} has no chapter {number}")
+    return "\n".join(body).strip().splitlines()
+
+
 def _machine_english(chapter, paragraphs: list[str], machine_file: Path) -> tuple[list[str], dict]:
     """Group local sentence-level MT output back onto its Chinese paragraphs.
 
-    `mt/translate.py` writes one English line per Chinese sentence, while the
-    RapidAPI engine works one paragraph at a time. The source sentence counts
-    and machine file line count must agree exactly before grouping.
+    The tracked local route is one consolidated text file. Its chapter block
+    contains one output line per Chinese sentence; verify the source sentence
+    and paragraph counts before grouping anything for review.
     """
     if not machine_file.is_file():
-        raise FileNotFoundError(f"local machine-English chapter not found: {machine_file}")
-    lines = machine_file.read_text(encoding="utf-8").splitlines()
-    if len(lines) < 2:
-        raise ValueError(f"local machine-English file is truncated: {machine_file}")
-    machine_sentences = lines[2:]
+        raise FileNotFoundError(f"local machine-English file not found: {machine_file}")
+    try:
+        machine_sentences = _onefile_machine_block(machine_file, chapter.number)
+    except ValueError as error:
+        # An explicitly selected per-chapter file remains supported for local
+        # tests or temporary runs, but the default input is always zh-en.txt.
+        if machine_file.name == "zh-en.txt":
+            raise
+        lines = machine_file.read_text(encoding="utf-8").splitlines()
+        if len(lines) < 2:
+            raise ValueError(f"local machine-English file is truncated: {machine_file}") from error
+        machine_sentences = lines[2:]
 
     # The local engine translates every non-empty raw line, including crawler
     # furniture. Reconstruct that exact sequence, but return only paragraphs
@@ -225,7 +250,8 @@ def compare_english_chapter(number: int, *, start: int = 1, count: int = 10,
         raise ValueError(f"chapter {number} has no translatable paragraphs")
 
     if machine_file is None:
-        machine_file = (machine_dir or DEFAULT_MACHINE_DIR) / f"ch{number:04d}.en.txt"
+        machine_file = ((machine_dir / f"ch{number:04d}.en.txt") if machine_dir
+                        else DEFAULT_MACHINE_FILE)
     machine_rows, machine_meta = _machine_english(chapter, paragraphs, Path(machine_file).expanduser())
     api_rows, api_meta = _api_english(number, paragraphs, api_file, api_dir)
 
@@ -333,5 +359,7 @@ def previous_burmese_context(number: int, keyword: str, *, before: int = 2, afte
         "hits": hits,
         "hit_count": total_hits,
         "truncated": total_hits > len(hits),
-        "note": "Burmese keyword search only; chapter correspondence comes from the merged DOCX",
+        "note": ("Human Burmese context only; the source has known encoding damage, "
+                 "so treat hits as clues and verify meaning/spelling against Chinese. "
+                 "Chapter correspondence comes from the merged DOCX."),
     }

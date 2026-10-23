@@ -11,7 +11,7 @@ costs the whole thing, and it gets re-sent on every later turn of a session.
 
 | tool | answers | cost |
 |---|---|---|
-| `audit_source.py` | which chapters the Chinese crawl really holds, which are missing, which numbers were parsed twice | 1 s, one screen |
+| `audit_source.py` | parsed chapter starts, unrecognized numbers (not proof of absence), and duplicate boundaries | 1 s, one screen |
 | `chapter_titles.py` | chapter titles in both languages, from the DOCX | 1 s, one screen |
 | `mcp.py` | every MCP tool as one safe CLI flag; the same server the clients launch | local unless translated |
 | `mcp_server.py` | the MCP library/server; no CLI entry | launched only by `mcp.py --serve` |
@@ -47,9 +47,9 @@ line, running page headers get promoted to chapter starts, and an OCR glitch can
 turn a chapter heading into another number. The audit reports numbers it cannot
 recognize as standalone starts; that is a parser result, not proof that the
 chapter is absent. In particular, the author says 241, 298 and 299 have titles
-mid-body. The current audit finds no marker, heading or title text for them, so
-`--check` is a conservative gate that requires manual resolution—not a verdict
-that those chapters are missing.
+mid-body. The OCR-aware parser now recovers 241; 298 and 299 remain unrecognized
+starts. `--check` is a conservative gate that requires manual resolution—not a
+verdict that those chapters are missing.
 
 ```sh
 python3 tools/audit_source.py                      # summary
@@ -58,15 +58,18 @@ python3 tools/audit_source.py --titles --from 194  # title table
 python3 tools/audit_source.py --json               # for a script
 ```
 
-Current answer for this checkout:
+Current parser result for this checkout:
 
 ```
-427 chapter(s) parsed from 75,557 lines; last number 408
-376 heading candidates on '=====' lines, 51 glued into body text
-32 glued headings are a chapter's only start; 14 just repeat an open chapter
-not recognized as chapter starts: [241, 298, 299] (see caveat above)
-numbers parsed more than once: 61×4, 81×2, 88×2, 95×2, 101×2, 111×2, …
+435 heading candidates from 75,557 lines; last number 408
+376 on '=====' lines; 59 glued into body text
+33 glued headings are the only recognized start; 14 repeat an open chapter
+not recognized as chapter starts: [298, 299] (not proof of absence)
 ```
+
+Chapter 241 is recovered from its OCR-damaged mid-body `第二自四十一卓`
+header; the local MT parser joins its repeated page fragments. Chapters 298 and
+299 remain parser gaps. Do not declare either absent or invent their contents.
 
 `--check` exits **1** when the parser cannot recognize every chapter start in the range. This is a conservative batch gate, not proof of source absence:
 

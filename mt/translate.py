@@ -7,11 +7,12 @@
     zh-en   Chinese -> English   offline model (installed by mt/fetch_engine.py)
     en-zh   English -> Chinese   offline model
 
-That is the whole set. There is no machine translation to or from Burmese: the
-Burmese text the proofreading agent works on comes from the translator API, and
-these two routes exist so a local agent can read the Chinese source in English
-and cross-check meaning against it. Chinese -> Burmese was dropped deliberately —
-see `MT.md`.
+That is the whole local set. There is no machine translation to or from
+Burmese. The human Burmese source is retained for contextual reading but has
+known encoding damage; API-generated Burmese outputs have been removed from the
+current workflow. These routes let a local agent read the Chinese in English and
+reverse-check that reading. Chinese -> Burmese was dropped deliberately — see
+`MT.md`.
 
 Engines are resolved in this order:
 
@@ -23,11 +24,12 @@ Engines are resolved in this order:
    from the environment and never written to disk or printed.
 3. `--engine cmd` — any translator installed as a command; see `--cmd-template`.
 
-Output layout, one directory per route:
+Default output layout, when `--one-file` is used:
 
-    content/mtranslate/<route>/chapters/ch0001.en.txt   one file per chapter
-    content/mtranslate/<route>/book.en.txt               the whole run, chapter by chapter
-    content/mtranslate/<route>/report.json               engine, timing, coverage, errors
+    content/mtranslate/zh-en.txt   all Chinese -> English chapters in one file
+    content/mtranslate/en-zh.txt   all English -> Chinese chapters in one file
+
+The older multi-file/report mode remains available for explicit legacy runs.
 """
 from __future__ import annotations
 
@@ -71,6 +73,10 @@ class Chapter:
 _CN_NUMERALS = "一二三四五六七八九十百千零〇ーハ"
 _CN_TITLE = re.compile(r"第([" + _CN_NUMERALS + r"]+)[章意]")
 _CN_GARBLED = str.maketrans({"ー": "一", "ハ": "八"})
+# One mid-body OCR heading for chapter 241 uses `自` for `百` and `卓` for
+# `章`. Do not accept `卓` globally: it is also a repeated page header and
+# would split otherwise complete chapters into fragments.
+_CN_241_TITLE = re.compile(r"第二自四十一卓")
 _CN_DIGIT = {"〇": 0, "零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
              "六": 6, "七": 7, "八": 8, "九": 9}
 
@@ -101,6 +107,9 @@ def _chinese_boundaries(lines: list[str]) -> list[tuple[int, int, int, int, str]
             for match in _CN_TITLE.finditer(line):
                 bounds.append((index, match.start(), match.end(),
                                _cn_label(match.group(1)), match.group(0).strip()))
+            for match in _CN_241_TITLE.finditer(line):
+                bounds.append((index, match.start(), match.end(), 241,
+                               match.group(0).strip()))
     return bounds
 
 
@@ -140,6 +149,180 @@ def english_chapters(route_dir: Path) -> list[Chapter]:
         body = "\n".join(lines[2:]).strip()
         chapters.append(Chapter(int(match.group(1)), title, body, "english"))
     return chapters
+
+
+# ---------------------------------------------------------------- one-file MT
+
+MT_MARK = "===== Chapter {number} — {title} ====="
+_MT_MARK = re.compile(r"^===== Chapter (\d+)(?: — (.*))? =====$", re.MULTILINE)
+DEFAULT_MT_FILES = {
+    "zh-en": OUTPUT / "zh-en.txt",
+    "en-zh": OUTPUT / "en-zh.txt",
+}
+
+
+def select_unique_chapters(chapters: list[Chapter]) -> list[Chapter]:
+    """Keep the longest parsed body per chapter, then return number order.
+
+    The crawl can promote a running page header to a new chapter boundary.
+    For those duplicate chapter numbers, the longest body is the full chapter;
+    choosing it avoids translating a short header fragment.
+    """
+    grouped: dict[int, list[Chapter]] = {}
+    for chapter in chapters:
+        grouped.setdefault(chapter.number, []).append(chapter)
+    selected: dict[int, Chapter] = {}
+    for number, candidates in grouped.items():
+        if number == 241 and len(candidates) > 1:
+            # This OCR title is glued into the preceding chapter and repeated as
+            # a page header. The parser therefore yields one fragment per page;
+            # concatenate distinct fragments in source order instead of losing
+            # all but the longest page. Remove the repeated page-title prefix
+            # and crawler marker, while retaining the established longest-body
+            # rule for every other duplicated chapter.
+            fragments = []
+            seen = set()
+            for candidate in candidates:
+                body_lines = candidate.body.splitlines()
+                if body_lines and body_lines[0].lstrip().startswith((":", "：")):
+                    body_lines = body_lines[1:]
+                body_lines = [line for line in body_lines
+                              if not line.startswith("[[KMTCRAWLER MARKER")]
+                body = "\n".join(body_lines).strip()
+                if body and body not in seen:
+                    fragments.append(body)
+                    seen.add(body)
+            selected[number] = Chapter(number, "第二百四十一章",
+                                       "\n".join(fragments), "chinese")
+            continue
+        selected[number] = max(candidates, key=lambda item: len(item.body))
+    return [selected[number] for number in sorted(selected)]
+
+
+def read_onefile(path: Path) -> list[Chapter]:
+    """Read the chapter blocks from a local machine-translation text file."""
+    if not path.is_file():
+        raise FileNotFoundError(f"one-file translation input not found: {path}")
+    text = path.read_text(encoding="utf-8")
+    _, complete_end = scan_onefile(text)
+    if complete_end < len(text):
+        text = text[:complete_end]
+    marks = list(_MT_MARK.finditer(text))
+    if not marks:
+        if text.strip():
+            raise ValueError(f"{path} has text but no '===== Chapter N — title =====' headings")
+        return []
+    chapters = []
+    for index, match in enumerate(marks):
+        end = marks[index + 1].start() if index + 1 < len(marks) else len(text)
+        body = text[match.end():end].strip("\r\n")
+        # The serialized block has a blank line between the heading and body,
+        # and two trailing newlines between chapters. Keep blank lines inside.
+        body = body.lstrip("\r\n").rstrip("\r\n")
+        chapters.append(Chapter(int(match.group(1)), match.group(2) or "",
+                                body, "english"))
+    return chapters
+
+
+def scan_onefile(text: str) -> tuple[list[int], int]:
+    """Return complete chapter numbers and the byte/text offset to resume at."""
+    marks = [(match.start(), match.end(), int(match.group(1)))
+             for match in _MT_MARK.finditer(text)]
+    if not marks:
+        if text.strip():
+            raise ValueError("one-file output has content but no Chapter headings")
+        return [], 0
+    done: list[int] = []
+    for index, (start, end, number) in enumerate(marks):
+        block_end = marks[index + 1][0] if index + 1 < len(marks) else len(text)
+        body = text[end:block_end].strip()
+        if not body:
+            return done, start
+        if index == len(marks) - 1 and not text.endswith("\n\n"):
+            return done, start
+        done.append(number)
+    return done, len(text)
+
+
+class MachineOneFile:
+    """Resumable single-output sink. It writes no cache, chapter files or report."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        existing = path.read_text(encoding="utf-8") if path.is_file() else ""
+        self.done, cut = scan_onefile(existing)
+        if cut < len(existing):
+            path.write_text(existing[:cut], encoding="utf-8")
+        self.handle = path.open("a", encoding="utf-8")
+
+    def add(self, chapter: Chapter, translated: list[str]) -> None:
+        heading = MT_MARK.format(number=chapter.number, title=chapter.title)
+        self.handle.write(f"{heading}\n\n" + "\n".join(translated) + "\n\n")
+        self.handle.flush()
+        os.fsync(self.handle.fileno())
+        self.done.append(chapter.number)
+
+    def close(self) -> None:
+        if not self.handle.closed:
+            self.handle.close()
+
+    def __enter__(self) -> "MachineOneFile":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.close()
+
+
+def parse_chapter_range(spec: str) -> tuple[int, int]:
+    try:
+        low_text, high_text = spec.replace(" ", "").split("-", 1)
+        low, high = int(low_text), int(high_text)
+    except (ValueError, TypeError):
+        raise ValueError("--chapters must be a range such as 1-408") from None
+    if low < 1 or high < low:
+        raise ValueError("--chapters must be a positive ascending range")
+    return low, high
+
+
+def run_onefile(route: str, *, engine_name: str, output: Path, chapters: list[Chapter],
+                max_range: tuple[int, int], cmd_template: str | None = None) -> dict:
+    """Translate one full range into exactly one text file, without sidecars."""
+    source, target = ROUTES[route]
+    engine = resolve(engine_name, source, target, cmd_template)
+    available, detail = engine.available()
+    if not available:
+        raise RuntimeError(f"{route} engine unavailable: {detail}")
+    low, high = max_range
+    chosen = [chapter for chapter in chapters if low <= chapter.number <= high]
+    if not chosen:
+        raise ValueError(f"no parsed chapters in {low}-{high}")
+    totals = {"route": route, "engine": engine.name, "range": [low, high],
+              "parsed_chapters": len(chosen), "translated": 0, "skipped": 0,
+              "sentences": 0, "empty": 0, "output": str(output)}
+    try:
+        with MachineOneFile(output) as sink:
+            done = set(sink.done)
+            totals["skipped"] = sum(ch.number in done for ch in chosen)
+            wanted = [chapter for chapter in chosen if chapter.number not in done]
+            for position, chapter in enumerate(wanted, 1):
+                source_lines = sentences(chapter.body)
+                result = engine.translate(source_lines, source, target)
+                if len(result) != len(source_lines):
+                    raise RuntimeError(f"{route} returned {len(result)} lines for "
+                                       f"{len(source_lines)} source sentences in chapter {chapter.number}")
+                sink.add(chapter, result)
+                totals["translated"] += 1
+                totals["sentences"] += len(source_lines)
+                totals["empty"] += sum(not item.strip() for item in result)
+                print(f"[mt-one-file] {position}/{len(wanted)} chapter {chapter.number}: "
+                      f"{len(source_lines)} sentence(s)", flush=True)
+            totals["chapters_in_file"] = len(sink.done)
+    finally:
+        close = getattr(engine, "close", None)
+        if close:
+            close()
+    return totals
 
 
 # Native PDF headings ("Chapter 1:", "အခန်း (၅)", "အပိုင်း ၅၁", split parts,
@@ -497,6 +680,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--resume", action="store_true", help="skip chapters that already have output")
     parser.add_argument("--cascade", action="store_true",
                         help="run zh-en first, then en-zh, which reads the zh-en output")
+    parser.add_argument("--one-file", nargs="?", const="", default=None, metavar="PATH",
+                        help="write/resume a single text file only; use --route and --chapters")
+    parser.add_argument("--input-file", type=Path, default=None,
+                        help="one-file input for en-zh; defaults to content/mtranslate/zh-en.txt")
+    parser.add_argument("--chapters", default="1-408", metavar="LOW-HIGH",
+                        help="chapter range for --one-file (default: 1-408)")
     args = parser.parse_args(argv)
 
     if args.list:
@@ -509,6 +698,42 @@ def main(argv: list[str] | None = None) -> int:
             ok, detail = AzureEngine().available()
             print(f"{route:<8}{'azure':<10}{str(ok):<11}{detail}")
         return 0
+
+    if args.one_file is not None:
+        if len(args.route) != 1:
+            parser.error("--one-file requires exactly one explicit --route")
+        if args.cascade:
+            parser.error("--one-file cannot be combined with --cascade; run each route separately")
+        if args.limit is not None or args.only:
+            parser.error("--one-file uses --chapters LOW-HIGH instead of --limit/--only")
+        route = args.route[0]
+        route_files = {name: Path(args.out_dir) / default.name
+                       for name, default in DEFAULT_MT_FILES.items()}
+        output = Path(args.one_file) if args.one_file else route_files[route]
+        if route == "zh-en" and args.input_file is not None:
+            parser.error("--input-file is only used with --route en-zh")
+        try:
+            chapter_range = parse_chapter_range(args.chapters)
+            if route == "zh-en":
+                source_path = args.source_file or CHINESE
+                chapters = select_unique_chapters(chinese_chapters(source_path))
+            else:
+                input_path = args.input_file or route_files["zh-en"]
+                if output.resolve() == input_path.resolve():
+                    raise ValueError("en-zh output must not overwrite its zh-en input")
+                chapters = select_unique_chapters(read_onefile(input_path))
+            result = run_onefile(route, engine_name=args.engine, output=output,
+                                 chapters=chapters, max_range=chapter_range,
+                                 cmd_template=args.cmd_template)
+            present = {chapter.number for chapter in chapters
+                       if chapter_range[0] <= chapter.number <= chapter_range[1]}
+            result["missing_chapter_numbers"] = sorted(set(range(
+                chapter_range[0], chapter_range[1] + 1)) - present)
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return 0
+        except (OSError, ValueError, RuntimeError) as exc:
+            print(f"[mt-one-file] {exc}", file=sys.stderr)
+            return 2
 
     chapters = chinese_chapters(args.source_file or CHINESE)
     wanted_filters: list[set[int]] = []

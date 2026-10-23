@@ -117,14 +117,12 @@ TOOLS = [
     },
     {
         "name": "read_chapter",
-        "description": "Read paragraphs of one Chinese chapter with stable ids. Each "
-                       "paragraph carries `my`, the API's Burmese, once "
-                       "api_translate.py has produced it. Call it with `start` and "
-                       "`count` — ten paragraphs at a time is enough to judge, and a "
-                       "whole 166-paragraph chapter is ~13k tokens that come back on "
-                       "every later turn. The `window` block reports the chapter total "
-                       "and `next_start`, so nothing is skipped. Omit `count` only when "
-                       "you genuinely need the whole chapter in one view.",
+        "description": "Legacy Burmese-review reader: returns bounded Chinese "
+                       "paragraphs and attaches `my` only when API Burmese rows exist. "
+                       "API-generated Burmese text is not retained in the current "
+                       "workflow, so this may return no `my` field. Do not regenerate "
+                       "that output as part of English review. Use `start` and `count` "
+                       "for small windows; `window.next_start` marks the continuation.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -153,8 +151,9 @@ TOOLS = [
                        "local machine English, and English translated by the API. Defaults "
                        "to ten paragraphs. Source and line counts are verified; the tool "
                        "refuses to silently shift mismatched translations. Reads the API "
-                       "one-file content/mtranslate/english.txt when present, otherwise "
-                       "per-chapter API output.",
+                       "one-file content/mtranslate/english.txt. Local machine English "
+                       "defaults to content/mtranslate/zh-en.txt. The human Burmese "
+                       "context tool reports its known encoding caution.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -163,8 +162,8 @@ TOOLS = [
                 "count": {"type": "integer", "default": 10, "description": "Paragraphs in this window; ten is the default."},
                 "api_file": {"type": "string", "description": "Optional API english.txt, per-chapter .txt, or source-verified .jsonl."},
                 "api_dir": {"type": "string", "description": "Optional directory of per-chapter API output."},
-                "machine_file": {"type": "string", "description": "Optional local zh-en chapter file."},
-                "machine_dir": {"type": "string", "description": "Optional directory containing chNNNN.en.txt machine translations."},
+                "machine_file": {"type": "string", "description": "Optional local zh-en one-file output; default content/mtranslate/zh-en.txt."},
+                "machine_dir": {"type": "string", "description": "Optional legacy per-chapter directory override."},
             },
             "required": ["chapter"],
             "additionalProperties": False,
@@ -175,8 +174,10 @@ TOOLS = [
         "description": "Search a Burmese-only keyword in the Burmese human translation "
                        "for the two Chinese chapters before the current chapter. The "
                        "current Chinese chapter is required; the DOCX chapter map handles "
-                       "splits such as Chinese 193 → Burmese 195. Return only a few full "
-                       "lines around each match, not whole chapters.",
+                       "splits such as Chinese 193 → Burmese 195. The human source has "
+                       "known encoding damage: treat returned lines as contextual clues, "
+                       "not reliable spelling or grammar. Return only a few full lines "
+                       "around each match, not whole chapters.",
         "inputSchema": {
             "type": "object",
             "properties": {

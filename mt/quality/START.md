@@ -1,108 +1,69 @@
-# Start card — the first turn, cheap
+# Start card — current English-review workflow
 
-This repo has two local proofreading tracks. For a **Burmese rewrite**, use
-this start card and `finetune-agent-prompt.md`: judge the RapidAPI Burmese
-against the human Burmese reference, then save Burmese drafts. For an **English
-API review**, follow `mt/quality/english-review-task.md`: compare Chinese, local
-machine English and the already-generated RapidAPI English. That track never
-calls the API and returns English corrections only. Follow the task named by
-the human; do not blend the two output languages.
+## Scope and stop conditions
 
-**Read this card, not the manual.** `mt/quality/finetune-agent-prompt.md` is 490
-lines / ~8k tokens; it is the full procedure and you read it once, later, when
-you actually start drafting. Every turn that re-reads it is a turn Groq bills.
+The current review track is English-only. API-generated Burmese text and the
+other per-chapter API outputs have been removed; `content/mtranslate/english.txt`
+is the only retained API-translated text file. Do not call an API, recreate
+Burmese API output, or use stale API artifacts as a baseline. The separate
+Burmese rewrite prompt (`finetune-agent-prompt.md`) is suspended unless the human
+explicitly re-enables it.
 
-## Turn one — three calls, nothing else
+If the requested chapter is not present in `english.txt`, or either translation
+is missing or alignment fails, stop and report the exact limitation. Do not
+substitute old files, infer missing lines, or regenerate translations.
 
-```
-review_brief {"chars_per_arc": 60}
-review_lookup {"chapter": 194}
-read_chapter {"chapter": 194, "start": 1, "count": 10}
-```
+## Review one small window
 
-`review_brief` is the whole 7,279-line review in one digest: 15 characters, the
-three known defects, the verdict, every arc's opening. Always pass
-`{"chars_per_arc": 60}` — the default size is 8–13k tokens, the trimmed one
-4–6.5k, and the difference is a third of a free day.
-
-Then answer in this shape and stop:
-
-1. **Register you will enforce** — one or two lines. Narration closes on
-   သည် / မည် / ၏ / ခြင်း and keeps တွင်, များ; dialogue inside “…”, closes on
-   တယ် / ပဲ / မယ်. The two never mix in one sentence.
-2. **What `translation` says** — `available`, `attached`, `mismatched`.
-3. **What `window` says** — `total`, and whether anything is left.
-
-If `available` is false or `attached` is 0, stop and say:
-`python3 mt/apicaller.py --run --env-file ~/.env` must run first.
-
-## The four rules that keep a session alive
-
-Every card-free lane is thin — about 10k tokens a minute or a few thousand
-tokens a turn, whichever provider you are on (`mt/SETUP.md`, *Which one to
-actually use*, has the numbers and how to check yours). Groq's 250k-per-minute
-plan needs a card. A request costs its whole input, so the way a session dies is
-by re-sending big things, and one `review_brief` at the default size is 8–13k
-tokens on its own: the review is mostly Myanmar script, and Myanmar tokenizes
-badly.
-
-1. **Never re-read a file you already read.** If you need one section, say which.
-2. **Never pull a whole chapter.** `read_chapter` takes `start` and `count`;
-   ten paragraphs is ~1.5k tokens, all 166 is ~13k, and it is re-sent on every
-   later turn. `window.next_start` tells you where to continue.
-3. **Never paste a tool result back.** Quote the one field that decided it.
-4. **Never open** `content/review/burmese-overview.md` (673 KB),
-   `content/source/*.txt` (6 MB) or `Engine/knowledge/isTreasure/master.json`
-   (1.4 MB). The tools exist so you do not have to.
-
-## Before you open a big file, use `tools/`
-
-The crawl (4.1 MB), the review (673 KB) and `master.json` (1.4 MB) each have a
-script that answers the question without reading them. Run these instead:
-
-```sh
-python3 tools/audit_source.py --check 194-408     # which chapters exist
-python3 tools/audit_source.py --titles --from 194 # what they are called
-```
-
-Exit 1 from `--check` means holes in the range — say which, do not paper over it.
-
-## The two things that are not tools
-
-- **Finding names.** You notice a term while reading; `register_name` writes it.
-  No scanner, and a term is not only a person — a weapon, a martial art, a
-  bloodline ability, a pill, a rank, a place. Left side is the English of the
-  zh-en column, right side the AI's Burmese, corrected if wrong.
-- **Finding verse.** Poems, songs, maxims and philosophy lines are your
-  judgement; `save_verse` records one with an English version, `export_verse`
-  writes the section the human reviews. `kind: none` means "checked, nothing".
-
-## English API review (only when that is the assigned task)
-
-Read `mt/quality/english-review-task.md`. The first comparison call names the
-current Chinese chapter and reads ten paragraphs from the three aligned
-columns. If an English term needs Burmese precedent, search with a Burmese-only
-keyword and that same current chapter number:
+Use the current Chinese chapter number and a ten-paragraph window:
 
 ```text
 compare_english_chapter {"chapter": 194, "start": 1, "count": 10}
+```
+
+Each row aligns the Chinese paragraph, local zh-en machine English, and API
+English. Read the alignment metadata first. Continue only at `window.next_start`;
+do not request or paste an entire chapter.
+
+The retained inputs are:
+
+- API English: `content/mtranslate/english.txt` (currently chapters 194–208);
+- local Chinese→English: `content/mtranslate/zh-en.txt`;
+- local English→Chinese: `content/mtranslate/en-zh.txt` (a reverse-check aid);
+- Chinese source: `content/source/chinese-0511241012-from-8011_1.txt`;
+- human Burmese source/reference: `content/source/ယဲ့နင်.txt` and
+  `content/merged/episodes.docx`.
+
+The two local MT files contain only parser-recognized chapters. The source
+parser recovers chapter 241 from its OCR-damaged mid-body header, but still
+reports 298 and 299 as unrecognized starts. Do not claim those chapters are
+absent; report the parser limitation and do not invent their text.
+
+## Human Burmese context — encoding caution
+
+The prior human Burmese translation is retained, and must be consulted when a
+recurring name, title, place, or technical term may have an established earlier
+rendering. Use a Burmese-script keyword with the current Chinese chapter:
+
+```text
 previous_burmese_context {"chapter": 194, "keyword": "နတ်"}
 ```
 
-The second tool searches the Burmese counterparts of the two previous Chinese
-chapters. It cannot infer that range without `chapter`. Never call a translator
-from this task; the API English already exists locally.
+The helper searches the two preceding Chinese chapters using the merged DOCX
+chapter map and returns only bounded context. The human Burmese source has known
+encoding damage (including Zawgyi-order clusters, substitutions, and dropped
+vowels). Treat hits as uncertain contextual clues—not authoritative spelling,
+grammar, style, or meaning. Verify every interpretation against the Chinese. If
+the damaged text prevents an exact hit, do not guess or copy a form from it.
 
-## When you start Burmese drafting
+## Review rules
 
-Read `mt/quality/finetune-agent-prompt.md` **once**, then work in windows of ten
-paragraphs. The manual has the procedure, the classes A–F, the output contract
-and the honesty clause. This card has only the order and the budget.
-
-## Facts you must not get wrong
-
-- The list `content/reference/EtoBnames.txt` outranks the API, always.
-- The reference's encoding damage is not yours to repair; it is a tone oracle.
-- Never call the API translation "MT". MT is the zh-en column.
-- `{?}` tags are not errors by themselves.
-- `save_draft` needs `ai_text`, byte-exact, plus `draft`.
+- Never call a translator or modify `english.txt`, `zh-en.txt`, or `en-zh.txt`.
+- Chinese is the semantic source; local machine English is a fallible second
+  witness. Keep accurate API English unchanged.
+- Report only concrete English corrections and material ambiguities, with the
+  paragraph index and a concise reason grounded in the Chinese.
+- Do not read whole-book sources or return a whole tool result. Use bounded
+  comparison/context tools instead.
+- `mt/quality/english-review-task.md` has the detailed procedure. The Burmese
+  rewrite procedure remains suspended unless the human explicitly re-enables it.
