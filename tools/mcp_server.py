@@ -1,32 +1,30 @@
 #!/usr/bin/env python3
-# /// script
-# requires-python = ">=3.10"
-# dependencies = []
-# ///
-"""A local MCP (stdio) server for the RapidAPI multi-format translator.
+"""The MCP tool server for the RapidAPI translator: a library, no CLI.
 
 Speaks newline-delimited JSON-RPC 2.0 on stdin/stdout, so any MCP client that
-can launch a command works: Claude Desktop, Claude Code, Cursor, Zed, ...
+can launch a command works: Kilo, Claude Desktop, Claude Code, Cursor, Zed.
 
-    python3 mt/mcp_server.py --print-config --client kilo   # config snippet
-    python3 mt/mcp_server.py --install-config --client kilo # write it
-    python3 mt/mcp_server.py --selftest                     # no-network check
-    python3 mt/mcp_server.py                                # serve on stdio
+Nothing here parses arguments. Every entry point lives in `tools/mcp.py`:
+
+    uv run mcp.py --serve                 # this server, on stdio
+    uv run mcp.py --selftest              # no-network round trip
+    uv run mcp.py --read_chapter 194      # a tool without a client
+    uv run mcp.py --list-tools            # what is on offer
+
+`mt/` stays a library too, which is why this file imports it by path.
 
 Tools:
 
     detect_language      language code/name for a string
     translate_text       one string, any supported pair
     translate_batch      many strings in one request (cache-aware)
-    translate_chapters   run mt/api_translate.py on the local Chinese novel,
-                         writing JSONL/TXT/compare/report files
+    translate_chapters   translate the local Chinese novel, writing files
 
 The key comes from `RAPIDAPI_KEY` in the server environment. Nothing is printed
 to stdout except protocol messages; diagnostics go to stderr.
 """
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import sys
@@ -34,7 +32,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-sys.path.insert(0, str(HERE))
+MT = ROOT / "mt"
+if str(MT) not in sys.path:
+    sys.path.insert(0, str(MT))
 
 from rapidapi_translator import (  # noqa: E402
     CACHE_ENV,
@@ -965,6 +965,10 @@ class Server:
         return 0
 
 
+# The one entry point a client launches. This file holds the tools; tools/mcp.py
+# holds every flag, so a client and a human go through the same door.
+ENTRY = ROOT / "mcp.py"
+
 CLIENTS = ("json", "claude", "kilo", "codex", "gemini")
 
 
@@ -988,8 +992,8 @@ def config_payload(client: str = "json", env_file: Path | str | None = None) -> 
     if client not in CLIENTS:
         raise ValueError(f"client must be one of {', '.join(CLIENTS)}")
     command = sys.executable
-    server = str(Path(__file__).resolve())
-    extra = _extra_args(env_file)
+    server = str(ENTRY)
+    extra = ["--serve", *_extra_args(env_file)]
     environment = {} if env_file else {KEY_ENV: "{env:" + KEY_ENV + "}"}
     if client == "kilo":
         return {"mcp": {SERVER_NAME: {
@@ -1020,16 +1024,14 @@ def config_snippet(client: str = "json", env_file: Path | str | None = None) -> 
     """
     if client not in CLIENTS:
         raise ValueError(f"client must be one of {', '.join(CLIENTS)}")
-    extra = _extra_args(env_file)
+    extra = ["--serve", *_extra_args(env_file)]
     if client == "claude":
-        tail = " ".join(extra)
         return ("# export RAPIDAPI_KEY=... in this shell first, then:\n"
                 f"claude mcp add --scope user {SERVER_NAME} -- "
-                f"{sys.executable} {Path(__file__).resolve()}"
-                + (f" {tail}" if tail else ""))
+                f"{sys.executable} {ENTRY} --serve"
+                + (f" {' '.join(extra[1:])}" if len(extra) > 1 else ""))
     if client == "codex":
-        args = ", ".join(f'"{item}"' for item in
-                         [str(Path(__file__).resolve()), *extra])
+        args = ", ".join(f'"{item}"' for item in [str(ENTRY), *extra])
         return ("# ~/.codex/config.toml\n"
                 f"[mcp_servers.{SERVER_NAME}]\n"
                 f'command = "{sys.executable}"\n'
@@ -1117,129 +1119,5 @@ def selftest() -> dict:
         "tools": [tool["name"] for tool in tools],
         "key": "set" if os.environ.get(KEY_ENV) else "missing",
         "python": sys.executable,
-        "server": str(Path(__file__).resolve()),
+        "server": str(ENTRY),
     }
-
-
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--print-config", action="store_true",
-                        help="print an MCP client configuration snippet and exit")
-    parser.add_argument("--client", choices=CLIENTS, default="json",
-                        help="config flavour for --print-config "
-                             "(default: json, for Claude Desktop and other GUI clients)")
-    parser.add_argument("--check", action="store_true",
-                        help="print configuration state without a request")
-    parser.add_argument("--install-config", action="store_true",
-                        help="write/merge the entry into the client's JSON config "
-                             "(--client kilo or gemini; default kilo)")
-    parser.add_argument("--config", type=Path, default=None,
-                        help="config file for --install-config "
-                             "(default: the client's standard path)")
-    parser.add_argument("--env-file", type=Path, default=None, metavar="PATH",
-                        help="read KEY=VALUE lines from PATH at startup "
-                             "(also RAPIDAPI_ENV_FILE); the shell wins")
-    parser.add_argument("--selftest", action="store_true",
-                        help="protocol round-trip with no network; proves the "
-                             "server starts under this python")
-    parser.add_argument("--cache", type=Path, default=None, help="SQLite cache path")
-    parser.add_argument("--no-cache", action="store_true")
-    parser.add_argument("--source-file", type=Path, default=None,
-                        help="Chinese source for translate_chapters "
-                             "(default: content/source/chinese-0511241012-from-8011_1.txt)")
-    parser.add_argument("--existing", type=Path, default=None,
-                        help="existing human Burmese for the comparison reference")
-    parser.add_argument("--out-dir", type=Path, default=None,
-                        help="default output directory for translate_chapters")
-    parser.add_argument("--docx", type=Path, default=None,
-                        help="bilingual DOCX for chapter numbers "
-                             "(default: content/merged/episodes.docx)")
-    parser.add_argument("--draft-store", type=Path, default=None,
-                        help="SQLite file for agent drafts "
-                             "(default: content/mtranslate/agent-drafts.sqlite3)")
-    parser.add_argument("--max-chars", type=int, default=MAX_REQUEST_CHARS)
-    parser.add_argument("--max-items", type=int, default=MAX_REQUEST_ITEMS)
-    parser.add_argument("--timeout", type=float, default=60.0)
-    parser.add_argument("--attempts", type=int, default=3)
-    parser.add_argument("--tools", default=None, metavar="SPEC",
-                        help="advertise only these tools, to cut the per-request "
-                             "schema cost: a preset (" + ", ".join(TOOL_PRESETS) +
-                             "), groups (" + ", ".join(TOOL_GROUPS) +
-                             "), or tool names; comma-separated. Default: all")
-    parser.add_argument("--list-groups", action="store_true",
-                        help="print the tool groups and presets, with character "
-                             "cost of each, and exit")
-    args = parser.parse_args(argv)
-
-    if args.env_file is not None:
-        args.env_file = Path(args.env_file).expanduser()
-        if not args.env_file.is_file():
-            print(f"[mcp] no env file at {args.env_file} — create it first, e.g.\n"
-                  f"      printf 'RAPIDAPI_KEY=your-key\\n' > {args.env_file}",
-                  file=sys.stderr)
-            return 2
-
-    if args.list_groups:
-        report = {}
-        for name, members in TOOL_GROUPS.items():
-            subset = [tool for tool in TOOLS if tool["name"] in members]
-            report[name] = {
-                "tools": [tool["name"] for tool in subset],
-                "schema_chars": len(json.dumps(subset, ensure_ascii=False)),
-            }
-        report["_presets"] = {name: list(groups) for name, groups in TOOL_PRESETS.items()}
-        report["_all"] = {"tools": len(TOOLS),
-                         "schema_chars": len(json.dumps(TOOLS, ensure_ascii=False))}
-        print(json.dumps(report, indent=2))
-        return 0
-    try:
-        enabled = resolve_tools(args.tools)
-    except ValueError as error:
-        print(f"[mcp] {error}", file=sys.stderr)
-        return 2
-
-    if args.print_config:
-        print(config_snippet(args.client, args.env_file))
-        return 0
-    if args.install_config:
-        client = "kilo" if args.client == "json" else args.client
-        try:
-            result = install_config(client, args.config, args.env_file)
-        except ValueError as error:
-            print(f"[mcp] {error}", file=sys.stderr)
-            return 2
-        print(json.dumps(result, indent=2, ensure_ascii=False))
-        return 0 if result["status"] in ("created", "merged", "already") else 1
-    if args.selftest:
-        result = selftest()
-        print(json.dumps(result, indent=2))
-        return 0 if result["ok"] else 1
-    if args.check:
-        print(json.dumps({
-            "host": HOST,
-            "key": "set" if os.environ.get(KEY_ENV) else "missing",
-            "cache": str(args.cache or os.environ.get(CACHE_ENV) or DEFAULT_CACHE),
-            "protocols": list(SUPPORTED_PROTOCOLS),
-            "env_file": str(args.env_file or os.environ.get("RAPIDAPI_ENV_FILE") or ""),
-        }, indent=2))
-        return 0
-
-    try:
-        loaded = load_env_file(args.env_file)
-    except TranslatorError as error:
-        print(f"[mcp] {error}", file=sys.stderr)
-        return 2
-    if loaded:
-        print(f"[mcp] loaded {', '.join(loaded)} from {args.env_file}", file=sys.stderr)
-
-    server = Server(cache_path=args.cache, enabled_cache=not args.no_cache,
-                    max_chars=args.max_chars, max_items=args.max_items,
-                    timeout=args.timeout, max_attempts=args.attempts,
-                    source_file=args.source_file, existing=args.existing,
-                    out_dir=args.out_dir, draft_store=args.draft_store,
-                    docx=args.docx, tools=enabled)
-    return server.serve()
-
-
-if __name__ == "__main__":
-    sys.exit(main())

@@ -31,7 +31,7 @@ python3 -c "import ctranslate2, sentencepiece; print('ok')"
 Only `mt/translate.py --engine offline` imports those two, and only when it
 loads a model. Installing a model (`mt/fetch_engine.py`) is standard library: it
 unpacks the `.argosmodel` zip itself and never imports `argostranslate`.
-Everything else — `mt/apicaller.py`, `mt/api_translate.py`, `mt/mcp_server.py`,
+Everything else — `mt/apicaller.py`, `mt/api_translate.py`, `mcp.py`,
 `mt/lexicon.py`, `mt/overview_index.py`, `mt/agent_work.py` — needs nothing
 installed at all.
 
@@ -78,7 +78,7 @@ Who reads what:
 
 | key | read by | for |
 |---|---|---|
-| `RAPIDAPI_KEY` | `mt/api_translate.py --env-file ~/.env`, `mt/mcp_server.py --env-file ~/.env` | producing the AI-translated Burmese |
+| `RAPIDAPI_KEY` | `mt/api_translate.py --env-file ~/.env`, `mcp.py --serve --env-file ~/.env` | producing the AI-translated Burmese |
 | `GROQ_API_KEY` | the agent host (Kilo), exported into its shell | the model that runs the proofreading agent |
 
 The repository never reads `GROQ_API_KEY`. A variable named `groq` or `GROK_API_KEY`
@@ -164,7 +164,7 @@ cat > ~/.config/kilo/kilo.jsonc <<EOF
       "type": "local",
       "command": [
         "$(command -v python3)",
-        "$REPO/mt/mcp_server.py",
+        "$REPO/mcp.py", "--serve",
         "--env-file", "$HOME/.env"
       ],
       "enabled": true
@@ -250,19 +250,19 @@ make output checkable; the model only makes it readable.
 ## 1.6 MCP server
 
 ```sh
-python3 mt/mcp_server.py --selftest        # protocol round-trip, no network
-python3 mt/mcp_server.py --check           # config state, no request
-python3 mt/mcp_server.py --env-file ~/.env # run it (stdio; Kilo does this for you)
+uv run mcp.py --selftest        # protocol round-trip, no network
+uv run mcp.py --check           # config state, no request
+uv run mcp.py --serve --env-file ~/.env # run it (stdio; Kilo does this for you)
 
 # the same, advertising only the tools a reading pass needs (see `--tools`)
-python3 mt/mcp_server.py --env-file ~/.env --tools survey
+uv run mcp.py --serve --env-file ~/.env --tools survey
 ```
 
 Register it with a client automatically instead of by hand:
 
 ```sh
-python3 mt/mcp_server.py --print-config --client kilo
-python3 mt/mcp_server.py --install-config --client kilo --env-file ~/.env
+uv run mcp.py --print-config --client kilo
+uv run mcp.py --install-config --client kilo --env-file ~/.env
 ```
 
 `--install-config` merges into plain JSON only. If the target is JSONC with
@@ -278,7 +278,7 @@ Paid, never on your behalf: `translate_text`, `translate_batch`,
 All sixteen are advertised by default, and their schemas — 10,720 characters,
 ~3k tokens — are re-sent with **every** request. `--tools survey` (11 tools,
 7,501 characters) covers a reading pass and `--tools lean` (7 tools, 5,468)
-covers a drafting pass; details in *`mt/mcp_server.py`* under Part 3.
+covers a drafting pass; details in *`mcp.py`* under Part 3.
 
 Two things there are deliberately **not** tools: finding new names, and finding
 verse. Both are reading judgements the agent makes while it reads the AI text
@@ -658,7 +658,7 @@ cat > ~/.config/kilo/kilo.jsonc <<EOF
   "mcp": {
     "rapidapi-translator": {
       "type": "local",
-      "command": ["$(command -v python3)", "$REPO/mt/mcp_server.py",
+      "command": ["$(command -v python3)", "$REPO/mcp.py", "--serve",
                   "--env-file", "$HOME/.env"],
       "enabled": true
     }
@@ -905,7 +905,14 @@ same text.
 | `--skip-missing` | translate the chapters that exist when the range has holes (on by default with `--one-file`) |
 | `--pause` | seconds between chapters (default `0.5`) |
 
-## `mt/mcp_server.py` — the agent's tool server
+## `mcp.py` — one flag per tool, or the agent's tool server
+
+Run `uv run mcp.py` from the repository root. With no command it prints help
+and runs nothing. The 16 MCP tools are also direct CLI commands (for example,
+`--read_chapter`, `--segment_text`, `--review_brief`, `--translate_text`); the
+short hyphenated aliases work too. The source-inspection tools are
+`--insecpt`/`--inspect` and `--getTitle`. To start the stdio server explicitly,
+use `--serve`; MCP clients must use that flag.
 
 | flag | meaning |
 |---|---|
@@ -946,7 +953,7 @@ with the flag named in the error — no silent empty answer. Verify the arithmet
 on your own machine:
 
 ```sh
-python3 mt/mcp_server.py --list-groups
+uv run mcp.py --list-groups
 ```
 
 The four the agent needs before it judges anything:

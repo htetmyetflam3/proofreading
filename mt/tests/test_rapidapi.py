@@ -555,13 +555,13 @@ class ChapterTests(ApiTestCase):
 # ---------------------------------------------------------------- MCP
 
 
-SERVER = MT / "mcp_server.py"
+SERVER = ROOT / "mcp.py"
 
 
 class McpProcess:
     def __init__(self, env, args=()):
         self.proc = subprocess.Popen(
-            [sys.executable, str(SERVER), *args],
+            [sys.executable, str(SERVER), "--serve", *args],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             text=True, cwd=str(ROOT), env=env)
         self.next_id = 0
@@ -738,7 +738,7 @@ class ConfigTests(unittest.TestCase):
         for client in ("json", "claude", "kilo", "codex", "gemini"):
             output = self.run_server("--print-config", "--client", client)
             self.assertEqual(output.returncode, 0, output.stderr)
-            self.assertIn("mcp_server.py", output.stdout)
+            self.assertIn("mcp.py", output.stdout)
             if client == "claude":
                 self.assertIn("claude mcp add --scope user", output.stdout)
                 continue
@@ -753,18 +753,18 @@ class ConfigTests(unittest.TestCase):
                 data = tomllib.loads(body)
                 table = data["mcp_servers"]["rapidapi-translator"]
                 self.assertEqual(table["env_vars"], ["RAPIDAPI_KEY"])
-                self.assertTrue(table["args"][0].endswith("mcp_server.py"))
+                self.assertTrue(table["args"][0].endswith("mcp.py"))
                 continue
             data = json.loads(body)
             table = (data.get("mcp") or data.get("mcpServers"))["rapidapi-translator"]
             if client == "kilo":
                 self.assertTrue(table["command"][0].endswith("python3"))
-                self.assertIn("mcp_server.py", table["command"][1])
+                self.assertIn("mcp.py", table["command"][1])
                 self.assertEqual(table["environment"]["RAPIDAPI_KEY"],
                                  "{env:RAPIDAPI_KEY}")
             else:
                 self.assertTrue(table["command"].endswith("python3"))
-                self.assertTrue(table["args"][0].endswith("mcp_server.py"))
+                self.assertTrue(table["args"][0].endswith("mcp.py"))
         unknown = self.run_server("--print-config", "--client", "nope")
         self.assertNotEqual(unknown.returncode, 0)
 
@@ -794,7 +794,8 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(entry["type"], "local")
         self.assertEqual(entry["command"][0].rsplit("/", 1)[-1],
                          Path(sys.executable).name)
-        self.assertTrue(entry["command"][1].endswith("mcp_server.py"))
+        self.assertTrue(entry["command"][1].endswith("mcp.py"))
+        self.assertIn("--serve", entry["command"])
         self.assertEqual(entry["environment"], {"RAPIDAPI_KEY": "{env:RAPIDAPI_KEY}"})
         if os.name == "posix":
             self.assertEqual(target.stat().st_mode & 0o777, 0o600)
@@ -882,7 +883,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(output.returncode, 0, output.stderr)
         payload = json.loads(output.stdout)
         server = payload["mcpServers"]["rapidapi-translator"]
-        self.assertTrue(server["args"][0].endswith("mcp_server.py"))
+        self.assertTrue(server["args"][0].endswith("mcp.py"))
         self.assertIn("RAPIDAPI_KEY", server["env"])
 
     def test_check_hides_key(self):

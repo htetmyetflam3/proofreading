@@ -158,7 +158,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[audit] {low}-{high}: {found['chapters']} chapter(s), "
                   f"first {found['first']}, last {found['last']}")
             if found["holes"]:
-                print(f"[audit] holes: {found['holes']}")
+                print(f"[audit] numbers not recognized as standalone chapter starts: {found['holes']}")
         return 1 if found["holes"] else 0
 
     if args.titles:
@@ -194,7 +194,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[audit] glued headings that just repeat a chapter already open "
               f"(page headers): {audit['inline_repeats']}")
     if audit["missing"]:
-        print(f"[audit] absent from the crawl: {audit['missing']}")
+        print(f"[audit] numbers not recognized as chapter starts: {audit['missing']}")
     if audit["duplicates"]:
         worst = ", ".join(f"{n}×{k}" for n, k in
                           sorted(audit["duplicates"].items())[:12])

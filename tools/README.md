@@ -13,13 +13,40 @@ costs the whole thing, and it gets re-sent on every later turn of a session.
 |---|---|---|
 | `audit_source.py` | which chapters the Chinese crawl really holds, which are missing, which numbers were parsed twice | 1 s, one screen |
 | `chapter_titles.py` | chapter titles in both languages, from the DOCX | 1 s, one screen |
+| `mcp.py` | every MCP tool as one safe CLI flag; the same server the clients launch | local unless translated |
+| `mcp_server.py` | the MCP library/server; no CLI entry | launched only by `mcp.py --serve` |
 | `../vps.py` | one-shot file upload/download to the VPS | one ssh |
+
+## `mcp.py` — one flag, one tool, one run
+
+Run from the repository root. With no command it prints help and does nothing.
+Each of the 16 MCP tool names has a matching underscore flag, plus a readable
+spelling (`--translate_text` and `--translate` are the same command). `--serve`
+is only for an MCP client.
+
+```sh
+uv run mcp.py --help
+uv run mcp.py --read_chapter 194 --start 1 --count 10
+uv run mcp.py --segment --file paragraph.txt
+uv run mcp.py --getTitle 193
+uv run mcp.py --insecpt --check-range 194-408
+uv run mcp.py --selftest
+```
+
+`--inspect`/`--insecpt` and `--getTitle` delegate to the source audit and DOCX
+title tools below; they do not load either full source into an agent. The server
+uses the same `Server.call_tool()` as direct CLI invocations.
 
 ## `audit_source.py` — what the crawl really has
 
 The crawl is a web scrape, and it shows: titles get glued onto the end of a body
-line, running page headers get promoted to chapter starts, one OCR glitch turns
-`第六十一章` into `第八十一章`, and three chapters never arrived.
+line, running page headers get promoted to chapter starts, and an OCR glitch can
+turn a chapter heading into another number. The audit reports numbers it cannot
+recognize as standalone starts; that is a parser result, not proof that the
+chapter is absent. In particular, the author says 241, 298 and 299 have titles
+mid-body. The current audit finds no marker, heading or title text for them, so
+`--check` is a conservative gate that requires manual resolution—not a verdict
+that those chapters are missing.
 
 ```sh
 python3 tools/audit_source.py                      # summary
@@ -34,11 +61,11 @@ Current answer for this checkout:
 427 chapter(s) parsed from 75,557 lines; last number 408
 376 heading candidates on '=====' lines, 51 glued into body text
 32 glued headings are a chapter's only start; 14 just repeat an open chapter
-absent from the crawl: [241, 298, 299]
+not recognized as chapter starts: [241, 298, 299] (see caveat above)
 numbers parsed more than once: 61×4, 81×2, 88×2, 95×2, 101×2, 111×2, …
 ```
 
-`--check` exits **1** when the range has holes, so it can gate a batch run:
+`--check` exits **1** when the parser cannot recognize every chapter start in the range. This is a conservative batch gate, not proof of source absence:
 
 ```sh
 python3 tools/audit_source.py --check 194-408 && echo safe to run

@@ -18,6 +18,7 @@ from unittest import mock
 HERE = Path(__file__).resolve().parent
 MT = HERE.parent
 sys.path.insert(0, str(MT))
+sys.path.insert(0, str(MT.parent / "tools"))
 sys.path.insert(0, str(HERE))
 
 import agent_work  # noqa: E402

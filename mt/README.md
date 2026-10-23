@@ -87,7 +87,7 @@ key.
 `mt/rapidapi_translator.py` speaks the RapidAPI "Multi format AI translator" API
 and `mt/api_translate.py` runs it over chapters of the local source, writing
 JSONL/TXT plus a Chinese/Burmese comparison against the existing human
-translation. `mt/mcp_server.py` exposes the same calls as a local MCP server.
+translation. `mcp.py` exposes the same calls as a local MCP server.
 
 ```sh
 python3 mt/api_translate.py --chapters 1-2 --plan   # offline, no key
@@ -99,7 +99,7 @@ The key is read from `RAPIDAPI_KEY`, or from a file named with `--env-file`
 Chinese↔Burmese chapter numbers out of `content/merged/episodes.docx` (last
 existing: Chinese 193 ↔ Burmese 195; next untranslated: 194), and `--chapters
 last|next|existing` uses it for both the run and the comparison reference.
-`mt/mcp_server.py --selftest` checks the MCP server without a key or network, and
-`mt/mcp_server.py --print-config --client kilo|claude|codex|gemini` prints that
+`mcp.py --selftest` checks the MCP server without a key or network, and
+`mcp.py --print-config --client kilo|claude|codex|gemini` prints that
 client's config. See `mt/RAPIDAPI.md` for the endpoint formats, the SSH/phone
 setup, and the cache/retry rules.
