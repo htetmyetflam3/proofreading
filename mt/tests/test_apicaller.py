@@ -12,10 +12,12 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import os
 import shutil
 import sys
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -198,10 +200,18 @@ class CliTests(unittest.TestCase):
         self.assertEqual(payload["mode"], "status")
         self.assertEqual(payload["next"], [])
 
-    def test_api_translate_refuses_a_bulk_run(self):
-        code = api_translate.main(["--chapters", "194-196", "--run",
-                                   "--source-file", str(self.source), "--no-map"])
-        self.assertEqual(code, 2)
+    def test_api_translate_accepts_a_bulk_run(self):
+        """The batch engine has no pair cap; apicaller.py is where it lives.
+
+        With no key the run stops at 3 — before the first request — which is the
+        proof it got past selection instead of being refused for its size.
+        """
+        with unittest.mock.patch.dict(os.environ, {"RAPIDAPI_KEY": ""}, clear=False):
+            with contextlib.redirect_stderr(io.StringIO()):
+                code = api_translate.main(
+                    ["--chapters", "194-196", "--run", "--no-compare",
+                     "--source-file", str(self.source), "--no-map"])
+        self.assertEqual(code, 3)
 
     def test_api_translate_plan_still_allows_three(self):
         stdout = io.StringIO()

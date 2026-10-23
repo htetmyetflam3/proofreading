@@ -316,9 +316,9 @@ python3 mt/apicaller.py --194+195 --run --env-file ~/.env    # same pair
 ```
 
 194 + 195 is 363 paragraphs, 6,427 characters, **10 requests** (40 paragraphs
-per request). A third chapter is refused, and the refusal prints the pairs to
-run in order. `mt/api_translate.py --run` enforces the same limit unless you add
-`--allow-bulk`.
+per request). A third chapter is refused *by this caller*, and the refusal
+prints the pairs to run in order. `mt/api_translate.py` — the batch engine under
+it — takes any range; see *2.1b* for the one-file English run.
 
 Writes `content/mtranslate/rapidapi/`:
 
@@ -334,6 +334,45 @@ report.json                 the latest report, overwritten each run
 Re-running is free for anything already cached; the cache is
 `content/mtranslate/rapidapi-cache.sqlite3`. `--json` prints the plan or the
 report as one object, which is what the agent reads.
+
+## 2.1b The whole tail in English, one `.txt`
+
+When the goal is English for the agent to read rather than a Burmese draft to
+publish, skip the pair machinery: `api_translate.py` takes the range, and
+`--one-file` makes it write **one text file and nothing else** — no SQLite
+cache, no jsonl, no per-chapter txt, no comparison, no report.
+
+```sh
+cd "$REPO"
+python3 mt/api_translate.py --chapters 194-408 --one-file --target en          # plan
+python3 mt/api_translate.py --chapters 194-408 --one-file --target en --run --env-file ~/.env
+```
+
+* The last chapter in this source is **408**, not 421. `--chapters 194-408`
+  selects 212 chapters: 43,083 paragraphs, 847,492 characters, **1,164
+  requests**. Three numbers in that span do not exist — **241, 298, 299** — and
+  `--one-file` skips them with a note instead of refusing the run.
+* `--one-file` alone writes `content/mtranslate/english.txt`; give a path to put
+  it elsewhere. `--target` defaults to `en` in this mode.
+* **Resume by pasting the same command again.** The chapter headings are the
+  cursor: a chapter already in the file is skipped, and a chapter cut off
+  mid-write is rewritten rather than left as a stump. Nothing else tracks state,
+  which is why there is no database to lose.
+* `--pause` (default `0.5`) is the gap between chapters. 1,164 requests will hit
+  a rate limit somewhere; 429s are retried with backoff, and a rerun costs only
+  the chapters that are not in the file yet.
+* `--plan` prints the counts and how many chapters the file already holds; it
+  never creates the file.
+
+The heading is what a later pass reads, so leave it alone:
+
+```
+===== Chapter 194 — 第一百九十四章:那突如其來的善意 =====
+```
+
+This mode changes nothing about the MCP tools or `apicaller.py`: the agent's
+`translate_chapters` still refuses more than two chapters, because an agent
+spending 1,164 requests unattended is not the same as you spending them once.
 
 ## 2.2 Check the join before spending agent tokens
 
@@ -839,7 +878,9 @@ same text.
 | `--env-file` | read `KEY=VALUE` lines from PATH; the shell wins |
 | `--plan` | offline count, no request (default) |
 | `--run` | actually call the API; needs `RAPIDAPI_KEY` |
-| `--allow-bulk` | lift the two-chapter limit for one `--run` |
+| `--one-file [PATH]` | write one `.txt` and nothing else; no cache, jsonl, report. Default `content/mtranslate/english.txt` |
+| `--skip-missing` | translate the chapters that exist when the range has holes (on by default with `--one-file`) |
+| `--pause` | seconds between chapters (default `0.5`) |
 
 ## `mt/mcp_server.py` — the agent's tool server
 
