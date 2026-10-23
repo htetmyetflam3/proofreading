@@ -374,6 +374,29 @@ This mode changes nothing about the MCP tools or `apicaller.py`: the agent's
 `translate_chapters` still refuses more than two chapters, because an agent
 spending 1,164 requests unattended is not the same as you spending them once.
 
+## 2.1c Ask the source instead of reading it
+
+The Chinese crawl is 4.1 MB and the chapter list in it is a mess of glued
+titles and promoted page headers. Two scripts answer the questions, and they are
+what you run before a batch:
+
+```sh
+python3 tools/audit_source.py                     # one-screen summary
+python3 tools/audit_source.py --check 194-408     # exits 1 if the range has holes
+python3 tools/audit_source.py --titles --from 194 # number -> title
+python3 tools/chapter_titles.py --at 194          # from the DOCX (blank past 193)
+```
+
+Current answer: 427 parsed, last number **408**, and **241, 298 and 299 are
+absent** from the crawl entirely — not in a truncated way, simply never
+downloaded. `--check 194-408` exits 1 and names them, which is deliberate: a
+batch that silently skips three chapters is worse than one that says so.
+
+The DOCX stops at Chinese 193, so `chapter_titles.py --at 194` prints a blank
+title rather than inventing one. For 194+ the crawl is the only witness.
+
+Index of every tool, and why each exists: `tools/README.md`.
+
 ## 2.2 Check the join before spending agent tokens
 
 ```sh

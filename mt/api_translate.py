@@ -127,7 +127,19 @@ def reference_lines(chapter: BurmeseChapter) -> list[str]:
 
 
 def select(chapters: list[Chapter], wanted: list[int]) -> list[Chapter]:
-    by_number = {chapter.number: chapter for chapter in chapters}
+    """The chapter for each wanted number, preferring the longest body.
+
+    A web crawl sometimes promotes a running page header to a chapter start, so
+    one number can be parsed several times: chapter 61 arrives four times in this
+    source, three of them stubs cut out of the middle of the real chapter. The
+    real one is the long one, so a plain last-wins dictionary would hand a
+    request a 213-character fragment in place of a 1,652-character chapter.
+    """
+    by_number: dict[int, Chapter] = {}
+    for chapter in chapters:
+        current = by_number.get(chapter.number)
+        if current is None or len(chapter.body) > len(current.body):
+            by_number[chapter.number] = chapter
     return [by_number[number] for number in wanted if number in by_number]
 
 
