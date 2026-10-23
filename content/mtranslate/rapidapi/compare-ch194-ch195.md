@@ -1,688 +1,688 @@
-# auto → my — chapter 194–195
+# auto → en — chapter 194–195
 
 | field | value |
 |---|---|
 | API | `multi-format-ai-translator-the-most-complete.p.rapidapi.com` (RapidAPI) |
-| target | `my` |
+| target | `en` |
 | requested source | `auto` |
 | detected source | zh-TW |
 | chapters | 2 |
 | paragraphs | 363 |
 | characters | 6427 |
-| requests (this run) | 10 |
+| requests (this run) | 12 |
 | cache hits | 0 / 363 |
 | existing Burmese (DOCX) | Chinese 1–193 ↔ Burmese 1–195; next without one: 194 |
-| generated | 2026-10-22T19:30:55+00:00 |
+| generated | 2026-10-22T20:05:26+00:00 |
 
 Each numbered paragraph below is one source line and its translation, in the order the API returned them. The human Burmese under *reference* is the existing translation of the same chapter; it is **not** paragraph-aligned with the Chinese, because that alignment has never been verified.
 
 ## Chapter 194 — 第一百九十四章:那突如其來的善意
 
-166 paragraphs · 3235 characters · 5 request(s) · detected `zh-TW`
+166 paragraphs · 3235 characters · 7 request(s) · detected `zh-TW`
 
 **1.** 神降打的男子衣衫銹樓，身上散發著亮墾的味道，因為很長時間沒有打理所以黏在-
 
-> နတ်တို့၏ ရိုက်နှက်ခြင်းကို ခံရသောသူသည် သံချေးတက်သောအဝတ်ကို ဝတ်ဆင်ထားပြီး၊ သူ၏ ခန္ဓာကိုယ်သည် လတ်ဆတ်သော အနံ့ကို သင်းပျံ့စေသည်။ သူ ဂရုမစိုက်တာ ကြာလှပြီမို့ တွယ်ကပ်နေခဲ့သည် ။
+> The man who was beaten by the gods was dressed in rusty clothes, and his body exuded the smell of freshness. He had not taken care of it for a long time, so it was stuck to -
 
 **2.** 起的頭髮遮住了臉，所以看不清面容。
 
-> ဆံပင်တွေက သူ့မျက်နှာကို ဖုံးထားလို့ သူ့မျက်နှာကို ရှင်းရှင်းလင်းလင်း မမြင်ရဘူး။
+> Her hair covered her face, so she couldn't see her face clearly.
 
 **3.** 有五個男人對他拳打腳踢，而他，卻是從頭到尾都不肯反抗哪怕一下
 
-> လူငါးယောက်က သူ့ကို လက်သီးနဲ့ ကန်ခဲ့ပေမယ့် အစအဆုံး တစ်ကြိမ်တောင် ငြင်းဆန်ခဲ့ပါတယ်။
+> Five men punched and kicked him, but he refused to resist even once from beginning to end.
 
 **4.** 甚至是，就連本能蜷縮起來的保護動作都沒有
 
-> အလိုလို ကောက်ကွေးခြင်းကဲ့သို့ အကာအကွယ် လုပ်ဆောင်ချက် မရှိပါ။
+> Even, there is no protective action like instinctively curling up.
 
 **5.** 給人的感覺，就好像是隨便別人打他一般
 
-> တစ်စုံတစ်ယောက်က သူ့ကို ပေါ့ပေါ့ဆဆ ရိုက်နေသလို ခံစားရတယ်။
+> It feels like someone is hitting him casually
 
 **6.** “住手，你們在幹什麼？
 
-> "ရပ်ပါ၊ မင်းဘာလုပ်တာလဲ။
+> "Stop, what are you doing?
 
 **7.** 唯一的武魂境強者陳紹正來到跟前
 
-> ကိုယ်ခံပညာနယ်ပယ်တွင် တစ်ဦးတည်းသော သန်မာသော Chen Shaozheng သည် ရှေ့သို့ရောက်လာသည်။
+> Chen Shaozheng, the only strong man in the martial arts realm, came to the front
 
 **8.** 他一巴堂拍出，一股柔和的氣滬分開了眾人
 
-> သူက စတူဒီယိုထဲက ပစ်ချလိုက်ပြီး ဖြည်းညှင်းစွာ အသက်ရှုသံက လူတိုင်းကို ခွဲထုတ်လိုက်တယ်။
+> He shot out of the studio, and a gentle breath separated everyone
 
 **9.** 見到葉寧等人過來，這幾個男子連忙說道
 
-> Ye Ning နှင့် အခြားသူများ လိုက်လာသည်ကိုမြင်တော့ ထိုလူများက အမြန်ပြောလိုက်သည်။
+> Seeing Ye Ning and others coming over, these men quickly said
 
 **10.** “葉大人、煲有所不知，這個小子是個搞神，我們打他是因為他活該！
 
-> “ဆရာကြီး ဘာလုပ်နေလဲ မသိဘူး။ဒီကလေးက နတ်ဘုရား၊ငါတို့က သူ့ကို ထိုက်တန်လို့ ရိုက်နှက်တာ။
+> "Master Ye, you don't know what you are doing. This kid is a god, we beat him because he deserves it!
 
 **11.** 痛神？
 
-> နာကျင်သလား?
+> Painful?
 
 **12.** 葉寧眉頭一皺。
 
-> Ye Ning မျက်မှောင်ကြုတ်လိုက်သည်။
+> Ye Ning frowned.
 
 **13.** “這是什麼說法？
 
-> "ဒီစကားက ဘာလဲ။
+> "What is this statement?
 
 **14.** 合著你們揍別人，你們還有理了？
 
-> သင်နှင့်အတူ အခြားသူများကို ရိုက်နှက်ခြင်းသည် ကျိုးကြောင်းဆီလျော်ပါသလော။
+> Is it still reasonable for you to beat others up together with you?
 
 **15.** “我們沒有說謊，這個人就是個瘟神！
 
-> "ငါတို့မလိမ်ဘူး ဒီလူက ပလိပ်ရောဂါပဲ။
+> "We didn't lie, this man is a plague!
 
 **16.** “以前都沒人認識他，他是三年前莫名出現的，有一家人:好心給他吃喝，結祟呢?
 
-> “သူ့ကို အရင်က ဘယ်သူမှ မသိကြဘူး။ လွန်ခဲ့တဲ့ သုံးနှစ်က မထင်မှတ်ဘဲ ပေါ်လာတယ်။ သူ့ကို အစာရေစာ ကြင်နာစွာ ပေးခဲ့တဲ့ မိသားစု ရှိတယ်။ နတ်ဆိုး ဘယ်မှာလဲ၊
+> "No one knew him before. He appeared inexplicably three years ago. There was a family who kindly gave him food and drink. Where is the evil spirit?
 
 **17.** 沒過多久，就得了重病死了。
 
-> သိပ်မကြာခင်မှာပဲ အပြင်းဖျားပြီး သေဆုံးသွားတယ်။
+> Not long after, he became seriously ill and died.
 
 **18.** “我們村的老王頭，膝下無子，拿他當兒子看待，結果呢?沒過多久，莫名暴斃，名
 
-> “ကျမတို့ရွာက Wangtou က သားသမီးမရှိဘူးဆိုတော့ သူ့ကို သားလေးလို ဆက်ဆံတယ်။ ဒါပေမယ့် ဘာဖြစ်သွားတာလဲ။ သိပ်မကြာခင်မှာပဲ သူ ရုတ်တရက် မထင်မှတ်ဘဲ သေဆုံးသွားခဲ့တယ်။
+> "The old Wangtou of our village had no children, so he treated him as his son. But what happened? Not long after, he died suddenly and inexplicably.
 
 **19.** 下唯一的水田，也被官服給收走了！”
 
-> အောက်ပိုင်းရှိ တစ်ခုတည်းသော လယ်ကွင်းကိုလည်း တရားဝင် ယူနီဖောင်းများဖြင့် သိမ်းသွားခဲ့သည်။“
+> The only paddy field in the lower reaches was also taken away by official uniforms!"
 
 **20.** 他所過的地方，農田收成都不好:牲畜會莫名得病
 
-> သူသွားလေရာရာ၌ လယ်မြေများ ရိတ်သိမ်းမှု မကောင်းတော့ဘဲ တိရစ္ဆာန်များ နာမကျန်းဖြစ်မည်ကို အတိအကျ မသိနိုင်ပေ။
+> Wherever he went, farmland harvests were not good: livestock would get sick for no apparent reason.
 
 **21.** “凡是對他好的人，全部都會被他連累！
 
-> "သူ့ကို ကောင်းကောင်းမွန်မွန် ဆက်ဆံတဲ့သူတိုင်းက သူ့ကို စွဲလမ်းကြလိမ့်မယ်။
+> "Everyone who treats him well will be implicated by him!
 
 **22.** “他就是掃把星轉世！
 
-> "သူက လူဆိုးရဲ့ လူပြန်ဝင်စားတာပဲ!
+> "He is the reincarnation of the bad guy!
 
 **23.** 這幾個人一說起來此人，就滔滔不絕
 
-> ဒီလူက ဒီလူအကြောင်းပြောတိုင်း အဆုံးမသတ်တတ်ဘူး။
+> Whenever these people talk about this person, they talk endlessly.
 
 **24.** 關鍵是這些事情，全部都說的有鼻子有眼，聽起來完全不像是編瞎話
 
-> သော့ချက်ကတော့ ဒီအရာတွေအားလုံးကို ရှင်းရှင်းလင်းလင်း ပြတ်ပြတ်သားသားပြောပြီး လိမ်ညာနေတယ်လို့ လုံးဝမထင်ထားဖို့ပါပဲ။
+> The key is that all of these things are said clearly and clearly, and they don’t sound like they are making up lies at all.
 
 **25.** “怎麼可能會有這種事?
 
-> "ဒီလိုအဖြစ်မျိုးက ဘယ်လိုဖြစ်သွားတာလဲ။
+> "How could such a thing happen?
 
 **26.** 慕向高愣住，難以置信
 
-> Mu Xianggao အံ့အားသင့်သွားပြီး မယုံနိုင်ဖြစ်သွားသည်။
+> Mu Xianggao was stunned and couldn't believe it.
 
 **27.** 大人若是不信，儘管問問別人
 
-> မယုံရင် တခြားသူတွေကို မေးကြည့်ပါ။
+> If you don't believe me, just ask others.
 
 **28.** 剛剛接人的男子說道
 
-> တယောက်ယောက်ကို ကောက်ကိုင်လိုက်သည့်လူက ပြောသည်။
+> The man who just picked up someone said
 
 **29.** 聞訊趕來，已經得知發生什麼事情的流民們紛紛點頭，確認了此事
 
-> သတင်းကြားပြီးနောက် ဖြစ်ပျက်ခဲ့သည်များကို သိရှိပြီးသော ဒုက္ခသည်များက ခေါင်းညိတ်ကာ ထိုကိစ္စကို အတည်ပြုခဲ့သည်။
+> After hearing the news, the refugees who had already learned what happened nodded and confirmed the matter.
 
 **30.** “他沒有說謊，這個小子確實是個煞星！
 
-> "သူ မလိမ်ပါဘူး၊ ဒီကလေးက တကယ်ကို ဆိုးဆိုးဝါးဝါး ကြယ်တစ်ပွင့်ပါ။
+> "He didn't lie, this kid is indeed a evil star!
 
 **31.** 第一自九十四桌:那實如其來的善意 26
 
-> ဇယားကိုးဆယ့်လေးမှ ပထမတစ်မျိုး- စစ်မှန်သောကြင်နာမှု ၂၆
+> The first one from Table Ninety-Four: The genuine kindness 26
 
 **32.** “反正誰要是跟他扯上關係，就保準會完蛋！
 
-> "ဘာပဲဖြစ်ဖြစ် သူနဲ့ ပတ်သတ်တဲ့ ဘယ်သူမဆို ပြီးသွားမှာ သေချာတယ်။
+> "Anyway, anyone who has anything to do with him will definitely be finished!
 
 **33.** “我都懷疑，這次旱情，會不會就是他引來的，他真是個毒瘤啊，幹嘛要待在我們並
 
-> “သူ ဒီမိုးခေါင်မှုကို ဖြစ်ပေါ်စေသလားလို့တောင် သံသယဖြစ်မိတယ်။သူက တကယ်ကင်ဆာဖြစ်နေလို့ သူဘာလို့ ငါတို့ရှိနေသင့်တာလဲ။
+> "I even doubt whether he caused this drought. He is really a cancer. Why should he stay where we are?
 
 **34.** 去別的地方不行嗎？
 
-> တခြားနေရာကို မသွားနိုင်ဘူးလား။
+> Can't you go somewhere else?
 
 **35.** 百姓們紛紛說道
 
-> လူတွေက တယောက်ပြီး တယောက်ပြောတယ်။
+> The people said one after another
 
 **36.** 他們刻意和剛剛被毆打的男子保持了距高。
 
-> အရိုက်ခံရတဲ့လူနဲ့ ခပ်ဝေးဝေးမှာနေခဲ့ကြတယ်။
+> They deliberately kept a distance from the man who had just been beaten.
 
 **37.** 就好像真的很畏懼跟他接觸一般
 
-> သူနဲ့ အဆက်အသွယ်ရမှာ အရမ်းကြောက်နေသလိုပဲ။
+> It's like I'm really afraid of contact with him
 
 **38.** 這把蔡向高給看懵了
 
-> ဒီစိတ်ရှုပ်နေတဲ့ Cai Xianggao။
+> This confused Cai Xianggao.
 
 **39.** “哥然你們那不原意碰他，那你為什麼還要打他?
 
-> "အစ်ကို၊ မင်းသူ့ကိုမထိရင် ဘာလို့ရိုက်သေးတာလဲ။
+> "Brother, if you don't intend to touch him, why do you still beat him?
 
 **40.** 蔡向高詢問。
 
-> Cai က Gao ကိုမေးတယ်။
+> Cai asked Gao.
 
 **41.** “那是因為，這個做是不是個好東西，諸他大人都是好人，我不想讓他把墨運帶給諸
 
-> "အဲဒါက ကောင်းတာပဲလား။ မင်းတို့အားလုံးက လူကောင်းတွေပဲ။ ငါက မိုရဲ့ ကံကြမ္မာကို မင်းဆီ မပို့စေချင်ဘူး။"
+> "That's because, is this a good thing? All of you are good people. I don't want him to bring Mo's luck to you."
 
 **42.** 位大人，這才揍他。
 
-> သခင်၊ သူ့ကိုရိုက်ရုံပဲ။
+> Sir, just beat him.
 
 **43.** 打人的人理直氣壯，甚至還津議說道
 
-> ရိုက်နှက်တဲ့လူက ယုံကြည်မှုအပြည့်နဲ့ ပြောလိုက်သေးတယ်။
+> The person who beat him felt confident and even said that
 
 **44.** “大人別給他飯吃了，就讓他餓死吧，他死了，對於所有人來說都是一件好事
 
-> "သခင်၊ သူ့ကို အစာမပေးပါနဲ့၊ ငတ်သေပါစေ၊ သူသေတာက လူတိုင်းအတွက် ကောင်းပါတယ်။
+> "Sir, don't give him food, just let him starve to death. His death is a good thing for everyone.
 
 **45.** 陳紹正皺眉說道。
 
-> Chen Shaozheng က မျက်မှောင်ကြုတ်ကာ ပြောလိုက်သည်။
+> Chen Shaozheng said with a frown.
 
 **46.** “再被你們這樣打下去，那他就真要被打死了。
 
-> “မင်း သူ့ကို ဒီအတိုင်း ဆက်ရိုက်ရင် သေတဲ့အထိ အရိုက်ခံရလိမ့်မယ်။
+> "If you continue to beat him like this, he will really be beaten to death.
 
 **47.** 打人的人反倒是一臉苦笑
 
-> သူ့ကိုရိုက်တဲ့လူက သူ့မျက်နှာမှာ ပြုံးစိစိနဲ့
+> The person who hit him had a wry smile on his face
 
 **48.** “要真是那麼容易打死他就好了，天知道這個小子是什麼人啊，前前後後被揍了也不
 
-> “သူ့ကို အသေသတ်ဖို့က တကယ်ကို လွယ်ရင်ကောင်းမှာပဲ၊ ဒီကလေးက ဘယ်သူလဲဆိုတာ ဘုရားသခင် သိတယ်။ တယောက်ပြီး တယောက် အရိုက်ခံရရင် အရေးမကြီးဘူး။
+> "It would be great if it was really so easy to beat him to death. God knows who this kid is. It doesn't matter if he gets beaten up one after another.
 
 **49.** 知道多少次了，但就是打不死，唉，看來老天爺就是要讓他活在世上到禍害一”
 
-> ဘယ်နှစ်ခါမှန်းသိပေမယ့် သေအောင်မရိုက်နိုင်ဘူး။ ကံမကောင်းစွာပဲ၊ ဘုရားသခင်က သူ့ကို ဘေးဒုက္ခမရောက်မချင်း ဒီကမ္ဘာမှာ နေထိုင်ခွင့်ပေးချင်ပုံရတယ်။"
+> I know how many times, but I can't beat him to death. Alas, it seems that God wants to let him live in this world until he is a disaster."
 
 **50.** 眾人都是嘆息
 
-> လူတိုင်း သက်ပြင်းချကြသည်။
+> Everyone sighed
 
 **51.** 直是好人不償命，禍害遺千年啊，
 
-> လူကောင်းတွေက သူတို့ကိုယ်သူတို့ ကိုယ့်ဘဝနဲ့ကိုယ် ပေးဆပ်တာမဟုတ်တာတော့ အမှန်ပါပဲ၊ ဒုက္ခက နှစ်ထောင်ပေါင်းများစွာ ကြာသွားလိမ့်မယ်။
+> It’s true that good people don’t pay for themselves with their own lives, and the harm will last for thousands of years.
 
 **52.** 這樣的人，活著可不就是坑人嗎？
 
-> ထိုသို့သောလူသည် သူအသက်ရှင်စဉ်အခါက လှည့်ဖြားသူသာဖြစ်သည် မဟုတ်ပါလား။
+> Isn't it true that such a person is just a deceiver when he lives?
 
 **53.** 但打又打不死，這能怎麼辦呢?
 
-> ဒါပေမယ့် ငါက သေတဲ့အထိ အရိုက်မခံရဘူး၊ ငါ ဘာလုပ်နိုင်မလဲ။
+> But I can’t be beaten to death, so what can I do?
 
 **54.** “葉兄，你看這
 
-> "အစ်ကိုရေ၊ ဒါကိုကြည့်
+> "Brother Ye, look at this
 
 **55.** 菜向高素來不是很信這種事情
 
-> Cai Xianggao က ဒီလိုမျိုး ဘယ်တုန်းကမှ မယုံကြည်ဘူး။
+> Cai Xianggao has never believed in this kind of thing.
 
 **56.** 但此刻仍然感覺到了邪門，
 
-> ဒါ​ပေမယ့်​ အခုချိန်​ထိ စိတ်​ညစ်​​နေတုန်း
+> But I still feel evil at this moment,
 
 **57.** 這麼多人都這麼說，不可能是在說謊.
 
-> လူတော်တော်များများက ဒီလိုပြောရင် လိမ်ပြောစရာမရှိပါဘူး။
+> With so many people saying this, there is no way they are lying.
 
 **58.** 難不成此人真是天煞孤星？
 
-> ဤလူသည် အမှန်တကယ် တစ်ဦးတည်းသော ကြယ်ဖြစ်နိုင်ပါ့မလား။
+> Is it possible that this person is really a lone star?
 
 **59.** 他們此行本來就冒著巨大的兇險
 
-> သူတို့ရဲ့ ခရီးက အန္တရာယ်များတယ်။
+> Their trip was inherently risky.
 
 **60.** 或許還真應該跟此人保持些距離才是
 
-> ဒီလူနဲ့ ခပ်ခွာခွာနေသင့်ပါတယ်။
+> Maybe we really should keep some distance from this person.
 
 **61.** 然而葉寧卻沒有說話，他看著這個男人，眼裡滿是好奇
 
-> သို့သော် Ye Ning က စကားမပြော။ သူသည် ဤလူကို စူးစမ်းလိုစိတ်ဖြင့် မျက်လုံးများဖြင့် ကြည့်နေလေသည်။
+> However, Ye Ning did not speak. He looked at this man with curiosity in his eyes.
 
 **62.** “世上居然還有這種人?-
 
-> "ကမ္ဘာပေါ်မှာ ဒီလိုမျိုးလူတွေရှိသေးလား။-
+> "There are still such people in the world?-
 
 **63.** 百九十四卓: 那突如其來的善受3/6
 
-> တစ်ရာ့ကိုးဆယ့်လေး ဇူအို- ရုတ်တရတ် ကောင်းသောခံစားမှု 3/6
+> One hundred and ninety-four Zhuo: The sudden good feeling 3/6
 
 **64.** 我叫南宮良人
 
-> ကျွန်တော့်နာမည် Nangong Liangren ပါ။
+> My name is Nangong Liangren
 
 **65.** 修行五千年
 
-> အနှစ်ငါးထောင်ကျင့်တယ်။
+> Five thousand years of practice
 
 **66.** 在我剛剛踏上修行之路的時候，我便展現出了驚人的天賦
 
-> ဝိညာဉ်ရေးကျင့်စဉ်လမ်းကြောင်းကို ပထမဆုံးစတင်သောအခါတွင် အံ့သြဖွယ်စွမ်းရည်များကို ပြသခဲ့သည်။
+> When I first embarked on the path of spiritual practice, I showed amazing talents
 
 **67.** 師尊認為我是白萬中無一的絕世天才，干是對我悉心培養
 
-> ကျွန်ုပ်သည် ထူးခြားသော ပါရမီရှင်တစ်ဦးဖြစ်ကြောင်း ဆရာကြီးယုံကြည်ပြီး ကျွန်ုပ်အား ဂရုတစိုက် လေ့ကျင့်ပေးခဲ့သည်။
+> Master believes that I am a peerless genius that is unique among all the world. He has carefully cultivated me.
 
 **68.** 我沒有辜負師尊的教誨，不到百歲，便踏入到了天問境，打破了一系列的修行記錄
 
-> ဆရာကြီးရဲ့ အဆုံးအမကို လိုက်နာခဲ့တယ်။ ကျွန်တော် အသက်တစ်ရာမပြည့်ခင်မှာ ကောင်းကင်ဘုံမေးခွန်းတွေရဲ့ နယ်ပယ်ထဲကို ဝင်ရောက်ခဲ့ပြီး လေ့ကျင့်မှုမှတ်တမ်းတွေကို ဆက်တိုက်ချိုးခဲ့ပါတယ်။
+> I have lived up to Master's teachings. Before I was a hundred years old, I entered the realm of Heavenly Questions and broke a series of practice records.
 
 **69.** 自那之後，我的修行一發不可收抬
 
-> ထိုအချိန်မှစ၍ ကျွန်ုပ်၏ဝိညာဉ်ရေးအလေ့အကျင့်သည် မရပ်တန့်နိုင်တော့ပေ။
+> Since then, my spiritual practice has been unstoppable.
 
 **70.** 只用了區區五千年，便成為了仙君
 
-> မသေနိုင်သောသခင်ဖြစ်ရန် အနှစ်ငါးထောင်မျှသာ အချိန်ယူခဲ့ရသည်။
+> It only took a mere five thousand years to become an Immortal Lord
 
 **71.** 仙君，有資格掌控一域之地
 
-> မသေနိုင်သောသခင်၊ ဒေသတစ်ခုကို ထိန်းချုပ်ရန် အရည်အချင်းပြည့်မီသည်။
+> Immortal Lord, qualified to control a region
 
 **72.** 我所堂掉的:下是黑水過
 
-> ငါမင်းကိုပြောခဲ့တာက အောက်မှာဖော်ပြထားတဲ့ အနက်ရောင်ရေလမ်းကြောင်းပါ။
+> What I told you: The following is the passage of black water
 
 **73.** 黑水域乃是仙界的一處大域，在無盡海的東側
 
-> Black Water သည် အဆုံးမဲ့ပင်လယ်၏ အရှေ့ဘက်ခြမ်းရှိ နတ်သမီးကမ္ဘာ၏ ကြီးမားသောဧရိယာဖြစ်သည်။
+> Black Water is a large area in the fairy world, on the east side of the Endless Sea
 
 **74.** 黑水域之中，有大小宗門十萬。
 
-> အနက်ရောင်ရေပြင်တွင် အရွယ်အစားအမျိုးမျိုးရှိသော ဂိုဏ်းခွဲပေါင်း ရာနှင့်ချီရှိသည်။
+> There are hundreds of thousands of sects of various sizes in the black waters.
 
 **75.** 他們都尊稱我為域豐
 
-> အားလုံးက ကျွန်တော့်ကို Yu Feng လို့ တလေးတစား ခေါ်ကြတယ်။
+> They all respectfully call me Yu Feng
 
 **76.** 但我這個人，不在乎這些虛榮，我深感修行不易，牢記過去師尊對我的恩情
 
-> ဒါပေမယ့် ငါလိုလူတစ်ယောက်အနေနဲ့ ဒီအရာတွေကို ငါဂရုမစိုက်ဘူး။ စိုက်ပျိုးလေ့ကျင့်ခြင်းသည် မလွယ်ကူကြောင်း နက်နက်ရှိုင်းရှိုင်းခံစားရပြီး အတိတ်က ကျွန်ုပ်အပေါ် ဆရာကြီး၏ ကြင်နာမှုကို သတိရနေပါမည်။
+> But as a person like me, I don’t care about these vanities. I deeply feel that practicing cultivation is not easy, and I will keep in mind the kindness Master showed me in the past.
 
 **77.** 於是在成為了仙君之後，我所做的第一件事情，就是將師尊接來，與我共享富貴
 
-> ထို့ကြောင့် မသေနိုင်သောသခင်ဖြစ်လာပြီးနောက်၊ ကျွန်ုပ်ပထမဆုံးလုပ်ခဲ့သောအရာမှာ အရှင်သခင်ထံ အပ်နှံပြီး စည်းစိမ်ဥစ္စာများကို ကျွန်ုပ်နှင့်မျှဝေရန်ဖြစ်သည်။
+> So after becoming an Immortal Lord, the first thing I did was to bring Master over and share the wealth with me.
 
 **78.** 師尊這些年沒有閑著，我不在的時候，他又收了一個女弟子，也就是我的師妹
 
-> ဆရာကြီးသည် ဤနှစ်များအတွင်း ဘာမှမလုပ်ခဲ့ပါ။ ကျွန်တော် ဝေးသွားတဲ့အခါ သူက ကျွန်တော့်ညီမငယ်ဖြစ်တဲ့ တပည့်အမျိုးသမီးကို ခေါ်သွားတယ်။
+> Master has not been idle these years. When I was away, he took in another female disciple, who is my junior sister.
 
 **79.** 女弟子名為李嫣然，生的雖然不是絕美，但是性子溫和，謙恭有禮，
 
-> တပည့် အမျိုးသမီးက Li Yanran တဲ့။ သူမသည် အလွန်လှပသော်လည်း နူးညံ့သိမ်မွေ့ပြီး ယဉ်ကျေးသိမ်မွေ့သည်။
+> The female disciple is named Li Yanran. Although she is not extremely beautiful, she is gentle, courteous and courteous.
 
 **80.** 師尊對我說，這麼多年來，我修行孤苦，如今到了仙君之境，也該停下來，享受-
 
-> ကျွန်ုပ်သည် နှစ်ပေါင်းများစွာ တစ်ကိုယ်တည်း ကျင့်ကြံ ကျင့်ကြံခဲ့သည်၊ ယခု ကျွန်ုပ် မသေနိုင်သော အရှင်၏ ဘုံသို့ ရောက်ပြီ ဖြစ်၍ ရပ်တန့်၍ ပျော်မွေ့သင့်သည် ဟု ဆရာကြီး က ကျွန်ုပ်အား ပြောပြပါသည်။
+> Master told me that for so many years, I have been practicing solitary practice, and now that I have reached the realm of the Immortal Lord, I should stop and enjoy -
 
 **81.** 下人生了
 
-> မျိုးဆက်သစ်တွေ မွေးတယ်။
+> The next generation is born
 
 **82.** 他說我的名字里的良人二字，對應著的正是師妹
 
-> ငါ့နာမည်က "ချစ်တယ်" ဟူသော စကားလုံးသည် ငါ့အငယ်တန်းညီမနှင့် သက်ဆိုင်သည်ဟု သူပြောခဲ့သည်။
+> He said that the word "beloved" in my name corresponds to my junior sister.
 
 **83.** 師妹也說，我是他的良人
 
-> ဂျူနီယာအစ်မကလည်း ငါက သူ့အချစ်ဆုံး
+> Junior sister also said that I am his beloved
 
 **84.** 於是在師尊的主持之下，我與師妹結為了道侶
 
-> ဒီလိုနဲ့ ဆရာကြီးရဲ့ ပံ့ပိုးမှုအောက်မှာ ကျမရဲ့ အငယ်တန်း ညီမနဲ့ ကျမ တာအို စုံတွဲတွေ ဖြစ်သွားတယ်။
+> So under the auspices of Master, my junior sister and I became Taoist couples.
 
 **85.** 結為道侶之後，我漸漸對師妹有了感情，對她也越來越信任，
 
-> တာအိုဝါဒီစုံတွဲဖြစ်လာပြီးနောက်၊ ကျွန်မညီမငယ်အပေါ် ခံစားချက်တွေ တဖြည်းဖြည်း ကြီးထွားလာပြီး သူ့ကို ပိုပိုပြီး ယုံကြည်လာခဲ့တယ်။
+> After becoming a Taoist couple, I gradually developed feelings for my junior sister and trusted her more and more.
 
 **86.** 她的修行天賦不好，我擔心她將來壽元耗盡，不能陪我天長地久
 
-> သူမရဲ့ ပြုစုပျိုးထောင်မှုစွမ်းရည်က မကောင်းပါဘူး။ အနာဂတ်မှာ သူမရဲ့ ဘဝသက်တမ်း ကုန်ဆုံးသွားမှာကို စိုးရိမ်ပြီး သူမ ကျွန်မနဲ့ ထာဝရ အတူနေနိုင်မှာ မဟုတ်ပါဘူး။
+> Her cultivation talent is not good. I am worried that her life span will be exhausted in the future and she will not be able to stay with me forever.
 
 **87.** 干是我需要走遍仙界，尋找能夠提升資質的寶物。
 
-> Qianye သည် ကျွန်ုပ်၏အရည်အချင်းများကို မြှင့်တင်ပေးနိုင်သော ရတနာများကို ရှာဖွေရန် နတ်သမီးကမ္ဘာအနှံ့ ခရီးသွားရန်လိုအပ်သည်။
+> Qianye needs to travel throughout the fairy world to find treasures that can improve my qualifications.
 
 **88.** 還有，師尊年紀也大了，他的壽元不多了，我還需要去找能夠延長壽元的天材地寶
 
-> ထို့အပြင် ဆရာကြီးသည် အသက်ကြီးလာသည်နှင့်အမျှ သူ၏ သက်တမ်းသည်လည်း ကုန်ဆုံးနေပြီဖြစ်သည်။ ကျွန်ုပ်၏သက်တမ်းကို ရှည်စေမည့် ကောင်းကင်နှင့်မြေကြီးမှ ရတနာများကို ကျွန်ုပ်ရှာဖွေရန် လိုအပ်နေသေးသည်။
+> Also, Master is getting older and his lifespan is running out. I still need to find treasures from heaven and earth that can extend my lifespan.
 
 **89.** 但千論是死長看元還是提升資質的寶物，都非常難得，一般只有在極度危險的地方
 
-> သို့သော် သေနိုင်ခြေကို တိုးမြင့်စေနိုင်သော ရတနာဖြစ်စေ သို့မဟုတ် အရည်အချင်းများ မြှင့်တင်ပေးနိုင်သည်ဖြစ်စေ အလွန်ရှားပါးသည်။ယေဘုယျအားဖြင့် ၎င်းကို အလွန်အန္တရာယ်များသော နေရာများတွင်သာ တွေ့ရှိနိုင်သည်။
+> However, whether it is a treasure that can increase the chance of death or improve qualifications, it is very rare. Generally, it can only be found in extremely dangerous places.
 
 **90.** 才有可能存在。
 
-> တည်ရှိနေဖို့ ဖြစ်နိုင်တယ်။
+> It is possible for it to exist.
 
 **91.** 但無所謂，我為了師尊，為了媽然，願意去冒險
 
-> ဒါပေမယ့် ကိစ္စမရှိပါဘူး၊ ဆရာကြီးနဲ့ မရန်အတွက် စွန့်စားဖို့ ဆန္ဒရှိပါတယ်။
+> But it doesn’t matter, I’m willing to take risks for the sake of Master and Ma Ran
 
 **92.** 自那之後，我出入於各處禁地，拖著累累的傷痕，為師尊和婚然尋找寶物
 
-> ထိုအချိန်မှစ၍ ကျွန်ုပ်သည် တားမြစ်နယ်မြေအသီးသီးမှ ဝင်ထွက်ကာ အမာရွတ်များကို ဆွဲယူကာ ဆရာကြီးနှင့် ဝမ်ရန်အတွက် ရတနာများကို ရှာဖွေနေပါသည်။
+> Since then, I have been in and out of various forbidden areas, dragging my scars with me, looking for treasures for Master and Wenran.
 
 **93.** 他們不願意我去，幾次阻攔
 
-> သူတို့က ကျွန်မကို မသွားစေချင်ဘဲ အကြိမ်ပေါင်းများစွာ ပိတ်ဆို့ခဲ့ပါတယ်။
+> They didn't want me to go and blocked me several times.
 
 **94.** 我告訴他們，我當他們是家人，為了家人，我願意做任何事，
 
-> ငါသူတို့ကို မိသားစုလို့ သတ်မှတ်ပြီး ငါ့မိသားစုအတွက် ဘာမဆိုလုပ်ပေးမယ်လို့ ပြောခဲ့တယ်။
+> I told them that I considered them family and that I would do anything for my family.
 
 **95.** 第一百九十四卓: 那突如其來的善空 4/6
 
-> အခန်း 194 Zhuo: ရုတ်တရက် ရှမ်းကောင် ၄/၆
+> Chapter 194 Zhuo: The Sudden Shan Kong 4/6
 
 **96.** 終於有一次，為了給媽然找到能夠大帽度提升資質的“蔡龍草”，我被守護靈藥的黑
 
-> နောက်ဆုံးတော့ တခါတုန်းက Ma Ran အတွက် "Cai Longcao" ကို ရှာတွေ့ဖို့ အတွက် elixir ကို စောင့်နေတဲ့ လူမည်းတယောက်ရဲ့ တိုက်ခိုက်ခြင်းကို ခံခဲ့ရတယ်။
+> Finally, one time, in order to find "Cai Longcao" for Ma Ran, which can greatly improve her qualifications, I was attacked by the black man who was guarding the elixir.
 
 **97.** 龍重創，險些隕落。
 
-> Long သည် ဒဏ်ရာပြင်းထန်စွာရပြီး လဲကျလုနီးပါးဖြစ်ခဲ့သည်။
+> Long was severely injured and almost fell.
 
 **98.** 但幸好，我還是成功了，拖著重傷之軀，回到了黑水域
 
-> ဒါပေမယ့် ကံကောင်းထောက်မစွာနဲ့ပဲ အောင်မြင်ပြီး ဒဏ်ရာပြင်းထန်စွာရတဲ့ ခန္ဓာကိုယ်နဲ့ အနက်ရောင်ရေပြင်ကို ပြန်ရောက်ခဲ့ပါတယ်။
+> But fortunately, I succeeded and returned to the black waters with a seriously injured body.
 
 **99.** 幾帶傷歸來，錯然落淚了，她說我不應該這麼拚命
 
-> ဒဏ်ရာပေါင်းများစွာနဲ့ ပြန်လာတော့ မျက်ရည်တွေကျလာတယ်။ ငါဒီလောက် အလုပ်မရှုပ်သင့်ဘူးလို့ ပြောတယ်။
+> I came back with several injuries and burst into tears. She said I shouldn’t work so hard.
 
 **100.** 我告訴他:“傻瓜，無所謂，我願竟
 
-> ငါက "လူမိုက်၊ ကိစ္စမရှိပါဘူး၊ ငါကျေကျေနပ်နပ်
+> I told him: "Fool, it doesn't matter, I'm willing to
 
 **101.** 我不可能看著師尊和蠟然將來老死
 
-> နောင်တွင် ဆရာကြီးနှင့် ရှီရန်တို့ အသက်ကြီး၍ သေဆုံးသည်ကို ကျွန်ုပ်ကြည့်ရန် မဖြစ်နိုင်ပေ။
+> It is impossible for me to watch Master and Shiran die of old age in the future
 
 **102.** 若是連他們都不能保護，我修的是什麼仙？行的又是什麼道
 
-> ငါသူတို့ကိုတောင် မကာကွယ်နိုင်ရင် ငါဘယ်လို ဖောက်ပြန်မှုမျိုးကို ပြုစုပျိုးထောင်နေလဲ။ လုပ်နည်းက ဘာလဲ။
+> If I can't even protect them, what kind of immortality am I cultivating? What is the way to do it?
 
 **103.** 這次受傷很重，我必須閉關了，
 
-> ဒီတစ်ခါ ဒဏ်ရာက ပြင်းထန်တယ်။ ပြန်ဆုတ်ရမယ်။
+> The injury is serious this time. I must retreat.
 
 **104.** 在閉關之前，師尊條自煉了幾枚丹藥，助我療傷
 
-> ပြန်မဆုတ်ခင်မှာ ဆရာကြီး Tiao က ငါ့ဒဏ်ရာတွေကို ကုစားဖို့ elixir တွေ အများကြီး လုပ်ခဲ့တယ်။
+> Before retreating, Master Tiao made several elixirs to help me heal my wounds.
 
 **105.** 我沒有多想，直接吃下。
 
-> ငါအဲဒါကိုအများကြီးမစဉ်းစားဘဲစားရုံပါပဲ။
+> I didn't think much about it and just ate it.
 
 **106.** 但在閉關之時，卻是心臉抓牛，幾次到了關鍵時刻，硬生生的被心魔打斷，
 
-> ဒါပေမယ့် တစ်ယောက်တည်း အထီးကျန်နေတဲ့အခါ နှလုံးသားကို စွဲလမ်းခဲ့တယ်။ အရေးကြီးတဲ့အခိုက်အတန့်တွေမှာ အကြိမ်ပေါင်းများစွာ ကျွန်တော့်ရဲ့အတွင်းစိတ်နတ်ဆိုးတွေက ရုတ်တရတ် နှောက်ယှက်ခံခဲ့ရတယ်။
+> But when I was in seclusion, I was obsessed with my heart. Several times at critical moments, I was abruptly interrupted by my inner demons.
 
 **107.** 我的傷勢沒有好，反而更加嚴里了
 
-> ငါ့ဒဏ်ရာက မသက်သာပေမယ့် ပိုဆိုးလာတယ်။
+> My injury didn't heal, but got worse.
 
 **108.** 就在這個時候，師尊和媽然突然闖入
 
-> ဒီအချိန်မှာ ဆရာကြီးနဲ့ မရန်က ရုတ်တရက် ကွဲထွက်သွားတယ်။
+> At this moment, Master and Ma Ran suddenly broke in
 
 **109.** 我本以為，他們是擔心我的安全，這才這麼做
 
-> ငါ့ရဲ့လုံခြုံရေးအတွက် သူတို့စိုးရိမ်တယ်လို့ ငါထင်ခဲ့တယ်၊ ဒါကြောင့် ဒီလိုလုပ်ခဲ့တယ်။
+> I thought they were worried about my safety, so they did this
 
 **110.** 但沒有想到的是，他們竟然帶著惡意而來。
 
-> ဒါပေမယ့် ကျွန်တော် မမျှော်လင့်ထားတဲ့ အရာကတော့ သူတို့ဟာ ဆိုးသွမ်းတဲ့ ရည်ရွယ်ချက်နဲ့ လာတာပါ။
+> But what I didn't expect was that they came with malicious intent.
 
 **111.** 師尊得章的告訴我，他給我的丹藥乃是他多年之前從一處遺迹之中得來的“死陰丹”
 
-> သူပေးသောဆေးသည် လွန်ခဲ့သောနှစ်ပေါင်းများစွာက အပျက်အစီးတစ်ခုမှရရှိသော "မရဏဆေးပြား" ဖြစ်ကြောင်း ဆရာကြီးက ရှင်းရှင်းလင်းလင်းပြောခဲ့သည်။
+> Master told me clearly that the pill he gave me was the "Death Yin Pill" he obtained from a ruins many years ago.
 
 **112.** 此丹帶有強烈的詛咒之力，即便是仙君服下，也要身負詛咒，難以解脫
 
-> ဤဆေးပြားတွင် ပြင်းထန်သောကျိန်စာပါရှိသည်။ မသေနိုင်သောဘုရင်က သိမ်းယူလိုက်လျှင်ပင် သူသည် ကျိန်ဆဲခံရပြီး လွတ်မြောက်ရန် ခက်ခဲနေသေးသည်။
+> This pill contains a strong curse. Even if the immortal king takes it, he will still be cursed and it is difficult to escape.
 
 **113.** 我難以苦信，吉的質間為什麼他要這麼做
 
-> ငါမယုံနိုင်ဘူး၊ သူဘာလို့ဒီလိုလုပ်ရတာလဲ။
+> I can't believe it, why would he do this?
 
 **114.** 師尊告訴我，從一開始，我就只是他的一枚棋子罷了
 
-> အစကတည်း က ဆရာကြီးပြောဖူးတာက ကျွန်တော်ဟာ သူ့အပေါင် သက်သက်ပါ။
+> Master told me that from the beginning, I was just a pawn of his
 
 **115.** 他看重我有絕世的資質。一開始培養我，其實就是為了今天
 
-> ငါ့မှာ ဉာဏ်ရည်မမီတဲ့ အရည်အချင်းတွေ ရှိတာကို သူတန်ဖိုးထားတယ်။ ဒီနေ့အတွက်ပဲ အစကတည်းက လေ့ကျင့်ထားတယ်။
+> He valued that I had peerless qualifications. I was trained from the beginning just for today
 
 **116.** 原來，他乃是不滅魔宗的傳人，身懷“奪舍無上法”，我就相當於是他種植的一顆寶
 
-> သူသည် မသေနိုင်သော နတ်ဆိုးဂိုဏ်းမှ ဆင်းသက်လာပြီး "ခန္ဓာကိုယ်ကို သိမ်းပိုက်ခြင်း၏ အထွတ်အထိပ် ဥပဒေ" ကို ပိုင်ဆိုင်ကြောင်း ထွက်ပေါ်လာသည်။ သူစိုက်ထားတဲ့ ရတနာနဲ့ ညီမျှတယ်။
+> It turns out that he is the descendant of the Immortal Demon Sect and possesses the "Supreme Law of Seizing the Body". I am equivalent to a treasure he planted.
 
 **117.** 葯、等到完全成熟的時候，他就要來採摘
 
-> ဆေးက ရင့်မှည့်တဲ့အထိစောင့်ပါ၊ သူလာကြိုလိမ့်မယ်။
+> Medicine, wait until it is fully ripe, he will come to pick it
 
 **118.** 我永遠也無法忘記，師尊當初那副獰的面孔
 
-> အဲဒီတုန်းက ဆရာကြီးရဲ့ ရက်စက်တဲ့ မျက်နှာကို ဘယ်တော့မှ မမေ့ဘူး။
+> I will never forget the ferocious face of Master back then
 
 **119.** 他告訴我，我的一切都將會變成他的，我的身體，我的修為，我的域主的身份！
 
-> ကျွန်ုပ်နှင့်ပတ်သက်သမျှအရာအားလုံးသည် သူ၏၊ ကျွန်ုပ်၏ခန္ဓာကိုယ်၊ ကျွန်ုပ်၏ စိုက်ပျိုးမှုနှင့် ကျွန်ုပ်၏ကိုယ်ပိုင်လက္ခဏာဖြစ်လာလိမ့်မည်ဟူ၍ ကျွန်ုပ်အား ပြောခဲ့သည်။
+> He told me that everything about me will become his, my body, my cultivation, and my identity as a Domain Lord!
 
 **120.** 我無法接受，痛苦的看向嫣然
 
-> ကျွန်တော် လက်မခံနိုင်ဘဲ ရန်ရန်ကို နာကျင်စွာ ကြည့်နေမိသည်။
+> I couldn't accept it and looked at Yanran in pain
 
 **121.** 她可是與我朝夕相處的道侶胸
 
-> သူမသည် ကျွန်ုပ်နှင့်အတူ နေ့ရောညပါ အချိန်ဖြုန်းနေသော တာအိုအဖော်တစ်ဦးဖြစ်သည်။
+> She is a Taoist companion who spends time with me day and night
 
 **122.** 然而然更加讓人失望，她根本不是師尊的弟子，她是師尊的女兒啊！
 
-> သို့သော် ပို၍ပင် စိတ်ပျက်စရာ ကောင်းသည်။ သူမသည် ဆရာကြီး၏ တပည့်မဟုတ်၊ သူမသည် ဆရာကြီး၏ သမီးဖြစ်သည်။
+> However, it is even more disappointing. She is not Master's disciple at all, she is Master's daughter!
 
 **123.** 父女二人聯合設局，就是為了謀害我。
 
-> အဖေနဲ့သမီးက ကျွန်တော့်ကို သတ်ဖို့ ထောင်ချောက်တစ်ခု ထောင်ထားတယ်။
+> The father and daughter jointly set up a trap just to murder me.
 
 **124.** 說完這些后，她拿起我送給她的仙器，果斷的刺向了我，
 
-> ဒါကိုပြောပြီးတာနဲ့ သူပေးခဲ့တဲ့ နတ်သမီးလက်နက်ကို ကောက်ယူပြီး ပြတ်ပြတ်သားသား ဓားနဲ့ထိုးတယ်။
+> After saying this, she picked up the fairy weapon I gave her and stabbed me decisively.
 
 **125.** 那一刻，我前所未有的憤怒
 
-> အဲဒီအချိန်မှာ ကျွန်တော် အရင်ကထက် ပိုဒေါသဖြစ်သွားတယ်။
+> At that moment, I was more angry than ever
 
 **126.** 原來所謂的家人，都只是個笑話
 
-> မိသားစု လို့ ခေါ်တာ ဟာ ဟာသ တစ်ခု ပဲ ဖြစ် ပါတယ်
+> It turns out that the so-called family is just a joke
 
 **127.** 第一百九十四卓: 那突如其來的善空 5/6
 
-> အခန်း 194 Zhuo: ရုတ်တရက် ရှမ်းကောင် ၅/၆
+> Chapter 194 Zhuo: The Sudden Shan Kong 5/6
 
 **128.** 他們從一開始，就只是想要我的命而已
 
-> အစကတည်းက သူတို့က ကိုယ့်ဘဝကို လိုချင်တာ။
+> From the beginning, they just wanted my life.
 
 **129.** 我感覺我就是天底下量大的笑話，居然為了這麼兩個人，屢屢去禁地闖蕩
 
-> ဒီလူနှစ်ယောက်အတွက်ကြောင့် တားမြစ်ထားတဲ့နေရာတွေကို အကြိမ်ကြိမ်သွားဖူးတဲ့အတွက် ကမ္ဘာပေါ်မှာ အကြီးမားဆုံးဟာသတစ်ယောက်လို ခံစားရတယ်။
+> I feel like I am the biggest joke in the world, for I have repeatedly gone to forbidden places for the sake of these two people.
 
 **130.** 但他們還是小瞧了我
 
-> ဒါပေမယ့် သူတို့က ငါ့ကို လျှော့တွက်နေကြတုန်းပဲ။
+> But they still underestimated me
 
 **131.** 我能夠走到今天，成為仙君，並沒有他們想象中的那麼簡單，
 
-> မသေနိုင်သောသခင်ဖြစ်ရန် ယနေ့အထိ ကျွန်ုပ်၏စွမ်းရည်သည် သူတို့စိတ်ကူးထားသလောက် မရိုးရှင်းပါ။
+> My ability to reach this day and become an Immortal Lord is not as simple as they imagined.
 
 **132.** 我還有著不止一張的保命底牌
 
-> ကျွန်ုပ်တွင် အသက်ကယ် ဝှက်ဖဲ တစ်ခုထက်မက ရှိသည်။
+> I have more than one life-saving trump card
 
 **133.** 這些保命底牌，即便是我最信任的師尊和女人，我都沒有說過
 
-> ကျွန်ုပ်၏ယုံကြည်ရဆုံးသခင်နှင့် အမျိုးသမီးများကိုပင် ဤအသက်ကယ် ဝှက်ဖဲချပ်များကို ကျွန်ုပ် တစ်ခါမျှ မပြောဖူးပါ။
+> I have never told these life-saving trump cards even to my most trusted master and women.
 
 **134.** 沒想到，卻救了我的性命
 
-> မထင်မှတ်ပဲ၊ အဲဒါက ကျွန်တော့်အသက်ကို ကယ်တင်ခဲ့တယ်။
+> Unexpectedly, it saved my life
 
 **135.** 我用盡底牌、以殘破之級，反殺了他們
 
-> ကျွန်ုပ်သည် ကျွန်ုပ်၏ ကတ်များအားလုံးကို အသုံးပြုပြီး ကွဲအက်သော အဆင့်ဖြင့် အနိုင်ယူခဲ့သည်။
+> I used up all my cards and defeated them with a broken level.
 
 **136.** 但死陰丹的詛咒之力爆發，便得我本來就受到重創的魂魄更是支離破碎
 
-> ဒါပေမဲ့ မရဏဆေးလုံးရဲ့ ကျိန်စာတိုက်တဲ့ စွမ်းအားက ပြတ်တောက်သွားပြီး ငါ့ရဲ့ ပြင်းထန်စွာ ပျက်စီးနေပြီဖြစ်တဲ့ ဝိညာဉ်က ပိုလို့တောင် ကွဲအက်သွားတယ်။
+> But the cursed power of the Death Yin Pill broke out, and my already severely damaged soul was even more shattered.
 
 **137.** 我也到了彌留之際
 
-> ငါလည်း ငါ့သေမင်းအိပ်ရာပေါ်မှာ
+> I am also on my deathbed
 
 **138.** 但或許是天無絕人之路，一縷殘魂不散，竟然飄飄蕩蕩的來到了下界，
 
-> သို့သော် ယင်းသည် ကောင်းကင်နှင့်မြေကြီး၏လမ်းဖြစ်ပြီး ကျန်ကြွင်းသောဝိညာဉ်ရောင်ခြည်သည် ကမ္ဘာမြေအောက်သို့ လွင့်မျောနေပေမည်။
+> But perhaps it is the road of heaven and earth, and a ray of remnant soul lingers, floating to the lower world.
 
 **139.** 仙界之下，本就有著許多世界
 
-> နတ်သမီးကမ္ဘာအောက်မှာ ကမ္ဘာများစွာရှိတယ်။
+> Under the fairy world, there are many worlds
 
 **140.** 我在這個世界獲得了重生
 
-> ငါသည် ဤလောက၌ မွေးဖွားခဲ့၏။
+> I was reborn in this world
 
 **141.** 但我殘魂之上仍然附帶著一絲絲的詛咒之力
 
-> ဒါပေမယ့် ငါ့ရဲ့အကြွင်းဝိညာဉ်မှာ ကျိန်စာတိုက်တဲ့ စွမ်းအားခြေရာတွေ ရှိနေတုန်းပဲ။
+> But there is still a trace of curse power attached to my remnant soul.
 
 **142.** 凡是與我接觸的人，都將受到反噬
 
-> ကျွန်ုပ်နှင့် ထိတွေ့လာသူတိုင်း တုံ့ပြန်မှု ခံရလိမ့်မည်။
+> Anyone who comes into contact with me will suffer backlash
 
 **143.** 許多人都因我而死了
 
-> ငါ့ကြောင့် လူတော်တော်များများ သေကုန်ကြပြီ။
+> Many people died because of me
 
 **144.** 於是我刻章般著他們，我(趙嗎好)不想害人
 
-> ဒါကြောင့် ငါသူတို့အတွက် တံဆိပ်တစ်ခု ထွင်းထားတယ်၊ ငါ (Zhao Hao) က ဘယ်သူ့ကိုမှ မထိခိုက်စေချင်ဘူး။
+> So I carved a seal for them, I (Zhao Hao) didn’t want to harm anyone
 
 **145.** 我衣衫裕樓，我渾身惡臭，我之所以這樣，就是想要遠離所有人
 
-> ငါအဝတ်အစားတွေ ညစ်ပတ်နေတယ်။ ဒီလိုဖြစ်ရတဲ့အကြောင်းရင်းက လူတိုင်းနဲ့ဝေးဝေးနေဖို့ပါပဲ။
+> I am clothed and stinky. The reason why I am like this is to stay away from everyone.
 
 **146.** 就這樣，我成為了人們眼中的異類，掃把星，煞星，神，災星
 
-> ဤနည်းဖြင့် ကျွန်ုပ်သည် လူတို့၏အမြင်တွင် ဂြိုလ်သား၊ တံမြက်စည်းကြယ်၊ မကောင်းသောကြယ်၊ နတ်ဘုရားနှင့် ဘေးဥပဒ်ကြယ်ဖြစ်လာခဲ့သည်။
+> In this way, I became an alien in people's eyes, a broom star, an evil star, a god, and a disaster star.
 
 **147.** 沿有人原命接納我，哪怕現在我身上的詛咒之力已經散去了
 
-> တစ်စုံတစ်ယောက်သည် ကျွန်ုပ်၏ ကျိန်ခြင်းကို ပြေပျောက်စေသော်လည်း၊
+> Someone accepted me as I was meant to be, even though the curse on me has now dissipated.
 
 **148.** 但這世間已經沒有一絲一毫的善意了
 
-> သို့သော် ဤလောက၌ ကြင်နာမှု အရိပ်အယောင် မရှိပါ။
+> But there is no trace of kindness left in this world
 
 **149.** 但無所謂，我不怪任何人，
 
-> ဒါပေမယ့် ကိစ္စမရှိပါဘူး၊ ဘယ်သူ့ကိုမှ အပြစ်မတင်ပါဘူး၊
+> But it doesn't matter, I don't blame anyone,
 
 **150.** 我早就已經心如死灰，遭話了背叛的我，或許早就應該死在仙界，而不是重生在這
 
-> ငါ့နှလုံးသားဟာ စိတ်ပျက်အားငယ်မှုတွေနဲ့ ပြည့်နှက်နေခဲ့တာ ကြာပါပြီ။ သစ္စာဖောက်ခံရလို့ ဒီနေရာလေးမှာ ပြန်မွေးဖွားမယ့်အစား နတ်သမီးကမ္ဘာမှာ သေသင့်တယ်။
+> My heart has long been filled with despair. Having been betrayed, I should probably have died in the fairy world, instead of being reborn here.
 
 **151.** 現在，并州遭遇了巨大的旱情，我知道是因為什麼，那天我看到了旱腦過境，顯然
 
-> ယခုအခါ Bingzhou တွင် ကြီးမားသော မိုးခေါင်ရေရှားမှု ဖြစ်ပေါ်နေသည်။ ဘာကြောင့်လဲ သိတယ်။ အဲဒီနေ့က နယ်စပ်ဖြတ်ကျော်ပြီး မိုးခေါင်နေတဲ့ ဦးနှောက်ကို မြင်လိုက်ရတယ်။ ညီမရဲ့
+> Now, there is a huge drought in Bingzhou. I know why. I saw the drought brain crossing the border that day. Apparently
 
 **152.** 這是人為的
 
-> ဒါက လူလုပ်
+> This is man-made
 
 **153.** 但我不想阻止，現在的我，什麼也不想做，就像是行屍走肉一般，哪一天死了，將
 
-> ဒါပေမယ့် မတားချင်ဘူး။ အခုတော့ ဘာမှ မလုပ်ချင်တော့ဘူး။ ငါ လမ်းလျှောက်နေတဲ့ ဖုတ်ကောင်လိုပါပဲ။ တစ်နေ့ ငါသေလိမ့်မယ်။
+> But I don’t want to stop it. Now I don’t want to do anything. I am like a walking zombie. One day I will die.
 
 **154.** 會是我的解脫。
 
-> ငါသက်သာရာရလိမ့်မယ်။
+> It will be my relief.
 
 **155.** 我漫無目的的走著，不知道怎麼的，就撞上了這些流民和官府的人良
 
-> ကျွန်တော် ဦးတည်ချက်မဲ့ လမ်းလျှောက်နေပြီး တစ်နည်းနည်းနဲ့ ဒီဒုက္ခသည်တွေနဲ့ အစိုးရအရာရှိတွေကို ဝင်တိုက်မိခဲ့တယ်။
+> I was walking aimlessly, and somehow, I bumped into these refugees and government officials.
 
 **156.** 流民們認為我會給好心的官老爺們帶來厄運，不讓我靠近，還毆打我
 
-> ကြင်နာတတ်တဲ့ အရာရှိတွေကို ကံဆိုးစေမယ်လို့ ဒုက္ခသည်တွေက တွေးနေတော့ သူတို့က ကျွန်တော့်ကို ရင်းနှီးခွင့်မပေးဘဲ ရိုက်နှက်တာတွေတောင် ငြင်းဆန်ကြတယ်။
+> The refugees thought that I would bring bad luck to the kind-hearted officials, so they refused to let me get close and even beat me.
 
 **157.** 我已經習慣了
 
-> အဲဒါကို ကျင့်သုံးနေတယ်။
+> I'm used to it
 
 **158.** 我打算離開了
 
-> ထွက်သွားတော့မယ်။
+> I'm going to leave
 
 **159.** 我本來就不屬於這個世界，或許無聲無息的死亡，才是我應該有的結局
 
-> အရင်ကတည်းက ငါ ဒီကမ္ဘာနဲ့ မဆိုင်ဘူး။ အသံတိတ်သေခြင်းသည် ငါရသင့်သည့်အဆုံးသတ်ဖြစ်နိုင်သည်။
+> I don't belong to this world in the first place. Maybe a silent death is the ending I should have.
 
 **160.** 烏兒不再欲唱
 
-> ဝူအာက သီချင်းမဆိုချင်တော့ဘူး။
+> Wu'er no longer wants to sing
 
 **161.** 風兒也吹倦了，
 
-> လေကလည်း ငြီးငွေ့၊
+> The wind is also tired of blowing,
 
 **162.** 那就用黑暗的厚幕把我蓋上，讓我永悔的消亡
 
-> ထို့နောက် ထူထဲသော အမှောင်ဖုံးကာ ငါ့ကို ဖုံးကွယ်ကာ ထာဝရနောင်တဖြင့် ငါသေပါစေ။
+> Then cover me with a thick curtain of darkness and let me die in eternal regret
 
 **163.** 然而不可思議的是，在得知了我的事情后，那個領頭的大人，竟然對著我伸出手
 
-> သို့သော် မယုံနိုင်စရာမှာ ကျွန်ုပ်၏ အခြေအနေအကြောင်း သိပြီးနောက်တွင် ထိပ်တန်းလူကြီးသည် ကျွန်ုပ်ထံသို့ အမှန်တကယ် ရောက်ရှိလာခဲ့ခြင်း ဖြစ်သည်။
+> However, what is incredible is that after learning about my situation, the leading adult actually reached out to me.
 
 **164.** 溫和的說了一句話。
 
-> နူးညံ့သိမ်မွေ့စွာ ပြောလိုက်သည်။
+> He said something gentle.
 
 **165.** /以後你就跟著我吧！
 
-> / အခုမှ ငါ့နောက်ကို လိုက်ခဲ့ပါ။
+> /Just follow me from now on!
 
 **166.** 實不讓教死，教就點無教了
 
-> ကျောင်းသားတွေကို သေအောင် မသင်ပေးချင်ဘူးဆိုရင် သူတို့ကို သင်ပေးတာက အသုံးမဝင်ပါဘူး။
+> If you really don’t want to teach students to die, then it would be useless to teach them.
 
 <details>
 <summary>Existing human Burmese — chapter 194 (333 lines, reference only)</summary>
@@ -1029,791 +1029,791 @@ Each numbered paragraph below is one source line and its translation, in the ord
 
 **1.** 南宮良人難以置信的抬起頭，那惡臭且粘稠的髮絲縫隙之中透出他不司
 
-> Nangong Liangren သည် မယုံကြည်နိုင်စွာ ခေါင်းကို ခါယမ်းလိုက်သည်။ အနံ့နံပြီး စေးကပ်နေသော ဆံပင်များက ၎င်းကို မကျေနပ်ကြောင်း ပြသနေသည်။
+> Nangong Liangren raised his head in disbelief. The smelly and sticky hair showed that he was not satisfied with it.
 
 **2.** 他看到了什麼
 
-> သူ ဘာမြင်လဲ။
+> what did he see
 
 **3.** 他看到了葉寧伸出的手
 
-> Ye Ning ၏ လက်ကို ဆန့်တန်းထားသည်ကို သူမြင်လိုက်ရသည်။
+> He saw Ye Ning's extended hand
 
 **4.** 以及他臉上掛著的和煦的，沒有絲毫嫌棄，甚至是如同看著寶貝一般的笑容
 
-> ရတနာကိုကြည့်ရသလိုပင် မကြိုက်သည့်မျက်နှာပေါ်ရှိ နွေးထွေးသောအပြုံး
+> And the warm smile on his face, without any dislike, even as if looking at a treasure
 
 **5.** 這讓他呆住
 
-> ဒါက သူ့ကို ထိတ်လန့်စေတယ်။
+> This made him stunned
 
 **6.** 同樣呆住的不光是他，還有圍觀的眾人
 
-> အံ့အားသင့်ခဲ့ရသူသာမက ကြည့်ရှုသူအားလုံးလည်း အံ့အားသင့်ခဲ့ရပါသည်။
+> It was not only him who was also stunned, but also everyone onlookers.
 
 **7.** “葉大人，他可是個天煞孤星啊，你若是跟他扯上關係，必然會倒大霉啊！
 
-> "သခင်ယေ၊ သူသည် တစ်ဦးတည်းသော မကောင်းဆိုးဝါး ကြယ်တစ်ပွင့်ဖြစ်သည်။ မင်း သူနဲ့ ပတ်သက်ရင် မင်းကံဆိုးမှာ သေချာတယ်။
+> "Master Ye, he is a lone star in the sky. If you get involved with him, you will definitely be in bad luck!
 
 **8.** “是啊，輕則受傷，重則丟命啊！
 
-> "ဟုတ်တယ်၊ ဒဏ်ရာကနေ သေတဲ့အထိ ဖြစ်နိုင်တယ်။
+> "Yes, it can range from injuries to death!
 
 **9.** “所有和他扯上關係的人，都沒有任何好下場啊！
 
-> "သူနဲ့ ပတ်သက်တဲ့သူတိုင်းက အဆင်မပြေပါဘူး။
+> "Everyone who has anything to do with him will not end well!
 
 **10.** 百姓們紛紛勸說了起來
 
-> လူတွေက စည်းရုံးလာတယ်။
+> The people began to persuade
 
 **11.** 在他們眼裡，葉寧是個難得的好官
 
-> သူတို့၏အမြင်တွင် Ye Ning သည် ရှားရှားပါးပါး အရာရှိကောင်းတစ်ဦးဖြစ်သည်။
+> In their eyes, Ye Ning is a rare good official.
 
 **12.** 一個好官，是不應該被這個流神給害了的.
 
-> ဒီလို ပျံ့လွင့်နေတဲ့ ဘုရားကြောင့် ကောင်းတဲ့ အရာရှိကို မထိခိုက်စေသင့်ပါဘူး။
+> A good official should not be harmed by this wandering god.
 
 **13.** 所以他們極力勸阻，想要讓葉寧不要搭理南宮良人
 
-> ထို့ကြောင့် Ye Ning နှင့် Nangong Liangren တို့နှင့် စကားပြောခြင်းမှ တားမြစ်ရန် အစွမ်းကုန်ကြိုးစားခဲ့ကြသည်။
+> So they tried their best to dissuade Ye Ning from talking to Nangong Liangren.
 
 **14.** 南宮良人自己也是這麼想的
 
-> Nangong Liangren ကိုယ်တိုင်လည်း တွေးမိသည်။
+> Nangong Liangren himself thought so too
 
 **15.** 他早就習慣了人們的鄙夷，漠視和嫌棄，反倒是葉寧的熱情，讓他感到了不適
 
-> သူသည် လူအများ၏ မထီမဲ့မြင်ပြုမှု၊ လျစ်လျူရှုမှုနှင့် စက်ဆုပ်ရွံရှာမှုတို့ကို ကြာရှည်စွာ ကျင့်သားရခဲ့သော်လည်း ရီနင်း၏ စိတ်အားထက်သန်မှုကြောင့် သူ့အား စိတ်မသက်မသာဖြစ်စေခဲ့သည်။
+> He had long been accustomed to people's contempt, indifference and disgust, but it was Ye Ning's enthusiasm that made him feel uncomfortable.
 
 **16.** 其實他當然不是痕神
 
-> အမှန်မှာ၊ သူသည် ခြေရာခံများ၏ ဘုရားသခင်မဟုတ်ပေ။
+> In fact, of course he is not the God of Traces
 
 **17.** 剛剛到下界的時候，詛咒之力還沒有散去，那時候的確連累了幾個人
 
-> ကျွန်ုပ်တို့သည် အောက်ကမ္ဘာသို့ ပထမဆုံးရောက်သောအခါ၊ ကျိန်စာ၏ စွမ်းအားသည် မပျောက်ကွယ်သေးဘဲ ထိုအချိန်က လူများစွာကို ထိခိုက်စေခဲ့သည်။
+> When we first arrived in the lower realm, the power of the curse had not dissipated, and it did affect several people at that time.
 
 **18.** 但在那之後，他就刻意利人保持了距離
 
-> ဒါပေမယ့် အဲဒီနောက်မှာတော့ သူက တခြားသူတွေနဲ့ ခပ်ခွာခွာနေခဲ့တယ်။
+> But after that, he deliberately kept his distance from others.
 
 **19.** 但沒有用.
 
-> ဒါပေမယ့် အသုံးမကျဘူး။
+> But it's no use.
 
 **20.** 他的痛神之名已經傳出去了，所有人遇到了什麼壞事，第一反應就是覺得被他給害
 
-> နာကျင်မှု၏ဘုရားသခင်အဖြစ် သူ၏ဂုဏ်သတင်း ပျံ့နှံ့သွားခဲ့သည်။ လူတိုင်းအပေါ် မကောင်းမှုတစ်ခုခု ကြုံလာတဲ့အခါ သူတို့ရဲ့ ပထမဆုံး တုံ့ပြန်မှုက သူ့ကြောင့် ထိခိုက်နစ်နာခဲ့ရတယ်လို့ ခံစားရတယ်။
+> His reputation as the God of Pain has spread. When something bad happens to everyone, their first reaction is to feel that they have been harmed by him.
 
 **21.** 家裡的牛病死了怪他，
 
-> မိသားစုရဲ့ နွားက ဖျားနာလို့ သေသွားတာ သူ့အပြစ်။
+> The family's cow died of illness and it was his fault.
 
 **22.** 出門捧了個跟頭怪他
 
-> ကျွန်တော် အပြင်ထွက်တဲ့အခါ သူ့ကို ကျွမ်းပစ်လို့ အပြစ်တင်တယ်။
+> I blamed him for somersaulting when I went out.
 
 **23.** 就連出門沒賺到錢，也怪他
 
-> အပြင်ထွက်တုန်းက ပိုက်ဆံမရှာရင်တောင် သူ့အပြစ်ပဲလေ။
+> Even if he didn't make any money when he went out, it was still his fault.
 
 **24.** 這根本就無處說理去。
 
-> ဒါက လုံးဝအဓိပ္ပာယ်မရှိပါဘူး။
+> This makes no sense at all.
 
 **25.** 他漸漸的看透了人間
 
-> သူသည် ကမ္ဘာကို တဖြည်းဖြည်းမြင်လာခဲ့သည်။
+> He gradually saw through the world
 
 **26.** 只感覺天地之間儘是惡意，無窮無盡的惡念將他整個人渝沒
 
-> ကမ္ဘာကြီးသည် ငြူစူခြင်းများဖြင့် ပြည့်နှက်နေသည်ဟုသာ ခံစားခဲ့ရပြီး အဆုံးမဲ့ မကောင်းသော အတွေးများက သူ့အား လွှမ်းခြုံထားသည်။
+> He only felt that the world was full of malice, and the endless evil thoughts engulfed him.
 
 **27.** “葉兄，還是三思而後行吧，我們此行本來就危險重重，不應該節外生枝。
 
-> “အစ်ကိုရေ၊ ရှေ့မဆက်ခင် နှစ်ကြိမ်စဉ်းစားတာက ပိုကောင်းပါတယ်။ ကျွန်ုပ်တို့၏ ခရီးစဉ်သည် မွေးရာပါ အန္တရာယ်ရှိပြီး ရှုပ်ထွေးမှုများ မဖြစ်စေသင့်ပါ။
+> "Brother Ye, it's better to think twice before taking the trip. Our trip is inherently dangerous and we shouldn't cause unnecessary complications.
 
 **28.** 裝向高勸說道。
 
-> Gao က ဟန်ဆောင် စည်းရုံးသည်။
+> Pretended to persuade Gao.
 
 **29.** 第一百九十五卓: 這波很曉 277
 
-> အခန်း 195 Zhuo: ဤလှိုင်းသည် အလွန်ရှင်းလင်းသည် 277
+> Chapter 195 Zhuo: This wave is very clear 277
 
 **30.** 此行并州，本來就要承擔巨大的壓力
 
-> နိုင်ငံတော်နှင့် ပေါင်းစည်းရန် ဤခရီးစဉ်သည် ကြီးမားသော ဖိအားကို ဖြစ်ပေါ်စေမည်ဖြစ်သည်။
+> This trip to merge with the state would have entailed tremendous pressure.
 
 **31.** 結果還要帶上一個天煞孤星，這不是自己給自己增加難度嗎?
 
-> နောက်ဆုံးတွင်၊ သူသည် နတ်ဆိုးများ၏ တစ်ဦးတည်းသော ကြယ်တစ်ပွင့်ကိုလည်း ယူဆောင်လာရသည်။ ဒါက သူ့ကိုယ်သူ ပိုခက်ခဲစေခဲ့တာ မဟုတ်ဘူးလား?
+> In the end, he also had to bring along a lone star from the sky. Didn’t this make it more difficult for him?
 
 **32.** 至於南宮良人是不是天煞孤星
 
-> Nangong Liangren သည် နတ်ဆိုးများ၏ တစ်ဦးတည်းသော ကြယ်တစ်ပွင့် ဖြစ်မဖြစ်၊
+> As for whether Nangong Liangren is a lone star of evil spirits?
 
 **33.** 對於這件事情，蔡向高不做評論，但他覺得，人不能不信邪，對這件事情應該743
 
-> Cai Xianggao သည် ဤကိစ္စနှင့် ပတ်သက်၍ မှတ်ချက်မပေးသော်လည်း လူတို့သည် မကောင်းမှုကို ယုံကြည်ရမည်ဖြစ်ပြီး ဤကိစ္စအတွက် 743 ဖြစ်သင့်သည်ဟု သူခံစားခဲ့ရသည်။
+> Cai Xianggao did not comment on this matter, but he felt that people must believe in evil and should be 743 on this matter.
 
 **34.** 寧可信其有不可信其無。
 
-> မရှိဘူးလို့ ယုံကြည်တာထက် တည်ရှိနေတာကို ယုံကြည်တာက ပိုကောင်းပါတယ်။
+> It is better to believe that it exists than to believe that it does not exist.
 
 **35.** “葉大人若是可憐此人，不如找個地方，將他妥善安置了，這已經仁至義盡了，沒必
 
-> “တကယ်လို့ ဒီလူကို သနားရင် သူ့ကို သင့်တော်တဲ့ နေရာကို ရှာမလို့ ဒါက ကရုဏာတရားနဲ့ တရားမျှတမှုရဲ့ နိဂုံး ဖြစ်နေပါပြီ။
+> "If Mr. Ye feels pity for this person, why not find a place to place him properly?This is already the end of benevolence and justice. There is no need to
 
 **36.** 要把他帶在身邊。
 
-> သူ့ကို မင်းနဲ့အတူထားပါ။
+> Keep him with you.
 
 **37.** 陳紹正也說道.
 
-> Chen Shaozheng ကပြောပါတယ်။
+> Chen Shaozheng also said.
 
 **38.** 眾人你一言，我一語。
 
-> မင်းလူတိုင်းကို တစ်ခုခုပြောပြီး ငါတစ်ခုခုပြောမယ်။
+> You say something to everyone, and I say something.
 
 **39.** 就好像收留南宮良人是一件多麼不可原諒的事情一般
 
-> Nangong Liangren ကိုယူခြင်းသည် ခွင့်မလွှတ်နိုင်သော အရာတစ်ခုနှင့်တူသည်။
+> It's like taking in Nangong Liangren is such an unforgivable thing
 
 **40.** 這讓南宮良人自嘲一笑.
 
-> ဒါက Nangong Liangren သူ့ကိုယ်သူ ရယ်မောစေခဲ့တယ်။
+> This made Nangong Liangren laugh at himself.
 
 **41.** 果然還是這樣
 
-> ဟုတ်ပါတယ်၊ ဒါကဒီလိုဖြစ်နေတုန်းပဲ။
+> Sure enough, it's still like this
 
 **42.** 不過也對
 
-> ဒါပေမယ့် မှန်တယ်။
+> But that's right
 
 **43.** 人世間本來就是這樣的
 
-> ဤလောကသည် မူလပုံစံဖြစ်သည်။
+> This is how the world is originally
 
 **44.** 他拖著沉重的身軀，就要離去
 
-> လေးလံသော ခန္ဓာကိုယ်ကို ဆွဲယူကာ ထွက်ခွာသွားတော့မည်။
+> He dragged his heavy body and was about to leave
 
 **45.** 但就在這個時候，葉寧卻是突然伸出手，絲毫不顧他身上的污穢，一把拽住了他的
 
-> သို့သော် ထိုအချိန်တွင် Ye Ning သည် ရုတ်တရက် ဆန့်ထွက်ကာ သူ့ခန္ဓာကိုယ်ပေါ်ရှိ အညစ်အကြေးများ မည်သို့ပင်ရှိစေကာမူ သူ့လက်ကို ဆုပ်ကိုင်လိုက်သည်။
+> But at this moment, Ye Ning suddenly reached out and grabbed his arm regardless of the filth on his body.
 
 **46.** “別走了。
 
-> "မထားခဲ့ပါနဲ့။
+> "Don't leave.
 
 **47.** 葉寧說道。
 
-> Ye Ning က ပြောသည်။
+> Ye Ning said.
 
 **48.** 南宮良人身形一滯、
 
-> Nangong Liangren ၏ ခန္ဓာကိုယ် ငြိမ်သွားသည်၊
+> Nangong Liangren's body stagnates,
 
 **49.** 葉寧的手掌，傳遞給他一股溫暖之意，
 
-> Ye Ning ၏ လက်ဖဝါးက သူ့အား နွေးထွေးမှု ပေးသည် ။
+> Ye Ning's palm conveyed a sense of warmth to him,
 
 **50.** 他看到了葉寧充滿誠意的眼睛
 
-> Ye Ning ၏ ရိုးသားသော မျက်လုံးများကို သူမြင်လိုက်ရသည်။
+> He saw Ye Ning's sincere eyes
 
 **51.** 這雙眼睛裡面傳涕出的意思，讓他都倍戰深惑
 
-> ဒီမျက်လုံးထဲက မျက်ရည်တွေရဲ့ နောက်ကွယ်က အဓိပ္ပါယ်က သူ့ကို နှစ်ဆ ရှုပ်သွားစေတယ်။
+> The meaning behind the tears in these eyes made him doubly confused.
 
 **52.** 就好像，葉寧非常渴望他留下一般
 
-> Ye Ning က သူ့ကို ဆက်နေဖို့ စိတ်အားထက်သန်နေပုံပါပဲ။
+> It was as if Ye Ning was eager for him to stay.
 
 **53.** 事實上，葉寧確實非常渴望
 
-> တကယ်တော့ Ye Ning က တကယ်ကို စိတ်အားထက်သန်တယ်။
+> In fact, Ye Ning is really eager to
 
 **54.** 眾人的話他都聽了
 
-> လူတိုင်းရဲ့ စကားကို နားထောင်တယ်။
+> He listened to everyone's words
 
 **55.** 此人確確買實個流神
 
-> ဤပုဂ္ဂိုလ်သည် ဧကန်မလွဲ ဘုရားဖြစ်တော်မူ၏။
+> This person is indeed a wandering god
 
 **56.** 掃把星。
 
-> တံမြက်စည်းကြယ်။
+> Broom star.
 
 **57.** 天煞孤星
 
-> မကောင်းဆိုးဝါးကြယ်
+> The evil star
 
 **58.** 嗯，反正說什麼都好
 
-> အင်း၊ ဘာပဲပြောပြော အဆင်ပြေတယ်။
+> Well, whatever you say is fine
 
 **59.** 但那又怎麼樣呢？
 
-> ဒါပေမယ့် ဘာလဲ?
+> But so what?
 
 **60.** 笑了。
 
-> ရယ်တယ်။
+> smiled.
 
 **61.** 第一自九十五卓: 這波很曉3/7
 
-> Jiuwu Zhuo မှ ပထမတစ်ခု- ဤလှိုင်းသည် အလွန်ရှင်းလင်းသော 3/7 ဖြစ်သည်။
+> The first one from Jiuwu Zhuo: This wave is very clear 3/7
 
 **62.** 哥們是怕死咋滴?
 
-> သေမှာကြောက်သလား။
+> Are you afraid of death?
 
 **63.** 哥們最不怕的，就是死啊
 
-> ငါမကြောက်ဆုံးအရာက သေခြင်းပဲ။
+> The thing I'm not afraid of most is death.
 
 **64.** 哥們只怕自己不死！
 
-> အစ်ကို၊ ငါမသေမှာကို ကြောက်တယ်။
+> Brother, I'm just afraid that I won't die!
 
 **65.** 天煞孤星好啊，天煞孤呈說明他能剋死身邊人，那麼我把他帶在身邊，豈不是遲早
 
-> Tiansha Guxing က ကောင်းပါတယ်။ Tiansha Gucheng က သူ့ပတ်ဝန်းကျင်က လူတွေကို သတ်နိုင်တယ်ဆိုတာကို ပြတယ်၊ ဒါကြောင့် သူ့ကို ငါနဲ့အတူ ခေါ်သွားမယ်ဆိုရင် မကြာခင် အချိန်နှောင်းမှာ မဟုတ်ဘူးလား။
+> Tiansha Guxing is good. Tiansha Gucheng shows that he can kill people around him, so if I take him with me, won't it be sooner or later?
 
 **66.** 要把我剋死？
 
-> ငါ့ကိုသတ်ချင်လား။
+> Want to kill me?
 
 **67.** 葉寧感覺自己簡直就是天底下第一號大聰明
 
-> Ye Ning သည် သူမသည် ကမ္ဘာပေါ်တွင် ဉာဏ်အမြော်အမြင်အရှိဆုံးလူဟု ခံစားမိသည်။
+> Ye Ning felt that she was simply the most intelligent person in the world.
 
 **68.** 并州，首先就是一個針對他的陷阱，他承擔著巨大的風險
 
-> Bingzhou သည် သူ့အတွက် ပထမဆုံးသော ထောင်ချောက်ဖြစ်ပြီး ကြီးမားသော စွန့်စားရသူဖြစ်သည်။
+> Bingzhou was first of all a trap for him, and he took huge risks.
 
 **69.** 但這還保險。
 
-> ဒါပေမယ့် လုံခြုံနေတုန်းပါပဲ။
+> But it's still safe.
 
 **70.** 因為過去葉寧經歷了無數看起來必死的事情，但是都最終活了下來
 
-> အဘယ်ကြောင့်ဆိုသော် ယခင်က Ye Ning သည် သေခြင်းသို့ ဦးတည်သွားမည့် မရေမတွက်နိုင်သော အရာများကို တွေ့ကြုံခဲ့ရသော်လည်း နောက်ဆုံးတွင် သူမ လွတ်မြောက်ခဲ့သည်။
+> Because in the past, Ye Ning experienced countless things that seemed certain to lead to death, but she survived in the end.
 
 **71.** 所以，他必須要狠狠的加註!
 
-> ထို့ကြောင့် ပြင်းပြင်းထန်ထန် ပြုစုပျိုးထောင်ရမည်။
+> Therefore, he must raise aggressively!
 
 **72.** 這個所謂的天煞孤星，簡直就是上天送給他的禮物！
 
-> ဆိုးယုတ်သောကြယ်ဟု ခေါ်သော ဤကြယ်သည် ဘုရားသခင်ထံတော်မှ လက်ဆောင်တစ်ခုဖြစ်သည်။
+> This so-called evil star is simply a gift from God to him!
 
 **73.** 李家加羽化門加天煞孤星!
 
-> Li မိသားစုသည် Yuhua ဂိုဏ်းနှင့် Tiansha Lone Star ကို ပေါင်းထည့်သည်။
+> The Li family adds the Yuhua Sect and the Tiansha Lone Star!
 
 **74.** 如此一來，應該夠了吧?
 
-> ဒီနည်းနဲ့ လုံလောက်သင့်တယ် မဟုတ်လား။
+> In this way, it should be enough, right?
 
 **75.** 葉寧的眼眶幾乎都要濕潤了
 
-> Ye Ning ၏ မျက်လုံးများ စိုစွတ်လုနီးပါး ဖြစ်နေသည်။
+> Ye Ning's eyes were almost wet.
 
 **76.** 緣分啊！
 
-> ကံကြမ္မာပဲ!
+> What a fate!
 
 **77.** 早知道這裡有這麼個大寶貝，我還在京城浪費什麼時間？
 
-> ဒီနေရာမှာ ဒီလောက်ကြီးကျယ်ခမ်းနားတဲ့ ရတနာတွေရှိတယ်ဆိုတာ ငါသိခဲ့ရင် မြို့တော်မှာ ငါ့ရဲ့အချိန်တွေကို ဘာလို့ ဖြုန်းတီးနေရတာလဲ။
+> If I had known there was such a big treasure here, why would I have wasted my time in the capital?
 
 **78.** 老早就要來找你了!
 
-> ငါ မင်းကို ရှာဖို့ လာနေတာ ကြာပြီ။
+> I have been coming to find you for a long time!
 
 **79.** 南宮良人看著葉寧越來越誇張的眼神，整個人都傻了，
 
-> Nangong Liangren သည် Ye Ning ၏ ပုံကြီးချဲ့ထားသော မျက်လုံးများကို ကြည့်ပြီး မှင်တက်သွားသလို ခံစားလိုက်ရသည်။
+> Nangong Liangren looked at Ye Ning's increasingly exaggerated eyes and felt dumbfounded.
 
 **80.** 這位大人，居然真的想把他留下
 
-> ဒီလူကြီးက သူ့ကို ဒီမှာထားချင်နေတာ
+> This adult actually really wants to keep him here
 
 **81.** 這是為什麼呢
 
-> ဒါက ဘာကြောင့်လဲ။
+> why is this
 
 **82.** 是啊，為什麼。
 
-> ဟုတ်တယ်၊ ဘာကြောင့်လဲ။
+> Yeah, why.
 
 **83.** 蔡向高也想問，於是他就問了
 
-> Cai Xianggao လည်း မေးချင်သောကြောင့် မေးလိုက်သည်။
+> Cai Xianggao also wanted to ask, so he asked
 
 **84.** 葉寧想了想，給了他一個回答
 
-> Ye Ning ခဏလောက်စဉ်းစားပြီး အဖြေပေးလိုက်တယ်။
+> Ye Ning thought for a while and gave him an answer.
 
 **85.** “蔡兄，我想要帶上他的原因，是因為我覺得，他有著必須活下去的理由
 
-> "အစ်ကို Cai၊ ကျွန်တော် သူ့ကို ခေါ်သွားချင်ရတဲ့ အကြောင်းရင်းက သူ့မှာ အသက်ရှင်ဖို့ အကြောင်းပြချက်ရှိတယ်လို့ ကျွန်တော်ထင်ပါတယ်။
+> "Brother Cai, the reason why I want to take him with me is because I think he has a reason to live.
 
 **86.** 必須活下去的理由
 
-> အသက်ရှင်ရခြင်းအကြောင်းတရားများ
+> Reasons to live
 
 **87.** 簽向高一怔，說道
 
-> Zhuan Xiang Gao လန့်သွားပြီး ပြောလိုက်တယ်။
+> Zhuan Xiang Gao was startled and said
 
 **88.** “俄有志？
 
-> "အဲ Youzhi?
+> "Er Youzhi?
 
 **89.** 他有沒有死志，葉寧怎麼可能知道?
 
-> Ye Ning သည် သူ့တွင် သေစေလိုသောဆန္ဒရှိလျှင် မည်သို့သိနိုင်မည်နည်း။
+> How could Ye Ning know if he had a death wish?
 
 **90.** 但話到了嘴邊，自然也就只能順著往下說了
 
-> ဒါပေမယ့် စကားတွေ ပါးစပ်ထဲရောက်သွားရင် သဘာဝအတိုင်းပဲ ဆက်ပြောနိုင်တော့တယ်။
+> But when the words come to my mouth, naturally I can only continue to say them.
 
 **91.** 葉寧很自信的點頭，說道。
 
-> ရီနင်းက စိတ်ချလက်ချ ခေါင်းညိတ်ပြီး ပြောလိုက်တယ်။
+> Ye Ning nodded confidently and said.
 
 **92.** “你看，剛剛他在挨揍的時候，一動不動，一聲不吭，連一個保護自己的動作都沒有
 
-> “ကြည့်စမ်း၊ ခုနက အရိုက်ခံရတုန်းက သူ့ကိုယ်သူ ကာကွယ်ဖို့တောင် မလှုပ်မယှက်ဘဲ တိတ်ဆိတ်နေတယ်။
+> "Look, when he was being beaten just now, he remained motionless and silent, not even making a move to protect himself.
 
 **93.** 第一自九十五卓: 這波很曉3/7
 
-> Jiuwu Zhuo မှ ပထမတစ်ခု- ဤလှိုင်းသည် အလွန်ရှင်းလင်းသော 3/7 ဖြစ်သည်။
+> The first one from Jiuwu Zhuo: This wave is very clear 3/7
 
 **94.** 哥們是怕死咋滴?
 
-> သေမှာကြောက်သလား။
+> Are you afraid of death?
 
 **95.** 哥們最不怕的，就是死啊
 
-> ငါမကြောက်ဆုံးအရာက သေခြင်းပဲ။
+> The thing I'm not afraid of most is death.
 
 **96.** 哥們只怕自己不死！
 
-> အစ်ကို၊ ငါမသေမှာကို ကြောက်တယ်။
+> Brother, I'm just afraid that I won't die!
 
 **97.** 天煞孤星好啊，天煞孤呈說明他能剋死身邊人，那麼我把他帶在身邊，豈不是遲早
 
-> Tiansha Guxing က ကောင်းပါတယ်။ Tiansha Gucheng က သူ့ပတ်ဝန်းကျင်က လူတွေကို သတ်နိုင်တယ်ဆိုတာကို ပြတယ်၊ ဒါကြောင့် သူ့ကို ငါနဲ့အတူ ခေါ်သွားမယ်ဆိုရင် မကြာခင် အချိန်နှောင်းမှာ မဟုတ်ဘူးလား။
+> Tiansha Guxing is good. Tiansha Gucheng shows that he can kill people around him, so if I take him with me, won't it be sooner or later?
 
 **98.** 要把我剋死？
 
-> ငါ့ကိုသတ်ချင်လား။
+> Want to kill me?
 
 **99.** 葉寧感覺自己簡直就是天底下第一號大聰明
 
-> Ye Ning သည် သူမသည် ကမ္ဘာပေါ်တွင် ဉာဏ်အမြော်အမြင်အရှိဆုံးလူဟု ခံစားမိသည်။
+> Ye Ning felt that she was simply the most intelligent person in the world.
 
 **100.** 并州，首先就是一個針對他的陷阱，他承擔著巨大的風險
 
-> Bingzhou သည် သူ့အတွက် ပထမဆုံးသော ထောင်ချောက်ဖြစ်ပြီး ကြီးမားသော စွန့်စားရသူဖြစ်သည်။
+> Bingzhou was first of all a trap for him, and he took huge risks.
 
 **101.** 但這還保險。
 
-> ဒါပေမယ့် လုံခြုံနေတုန်းပါပဲ။
+> But it's still safe.
 
 **102.** 因為過去葉寧經歷了無數看起來必死的事情，但是都最終活了下來
 
-> အဘယ်ကြောင့်ဆိုသော် ယခင်က Ye Ning သည် သေခြင်းသို့ ဦးတည်သွားမည့် မရေမတွက်နိုင်သော အရာများကို တွေ့ကြုံခဲ့ရသော်လည်း နောက်ဆုံးတွင် သူမ လွတ်မြောက်ခဲ့သည်။
+> Because in the past, Ye Ning experienced countless things that seemed certain to lead to death, but she survived in the end.
 
 **103.** 所以，他必須要狠狠的加註!
 
-> ထို့ကြောင့် ပြင်းပြင်းထန်ထန် ပြုစုပျိုးထောင်ရမည်။
+> Therefore, he must raise aggressively!
 
 **104.** 這個所謂的天煞孤星，簡直就是上天送給他的禮物！
 
-> ဆိုးယုတ်သောကြယ်ဟု ခေါ်သော ဤကြယ်သည် ဘုရားသခင်ထံတော်မှ လက်ဆောင်တစ်ခုဖြစ်သည်။
+> This so-called evil star is simply a gift from God to him!
 
 **105.** 李家加羽化門加天煞孤星!
 
-> Li မိသားစုသည် Yuhua ဂိုဏ်းနှင့် Tiansha Lone Star ကို ပေါင်းထည့်သည်။
+> The Li family adds the Yuhua Sect and the Tiansha Lone Star!
 
 **106.** 如此一來，應該夠了吧?
 
-> ဒီနည်းနဲ့ လုံလောက်သင့်တယ် မဟုတ်လား။
+> In this way, it should be enough, right?
 
 **107.** 葉寧的眼眶幾乎都要濕潤了
 
-> Ye Ning ၏ မျက်လုံးများ စိုစွတ်လုနီးပါး ဖြစ်နေသည်။
+> Ye Ning's eyes were almost wet.
 
 **108.** 緣分啊！
 
-> ကံကြမ္မာပဲ!
+> What a fate!
 
 **109.** 早知道這裡有這麼個大寶貝，我還在京城浪費什麼時間？
 
-> ဒီနေရာမှာ ဒီလောက်ကြီးကျယ်ခမ်းနားတဲ့ ရတနာတွေရှိတယ်ဆိုတာ ငါသိခဲ့ရင် မြို့တော်မှာ ငါ့ရဲ့အချိန်တွေကို ဘာလို့ ဖြုန်းတီးနေရတာလဲ။
+> If I had known there was such a big treasure here, why would I have wasted my time in the capital?
 
 **110.** 老早就要來找你了!
 
-> ငါ မင်းကို ရှာဖို့ လာနေတာ ကြာပြီ။
+> I have been coming to find you for a long time!
 
 **111.** 南宮良人看著葉寧越來越誇張的眼神，整個人都傻了，
 
-> Nangong Liangren သည် Ye Ning ၏ ပုံကြီးချဲ့ထားသော မျက်လုံးများကို ကြည့်ပြီး မှင်တက်သွားသလို ခံစားလိုက်ရသည်။
+> Nangong Liangren looked at Ye Ning's increasingly exaggerated eyes and felt dumbfounded.
 
 **112.** 這位大人，居然真的想把他留下
 
-> ဒီလူကြီးက သူ့ကို ဒီမှာထားချင်နေတာ
+> This adult actually really wants to keep him here
 
 **113.** 這是為什麼呢
 
-> ဒါက ဘာကြောင့်လဲ။
+> why is this
 
 **114.** 是啊，為什麼。
 
-> ဟုတ်တယ်၊ ဘာကြောင့်လဲ။
+> Yeah, why.
 
 **115.** 蔡向高也想問，於是他就問了
 
-> Cai Xianggao လည်း မေးချင်သောကြောင့် မေးလိုက်သည်။
+> Cai Xianggao also wanted to ask, so he asked
 
 **116.** 葉寧想了想，給了他一個回答
 
-> Ye Ning ခဏလောက်စဉ်းစားပြီး အဖြေပေးလိုက်တယ်။
+> Ye Ning thought for a while and gave him an answer.
 
 **117.** “蔡兄，我想要帶上他的原因，是因為我覺得，他有著必須活下去的理由
 
-> "အစ်ကို Cai၊ ကျွန်တော် သူ့ကို ခေါ်သွားချင်ရတဲ့ အကြောင်းရင်းက သူ့မှာ အသက်ရှင်ဖို့ အကြောင်းပြချက်ရှိတယ်လို့ ကျွန်တော်ထင်ပါတယ်။
+> "Brother Cai, the reason why I want to take him with me is because I think he has a reason to live.
 
 **118.** 必須活下去的理由
 
-> အသက်ရှင်ရခြင်းအကြောင်းတရားများ
+> Reasons to live
 
 **119.** 簽向高一怔，說道
 
-> Zhuan Xiang Gao လန့်သွားပြီး ပြောလိုက်တယ်။
+> Zhuan Xiang Gao was startled and said
 
 **120.** “俄有志？
 
-> "အဲ Youzhi?
+> "Er Youzhi?
 
 **121.** 他有沒有死志，葉寧怎麼可能知道?
 
-> Ye Ning သည် သူ့တွင် သေစေလိုသောဆန္ဒရှိလျှင် မည်သို့သိနိုင်မည်နည်း။
+> How could Ye Ning know if he had a death wish?
 
 **122.** 但話到了嘴邊，自然也就只能順著往下說了
 
-> ဒါပေမယ့် စကားတွေ ပါးစပ်ထဲရောက်သွားရင် သဘာဝအတိုင်းပဲ ဆက်ပြောနိုင်တော့တယ်။
+> But when the words come to my mouth, naturally I can only continue to say them.
 
 **123.** 葉寧很自信的點頭，說道。
 
-> ရီနင်းက စိတ်ချလက်ချ ခေါင်းညိတ်ပြီး ပြောလိုက်တယ်။
+> Ye Ning nodded confidently and said.
 
 **124.** “你看，剛剛他在挨揍的時候，一動不動，一聲不吭，連一個保護自己的動作都沒有
 
-> “ကြည့်စမ်း၊ ခုနက အရိုက်ခံရတုန်းက သူ့ကိုယ်သူ ကာကွယ်ဖို့တောင် မလှုပ်မယှက်ဘဲ တိတ်ဆိတ်နေတယ်။
+> "Look, when he was being beaten just now, he remained motionless and silent, not even making a move to protect himself.
 
 **125.** 百九十五卓: 這波很賺5/7
 
-> 195 Zhuo - ဤလှိုင်းသည် အလွန်အမြတ်အစွန်း 5/7 ဖြစ်သည်။
+> 195 Zhuo: This wave is very profitable 5/7
 
 **126.** 但這對於他來說，並不是什麼值得高興的事情，反而因此而感到痛苦
 
-> ဒါပေမယ့် ဒါက သူ့အတွက် ပျော်ရွှင်စရာ ကိစ္စတော့ မဟုတ်ပါဘူး။ အဲဒီအစား ဝေဒနာကြောင့် ခံစားရတာ။
+> But this is not something to be happy about for him. Instead, he feels pain because of it.
 
 **127.** 有的時候，他甚至都有了自我了斷的念頭
 
-> တခါတရံမှာ သူ့ကိုယ်သူ သတ်သေဖို့ စိတ်ကူးတောင်ရှိသေးတယ်။
+> Sometimes, he even had the idea of ​​committing suicide.
 
 **128.** 葉寧感受到了他強烈的厭世情緒，於是皺起了眉頭
 
-> Ye Ning သည် သူ၏ ပြင်းထန်သော ပင်ပန်းနွမ်းနယ်မှုကို ခံစားလိုက်ရပြီး မျက်မှောင်ကြုတ်လိုက်သည်။
+> Ye Ning felt his strong world-weariness and frowned
 
 **129.** 不行啊
 
-> နည်းလမ်းမရှိပါ။
+> No way
 
 **130.** 這個大寶貝可是上天送給我的禮物
 
-> ဤကလေးငယ်သည် ကျွန်ုပ်အတွက် ဘုရားသခင်ထံမှ လက်ဆောင်ဖြစ်သည်။
+> This big baby is a gift from God to me
 
 **131.** 我可不能讓他就這麼死了
 
-> ငါ သူ့ကို ဒီလိုသေအောင် ထားလို့မရဘူး
+> I can't let him die like this
 
 **132.** 於是葉寧說道。
 
-> ဒီတော့ Ye Ning ကပြောတယ်။
+> So Ye Ning said.
 
 **133.** “我總覺得，生命本身就應該有一種意義，我們絕不是白白來這世上一場的
 
-> “ဘဝကိုယ်တိုင်က အဓိပ္ပါယ်ရှိသင့်တယ်လို့ အမြဲခံစားရတယ်။ ကျွန်ုပ်တို့သည် ဤလောကသို့ အချည်းနှီးမဖြစ်ပါ။
+> "I always feel that life itself should have a meaning. We do not come to this world in vain.
 
 **134.** 這句話，從禁種角度卜鍾動到了南官息人，
 
-> ဤဝါကျသည် မျိုးပွားခြင်းကို တားမြစ်သည့် ရှုထောင့်မှနေ၍ Nanguan Xiren သို့ ရောက်ရှိခဲ့သည်။
+> This sentence, from the perspective of prohibition of breeding, has reached Nanguan Xiren.
 
 **135.** 他很多時候都在想，為什麼自己的殘魂會莫名其妙來到這個世界
 
-> သူ၏ အကြွင်းအကျန်ဝိညာဉ်သည် ဤကမ္ဘာသို့ အဘယ်ကြောင့် နားမလည်နိုင်စွာ ရောက်ရှိလာသည်ကို မကြာခဏ တွေးတောနေမိသည်။
+> He often wonders why his remnant soul came to this world inexplicably.
 
 **136.** “我的人生沒有意義，活著對於我來說是熟熬，
 
-> "ငါ့ဘဝက အဓိပ္ပါယ်မရှိဘူး၊ အသက်ရှင်ရတာ ငါ့အတွက် အချိန်ကြာတယ်။
+> "My life has no meaning. Living is a long time for me.
 
 **137.** 他搖了搖頭，麻木的說道
 
-> သူက ခေါင်းကို ခါယမ်းကာ တိုးတိုးလေးပြောသည်။
+> He shook his head and said numbly
 
 **138.** 自暴自棄，這是一條永遠腐蝕啃嘴著心靈的毒蛇，它吸走心靈的新鮮血液，並在其
 
-> မိမိကိုယ်ကို အကျဉ်းချထားခြင်းသည် စိတ်ဝိညာဉ်ကို ထာဝစဉ်တိုက်စားပြီး ကိုက်ဖြတ်တတ်သော အဆိပ်ရှိသောမြွေဖြစ်သည်။ ၎င်းသည် စိတ်ဝိညာဉ်၏ လတ်ဆတ်သောသွေးများကို စုပ်ယူကာ ချန်ထားခဲ့သည်။
+> Self-abasement is a poisonous snake that forever corrodes and gnaws at the soul. It sucks away the fresh blood of the soul and leaves it behind.
 
 **139.** 中注入厭世和絕望的毒汁。
 
-> ပင်ပန်းနွမ်းနယ်မှုနှင့် စိတ်ပျက်အားငယ်မှု၏ အဆိပ်အတောက်များဖြင့် လွှမ်းခြုံထားသည်။
+> Infused with the poison of world-weariness and despair.
 
 **140.** 葉寧很認真的說道，他已經有些入戲了，想要挽救這個迷途的生命
 
-> Ye Ning က လေးလေးနက်နက် ပြောလိုက်သည် ။ သူက ဒရာမာမှာ နည်းနည်းလေးရှိနေပြီဖြစ်ပြီး ဒီပျောက်ဆုံးနေတဲ့အသက်ကို ကယ်တင်ချင်နေတာ။
+> Ye Ning said seriously. He was already a little bit into the drama and wanted to save this lost life.
 
 **141.** “你覺得世界上沒有人在乎你，你也不在乎任何人。
 
-> "ကမ္ဘာပေါ်မှာ မင်းကိုဘယ်သူမှ ဂရုမစိုက်သလို ဘယ်သူ့ကိုမှ ဂရုမစိုက်ဘူးလို့ မင်းခံစားရတယ်။
+> “You feel like no one in the world cares about you and you don’t care about anyone.
 
 **142.** “所以你想死。
 
-> "ဒါဆို မင်းသေချင်နေတာလား။
+> “So you want to die.
 
 **143.** 但這是不對的，因為並不是沒有人在乎你的生死，比如說，我在乎，
 
-> ဒါပေမယ့် သင့်ဘဝ ဒါမှမဟုတ် သေခြင်းတရားကို ဘယ်သူကမှ ဂရုမစိုက်တဲ့အတွက် ဒါဟာ မှားပါတယ်။ ဥပမာ- အလှူခံ၊
+> But this is wrong, because it’s not that no one cares about your life or death. For example, I care,
 
 **144.** 葉寧是真的很在平
 
-> Ye Ning က တကယ်ကို ဂရုစိုက်တယ်။
+> Ye Ning is really caring
 
 **145.** 好不容易調到一個手皺孤是，他能放他擊1
 
-> နောက်ဆုံးတော့ ရှုံ့တွနေတဲ့ လက်ကို ကျွန်တော် ရနိုင်ခဲ့ပေမယ့် သူ 1 ချက်ထိအောင် လုပ်နိုင်ခဲ့တယ်။
+> I finally managed to get a wrinkled hand, but he was able to let him hit 1
 
 **146.** 南宮良人身軀一震，問道
 
-> Nangong Liangren ၏ ခန္ဓာကိုယ် တုန်လှုပ်သွားပြီး မေးလိုက်သည်။
+> Nangong Liangren's body was shaken and he asked
 
 **147.** “大人為何在乎？
 
-> "လူကြီးတွေက ဘာလို့ ဂရုစိုက်တာလဲ။
+> "Why do adults care?
 
 **148.** 這個問題，同樣讓眾人迷惑。
 
-> ဒီမေးခွန်းက လူတိုင်းကို ရှုပ်ထွေးစေတယ်။
+> This question also confuses everyone.
 
 **149.** 是啊，你葉寧位高權重，與他這種人，本不該有任何交集才對
 
-> ဟုတ်တယ်၊ မင်း၊ Ye Ning က ရာထူးကြီးမြင့်ပြီး သူ့လိုလူတွေနဲ့ ဆက်ဆံတာမျိုး မဖြစ်သင့်ဘူး။
+> Yes, you, Ye Ning, have a high position and should not have any interactions with people like him.
 
 **150.** 你為什麼會那麼在意他的生死?
 
-> သူ့ဘဝနဲ့ သေခြင်းတရားကို မင်းကဘာလို့ အရမ်းဂရုစိုက်တာလဲ။
+> Why do you care so much about his life and death?
 
 **151.** 葉寧在眾人的連視下，魯付了少許，然後說道
 
-> လူတိုင်း၏အကြည့်အောက်တွင် Ye Ning သည် အနည်းငယ်ပေးဆပ်ပြီးနောက် ပြောလိုက်သည်။
+> Under the gaze of everyone, Ye Ning paid a little and then said
 
 **152.** “我給你講個故事吧
 
-> "ငါ မင်းကို ပုံပြင်တစ်ပုဒ် ပြောပြပါရစေ
+> "Let me tell you a story
 
 **153.** “暴風雨過去的一個早晨，一個男子在海邊散步，他看到了一個小孩沿著海岸線行走
 
-> “မုန်တိုင်းတိုက်ပြီး တစ်မနက်မှာ လူတစ်ယောက် ကမ်းခြေတစ်လျှောက် လမ်းလျှောက်လာရင်း ကမ်းစပ်မှာ လမ်းလျှောက်နေတဲ့ ကလေးတစ်ယောက်ကို တွေ့တယ်။
+> "One morning after a storm, a man was walking along the beach when he saw a child walking along the shoreline.
 
 **154.** 將擱滿在岸上的小魚扔回到了海里，可是小魚實在是太多了，
 
-> သူသည် ကမ်းပေါ်ရှိ ငါးငယ်များကို ပင်လယ်ထဲသို့ ပြန်ပစ်ချသော်လည်း ငါးသေးသေးများစွာ ရှိနေသည်။
+> He threw the small fish on the shore back into the sea, but there were too many small fish.
 
 **155.** ，也許幾百條，也許幾干
 
-> ရာနှင့်ချီ၊ ဖြစ်နိုင်သည်၊ အနည်းငယ်
+> , maybe hundreds, maybe a few
 
 **156.** ，他們擱淺在泥土上，沙子里，石頭的縫騙中，用不了多久，就會因為脫水
 
-> မြေကြီး၊ သဲနှင့် ကျောက်အက်ကွဲများပေါ်တွင် သောင်တင်နေကြသည်။ ၎င်းတို့သည် ရေဓာတ်ခမ်းခြောက်မှုမဖြစ်မီ အချိန်အတော်ကြာမည်ဖြစ်သည်။
+> , they are stranded on the soil, sand, and cracks of stones. It will not take long before they become dehydrated.
 
 **157.** 而外
 
-> အပြင်မှာ
+> Outside
 
 **158.** 但這個小孩依然執著，奮力的將每一條小魚都扔回海里
 
-> ဒါပေမယ့် ကလေးက ဇွဲမလျှော့သေးဘဲ ငါးလေးတွေအားလုံးကို ပင်လယ်ထဲပြန်ပစ်ဖို့ ရုန်းကန်နေရဆဲပါ။
+> But the child was still persistent and struggled to throw every little fish back into the sea.
 
 **159.** 第一百九十五卓: 這波很曉.6/7
 
-> အခန်း 195 Zhuo- ဤလှိုင်းသည် အလွန်ရှင်းလင်းသည်။ 6/7
+> Chapter 195 Zhuo: This wave is very clear.6/7
 
 **160.** “男子忍不住問了，上去說道，孩子，這裡的小魚太多了，你教不過來的。
 
-> “အဲဒီလူက မေးရုံနဲ့ မတတ်နိုင်ဘဲ တက်သွားပြီးတော့ ကလေး၊ ဒီမှာ ငါးသေးသေးလေးတွေ အများကြီးရှိတယ်၊မင်းက သူတို့ကို သင်ပေးလို့မရဘူး။
+> "The man couldn't help but ask, and went up and said, kid, there are too many small fish here, you can't teach them.
 
 **161.** “小孩說，他知道
 
-> “ကလေးက သိတယ်။
+> "The child said he knew
 
 **162.** “男子不明白，既然你知道，你為什麼還要這麼做？你這麼做會有人在乎嗎
 
-> "အဲဒီလူက နားမလည်ဘူး၊ မင်းဘာလို့ဒီလိုလုပ်တာလဲ။ဒီလိုလုပ်ရင် ဘယ်သူက ဂရုစိုက်မှာလဲ။
+> "The man doesn't understand, since you know, why do you do this?Will anyone care if you do this?
 
 **163.** “這條小魚有平！”男孩兒一邊回答，一邊拾起一條魚扔進大海。“這條在乎，這條也
 
-> "ဒီငါးလေးမှာ ငါးရှိတယ်!" ကောင်လေးက ငါးတစ်ကောင်ကို ကောက်ယူပြီး ပင်လယ်ထဲ ပစ်ချတယ်လို့ ပြန်ဖြေတယ်။"ကျွန်တော် ဒါကို ဂရုမစိုက်ဘူး၊ ဒါကို ဂရုမစိုက်ဘူး။
+> "This little fish has a fish!" the boy replied, picking up a fish and throwing it into the sea."I care about this, and I don't care about this.
 
 **164.** 有平！還有這一條、這一條、這一條
 
-> Youping! ဒီတစ်ခု၊ ဒီတစ်ခု၊ ဒီတစ်ခု
+> Youping! And this one, this one, this one
 
 **165.** 一個故事講完，所有人都沉默了。
 
-> ဇာတ်လမ်းကို ပြောပြပြီးနောက် အားလုံး တိတ်ဆိတ်သွားကြသည်။
+> After the story was told, everyone fell silent.
 
 **166.** 蔡向高沖著葉寧拱了拱手，退後了半步
 
-> Cai Xianggao သည် Ye Ning ဆီသို့ လက်ခုပ်ပြီး ခြေတလှမ်း တစ်ဝက်လောက် နောက်ပြန်ဆုတ်သွားသည်။
+> Cai Xianggao cupped his hands towards Ye Ning and took half a step back.
 
 **167.** 他再也沒有任何意見了
 
-> သူ့မှာ ထင်မြင်ချက်မရှိတော့ဘူး။
+> He has no opinion anymore
 
 **168.** 陳紹正也深吸一口氣，尊敬的看了葉寧一眼
 
-> Chen Shaozheng လည်း အသက်ပြင်းပြင်းရှူပြီး Ye Ning ကို လေးလေးစားစား ကြည့်နေသည် ။
+> Chen Shaozheng also took a deep breath and looked at Ye Ning respectfully.
 
 **169.** 像是鐵塔一般，矗立在葉寧身邊，守護著他的安全
 
-> သံမျှော်စင်ကဲ့သို့၊ ၎င်းသည် Ye Ning ၏ဘေးတွင် ရပ်တည်နေပြီး ၎င်း၏လုံခြုံရေးကို စောင့်ကြပ်ထားသည်။
+> Like an iron tower, it stands beside Ye Ning, guarding his safety.
 
 **170.** 這是深刻的一刻。
 
-> ဒါက လေးနက်တဲ့ အခိုက်အတန့်ပါပဲ။
+> This is a profound moment.
 
 **171.** 葉寧告訴了他們，什麼是生命的意義，
 
-> Ye Ning က သူတို့ဘဝရဲ့ အဓိပ္ပါယ်ကို ပြောပြတယ်၊
+> Ye Ning told them what the meaning of life is,
 
 **172.** “我就是故事裡的魚么
 
-> "ငါက ဇာတ်လမ်းထဲက ငါးပဲလား။
+> "Am I the fish in the story?
 
 **173.** 南宮良人的眼眶濕潤了
 
-> Nangong Liangren ၏ မျက်လုံးများသည် စိုစွတ်နေ၏။
+> Nangong Liangren’s eyes were moist.
 
 **174.** 一道溫暖的光，照耀到了他荒蕪的心田之中
 
-> နွေးထွေးသော အလင်းတန်းတစ်ခုသည် သူ၏ ဆိတ်သုဉ်းနေသော နှလုံးသားထဲသို့ လင်းလက်သွားသည်။
+> A warm light shone into his desolate heart
 
 **175.** 他已經忘記自己多久沒有感受到這種來自於人世問的溫暖了
 
-> လူ့လောကကြီးထဲက ဒီလိုနွေးထွေးမှုမျိုးကို သူခံစားခဲ့ရတာ ဘယ်လောက်ကြာပြီလဲဆိုတာ သူ မေ့သွားပြီ။
+> He has forgotten how long it has been since he felt this kind of warmth from the human world.
 
 **176.** 世人厭棄他，鄙夷他。
 
-> လောကီသားတို့သည် သူ့ကို မထီမဲ့မြင်ပြု၍ မထီမဲ့မြင်ပြုကြကုန်၏။
+> The world despised him and despised him.
 
 **177.** 唯有眼前的這個男人，萍水相逢，卻那麼的在乎他的生死
 
-> မတော်တဆ ငါတို့တွေ့ခဲ့တဲ့ ငါ့ရှေ့မှာ ဒီလူက သူ့ဘဝနဲ့ သေခြင်းတရားကို အရမ်းဂရုစိုက်တယ်။
+> Only this man in front of me, whom we met by chance, cares so much about his life and death.
 
 **178.** 原來這個世界並不是那麼絕望
 
-> ကမ္ဘာကြီးက သိပ်ပြီး မျှော်လင့်ချက်မဲ့မနေဘူးဆိုတာ သိသာထင်ရှားပါတယ်။
+> It turns out that the world is not so hopeless
 
 **179.** 原來還有人在乎我的生死
 
-> ငါ့ဘဝနဲ့ သေခြင်းတရားကို ဂရုစိုက်တဲ့သူတွေ ရှိနေတုန်းပဲ။
+> It turns out there are still people who care about my life and death
 
 **180.** 真好。
 
-> အရမ်းကောင်းပါတယ်။
+> So nice.
 
 **181.** 南宮良人顏抖著詢間。
 
-> မစ္စတာနန်ကုန်းက တုန်ရီတဲ့မျက်နှာနဲ့ မေးတယ်။
+> Mr. Nangong asked with a trembling face.
 
 **182.** “大人，你覺得我真的還有必要活下去唇?
 
-> "သခင်၊ ငါတကယ်အသက်ရှင်ဖို့ လိုအပ်တယ်လို့ မင်းထင်လား။
+> "Sir, do you think I really need to live?
 
 **183.** 葉寧伸出手，拍著他的肩膀
 
-> Ye Ning က သူ့လက်ကို ဆန့်တန်းပြီး သူ့ပခုံးကို ပုတ်လိုက်သည်။
+> Ye Ning stretched out her hand and patted his shoulder
 
 **184.** 這一刻，他的身上像是在發光
 
-> ဒီအချိန်မှာ သူ့ခန္ဓာကိုယ်က တောက်ပနေပုံပဲ။
+> At this moment, his body seemed to be glowing
 
 **185.** “當然有必要了，生亦何歡，死亦何苦，喜樂悲愁，皆歸塵土。
 
-> “ဟုတ်ပါတယ် ဘဝမှာ ပျော်ရွှင်မှုမရှိဘူး၊ သေခြင်းမှာ နာကျင်မှုမရှိ၊ ပျော်ရွှင်မှုနဲ့ ဝမ်းနည်းမှုတွေ အားလုံးဟာ မြေမှုန့်ဆီ ပြန်သွားလိမ့်မယ်။
+> "Of course it is necessary, there is no joy in life, no pain in death, joy and sorrow will all return to the dust.
 
 **186.** “每個人都有必須活下去的理由，死很簡單，活著才難，但活著本身，就是很有負義
 
-> "လူတိုင်း အသက်ရှင်ဖို့ အကြောင်းပြချက် ရှိတယ်။ သေဖို့က လွယ်တယ်၊ အသက်ရှင်ရတာ ခက်တယ်၊ ဒါပေမယ့် ကိုယ်တိုင်က နေရတာက အရမ်း မတရားဘူး။
+> "Everyone has a reason to live. Dying is easy, living is difficult, but living itself is very unfair.
 
 **187.** 的事情，你不必去找什麼理由，也不要去想什麼結局。”
 
-> အကြောင်းပြချက်ရှာရန် သို့မဟုတ် အဆုံးသတ်ကို တွေးနေရန် မလိုအပ်ပါ။ “
+> You don’t have to look for reasons or think about the ending. "
 
 **188.** “這個世界，我來過，我奮戰過，我深愛過，我不需要理由，我不在乎結局！
 
-> "ငါ ဒီကမ္ဘာကြီးမှာ နေခဲ့ရတယ်၊ ခက်ခက်ခဲခဲ တိုက်ပွဲဝင်ခဲ့တယ်၊ နက်နက်ရှိုင်းရှိုင်း ချစ်ခဲ့တယ်၊ အကြောင်းပြချက် မလိုဘူး၊ အဆုံးသတ်ကို ငါ ဂရုမစိုက်ဘူး။
+> “I have been in this world, I have fought hard, I have loved deeply, I don’t need a reason, and I don’t care about the ending!
 
 **189.** 南宮良人完全呆住了
 
-> Nangong Liangren သည် လုံးဝ အံ့အားသင့်သွားသည်။
+> Nangong Liangren was completely stunned
 
 **190.** 然後淚水奪眶而出
 
-> ထို့နောက် မျက်လုံးမှ မျက်ရည်များ ထွက်လာသည်။
+> Then tears came out of my eyes
 
 **191.** 他跪了下來，抱住了葉寧的腿，哭的泣不成聲
 
-> သူ ဒူးထောက်ထိုင်ချလိုက်ပြီး Ye Ning ၏ခြေထောက်များကို ပွေ့ဖက်ကာ မျက်ရည်များဝဲလာသည်။
+> He knelt down, hugged Ye Ning's legs, and burst into tears.
 
 **192.** 葉寧撫摸著他糾纏在一起的頭髮，心裡笑開了花，
 
-> Ye Ning က ရှုပ်ယှက်ခတ်နေသော ဆံပင်များကို ပွတ်သပ်ရင်း နှလုံးသားကို ပြုံးပြလိုက်သည်။
+> Ye Ning stroked his tangled hair and smiled in her heart.
 
 **193.** 很好。
 
-> အလွန်ကောင်းသည်။
+> very good.
 
 **194.** 這波很賺，
 
-> ဤလှိုင်းသည် အလွန်အမြတ်အစွန်း၊
+> This wave is very profitable,
 
 **195.** 我可真是人間大聰明。
 
-> ငါက ကမ္ဘာမှာ တကယ်ကို ထက်မြက်တယ်။
+> I am really smart in the world.
 
 **196.** 在他眼裡.
 
-> သူ့မျက်လုံးထဲမှာ။
+> In his eyes.
 
 **197.** 這位簡直就是幫助他完成作死目標的卧龍鳳雛
 
-> ဤသည်မှာ အိပ်ပျော်နေသော နဂါးနှင့် ဖီးနစ် ကြက်ကလေး ဖြစ်သည် ။
+> This is simply the sleeping dragon and phoenix chick who helped him achieve his death goal.
 
 <details>
 <summary>Existing human Burmese — chapter 195 (336 lines, reference only)</summary>

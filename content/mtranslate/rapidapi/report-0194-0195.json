@@ -1,24 +1,24 @@
 {
   "provider": "RapidAPI multi-format AI translator",
   "host": "multi-format-ai-translator-the-most-complete.p.rapidapi.com",
-  "target": "my",
+  "target": "en",
   "source_requested": "auto",
   "detected": "zh-TW",
-  "generated": "2026-10-22T19:30:55+00:00",
+  "generated": "2026-10-22T20:05:26+00:00",
   "chapters": [
     {
       "chapter": 194,
       "title": "第一百九十四章:那突如其來的善意",
       "paragraphs": 166,
       "characters": 3235,
-      "requests": 5,
+      "requests": 7,
       "cached": 0,
       "source_language": "zh-TW",
       "source_language_name": "Chinese (Traditional)",
       "reference_chapters": [],
       "files": [
-        "content/mtranslate/rapidapi/ch0194.my.jsonl",
-        "content/mtranslate/rapidapi/ch0194.my.txt"
+        "content/mtranslate/rapidapi/ch0194.en.jsonl",
+        "content/mtranslate/rapidapi/ch0194.en.txt"
       ]
     },
     {
@@ -32,8 +32,8 @@
       "source_language_name": "Chinese (Traditional)",
       "reference_chapters": [],
       "files": [
-        "content/mtranslate/rapidapi/ch0195.my.jsonl",
-        "content/mtranslate/rapidapi/ch0195.my.txt"
+        "content/mtranslate/rapidapi/ch0195.en.jsonl",
+        "content/mtranslate/rapidapi/ch0195.en.txt"
       ]
     }
   ],
@@ -55,12 +55,12 @@
     "chapters": 2,
     "paragraphs": 363,
     "characters": 6427,
-    "requests": 10,
+    "requests": 12,
     "cached": 0
   },
-  "elapsed_seconds": 67.5,
+  "elapsed_seconds": 108.0,
   "files": [
-    "content/mtranslate/rapidapi/pair-0194-0195.my.txt",
+    "content/mtranslate/rapidapi/pair-0194-0195.en.txt",
     "content/mtranslate/rapidapi/compare-ch194-ch195.md"
   ],
   "cache": "/root/proofreading/content/mtranslate/rapidapi-cache.sqlite3",
@@ -68,7 +68,6 @@
     "total": 363,
     "unchanged": 0,
     "empty": 0,
-    "warnings": [],
-    "with_myanmar_script": 363
+    "warnings": []
   }
 }
