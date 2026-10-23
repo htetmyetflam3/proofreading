@@ -289,15 +289,19 @@ Paid, never on your behalf: `translate_text`, `translate_batch`,
 
 All eighteen are advertised by default, and their schemas — 12,886 characters,
 about 3.2–4.3k tokens — are re-sent with **every** request. `--tools survey`
-(11 tools, 7,501 characters) covers the Burmese reading pass, `--tools lean`
-(7 tools, 5,468) covers a drafting pass, and `--tools english-review` (7 tools,
-5,448) adds the English comparison, previous-Burmese context, review and names.
-Details in *`mcp.py`* under Part 3.
+(11 tools, 7,501 characters) is a read-only first pass, and `--tools lean`
+(7 tools, 5,468) is a compact drafting pass. `--tools english-review` (7 tools,
+5,675) includes English comparison, prior Burmese context, review, and names, but
+omits chapter reading, draft, and verse tools. The unified chapter task uses
+`--tools burmese-translation` (15 tools, 11,147 characters): English gate, source
+reading, review, names, Burmese drafts, and verse, with API tools excluded. Details
+in *`mcp.py`* under Part 3.
 
-Two things there are deliberately **not** tools: finding new names, and finding
-verse. Both are reading judgements the agent makes while it reads the AI text
-for tone; a scanner would produce candidates with no sense of which matter, and
-a verse regex cannot tell a couplet from a short sentence. The tools only write
+Finding which new names matter and identifying verse are reading judgements the
+agent makes while examining the text; automated candidate discovery is not a tool.
+`register_name` is the controlled append operation after the agent has identified a
+new term, and `save_verse` records lines after the agent identifies their kind. A
+verse regex cannot tell a couplet from a short sentence. The tools only write
 down what the agent decided.
 
 ---
@@ -964,10 +968,12 @@ read a word. `--tools` narrows what the process advertises:
 | `--tools edit` | 11 | 7,398 | rewriting paragraphs; no review digest, no API |
 | `--tools review` | 2 | 1,460 | one `review_brief` question on an 8k-per-minute key |
 | `--tools review,names` | 5 | 3,282 | groups instead of presets, comma-separated |
-| `--tools english-review` | 7 | 5,448 | English comparison + prior Burmese context + review + names |
+| `--tools english-review` | 7 | 5,675 | English comparison + prior Burmese context + review + names; no chapter reader/draft/verse tools |
+| `--tools burmese-translation` | 15 | 11,147 | unified English gate + Burmese drafting, names, review, and verse; excludes API tools |
 
 Groups: `read` `english` `review` `names` `verse` `draft` `api`. Presets:
-`survey` `edit` `lean` `translate` `english-review` `full`. A tool that is not advertised is refused if called,
+`survey` `edit` `lean` `translate` `english-review` `burmese-translation`
+`full`. A tool that is not advertised is refused if called,
 with the flag named in the error — no silent empty answer. Verify the arithmetic
 on your own machine:
 
@@ -991,7 +997,7 @@ Local English task examples (no API call):
 ```sh
 uv run mcp.py --compare_english_chapter 194 --start 1 --count 10
 uv run mcp.py --previous_burmese_context "နတ်" --chapter 194
-uv run mcp.py --serve --tools english-review  # expose only this read-only task set
+uv run mcp.py --serve --tools burmese-translation  # English gate + Burmese tools, no API calls
 ```
 
 ## `mt/translate.py` — Chinese/English routes

@@ -474,6 +474,9 @@ TOOL_PRESETS = {
              "check_names", "lookup_name", "save_draft", "save_verse"),
     "translate": ("api", "read"),
     "english-review": ("english", "review", "names"),
+    # Unified Chinese -> Burmese workflow: English gate, source reading, review,
+    # canonical names, Burmese draft storage, and separate verse review; no API.
+    "burmese-translation": ("read", "english", "review", "names", "draft", "verse"),
     "full": tuple(TOOL_GROUPS),
 }
 

@@ -1,31 +1,34 @@
-# Burmese prose fine-tuning agent (Kilo / Claude Code / Codex / Gemini CLI)
+# Burmese translation and prose-review rules (Kilo / Claude Code / Codex / Gemini CLI)
 
-> **SUSPENDED in the current workflow:** API-generated Burmese text has been
-> removed; `content/mtranslate/english.txt` is the only retained API translation.
-> Do not start this Burmese rewrite procedure, call a translator, recreate the
-> deleted Burmese output, or use stale API files as a baseline unless the human
-> explicitly re-enables the task. The human Burmese translation remains intact
-> for contextual reading, but has known encoding damage (Zawgyi-order clusters,
-> substitutions, and dropped vowels). Treat it as an uncertain clue, never as an
-> authoritative spelling, grammar, or meaning source; verify against Chinese.
+> **Active workflow:** the final target is Burmese. First verify the retained API
+> English and local Argos English against Chinese; correct an inaccurate English
+> passage in working context, then translate/adapt into Burmese and verify Burmese
+> against Chinese. The English gate and Burmese translation are one task, not
+> separate assignments. No API calls and no recreated API Burmese.
+>
+> The procedure below was originally written to revise API-generated Burmese. That
+> Burmese output has been removed. For chapters 194 onward, do not require an API
+> Burmese `my` field, do not stop because it is absent, and do not follow old
+> instructions that say not to translate the chapter. Follow the active workflow in
+> `mt/quality/START.md`; retain the style, review, name, dictionary, segmentation,
+> draft, and separate verse-session rules below. The human Burmese reference has
+> known encoding damage; it is context only, never an authority for spelling,
+> grammar, style, or meaning.
 
-A proofreading-and-polish agent for a large Burmese novel corpus. Terminal only.
-It reads the dictionary and the segmentor through the MCP tools in this repo,
-judges **AI-translated text**, and rewrites it into the author's voice. This is
-the Burmese task; when assigned the separate local English review, use
-`mt/quality/english-review-task.md` instead.
+This file supplies the detailed Burmese house-style and tool rules for a novel
+translation workflow. The retained API English and the local Chinese→English
+Argos file are intermediate witnesses; neither is the final target. The Chinese
+source controls meaning.
 
 ---
 
 ## Start here — the first turn of a session
 
-**If this is the first turn of a session, read `mt/quality/START.md` instead.**
-It is 3,320 characters against this file's 25,791, it carries the same order and
-the token budget. Groq's per-minute ceiling for this model is 250k on the
-Developer plan and 8k on the free plan — on the free plan an agent loop cannot
-run, because the tool schemas alone are 3.4k and they are re-sent every turn.
-Come back here when you actually start drafting — and then read this file once,
-not once per turn.
+Read `mt/quality/START.md` for the active unified workflow. It covers the English
+quality gate and the fresh Burmese translation procedure. Use this file for the
+detailed register, terminology, name registration, segmentation, draft, and verse
+rules; where an older API-post-edit instruction below conflicts with START.md,
+follow START.md.
 
 Five steps, in this order. The human gives you one chapter number and a stop
 point; everything else comes from this brief, the review, and the tools.
@@ -82,54 +85,39 @@ Read the "Names and terms" section below before the first draft. Terminology
 first, style second: a paragraph with the right voice and the wrong name is
 still wrong.
 
-### 3. Get the text, and prove it is there
+### 3. Get the Chinese paragraphs and prove alignment
 
-```
-read_chapter {"chapter": 194}
-```
-
-Look at the `translation` block:
-
-| field | meaning |
-|---|---|
-| `available` | a `ch0194.my.jsonl` exists for this chapter |
-| `attached` | paragraphs matched to it by exact Chinese source |
-| `mismatched` | records whose source no longer matches — refused |
-
-`available: true` with `attached` equal to the paragraph count means every
-paragraph carries a `my` field: **that is the AI translation you judge.**
-
-The `reference` block in the same response is the human Burmese for this chapter
-when it exists. It does not exist for 194 and later — `chapters: []`,
-`lines: 0` — so for those chapters the voice is calibrated from the review and
-from earlier chapters only. Do not treat an empty reference as a bug, and never
-fill it by translating the chapter from scratch.
-
-If `available` is false, or `attached` is 0, **stop**. Do not translate the
-chapter yourself, do not call `translate_chapters`, and do not work from the
-English column. Tell the human:
-
-> Chapter 194 has no AI translation on disk. Run
-> `python3 mt/apicaller.py --run --env-file ~/.env` first.
-
-### 4. Check the names in the text
-
-```
-check_names {"text": "<one paragraph of my text>"}
+```text
+read_chapter {"chapter": 194, "start": 1, "count": 10}
+compare_english_chapter {"chapter": 194, "start": 1, "count": 10}
 ```
 
-Rewrite every reported variant to its canonical form before you judge the prose.
-That check is per paragraph, not per chapter.
+Use the Chinese `zh` paragraphs and stable IDs. The `translation` block describes
+legacy API Burmese files; for 194 and later `available: false` and no `my` text are
+expected. Do not stop for that reason and do not run `api_translate.py` or
+`translate_chapters`. Verify the English bridge with `compare_english_chapter`,
+then continue to the Burmese draft as described in `START.md`.
 
-### 5. Then judge, paragraph by paragraph
+The `reference` block may contain bounded Burmese from earlier mapped chapters.
+For Chinese 194 and later there is no same-chapter Burmese reference; calibrate
+voice from the review and earlier style evidence. Never treat an empty reference
+as a bug or fill it with API Burmese.
 
-The procedure, the classes and the output contract are below. One chapter per
-session: 194, then stop and report; the next session takes 195.
+### 4. Check the names in the Burmese draft
 
-**Do not spend the API budget.** `translate_chapters` and `translate_text` cost
-money the human pays for. Use `translate_text` only for a short clause whose
-meaning you cannot settle from the Chinese, and never call
-`translate_chapters` unless the human asks for it in that turn.
+```
+check_names {"text": "<one Burmese draft paragraph>"}
+```
+
+Rewrite reported variants to their canonical form. This check is per paragraph,
+not per chapter. Register a genuinely new recurring term only after checking that
+it has no existing canonical entry.
+
+### 5. Translate one chapter at a time
+
+Follow the unified procedure and output contract below. The first session is
+chapter 194; report and stop at its boundary. Chapter 195 is handled in a separate
+session. No API budget is to be spent: all translator API tools are off limits.
 
 ---
 
@@ -155,12 +143,12 @@ Order of authority:
 
 What that means in practice:
 
-- **Before every `save_draft`**, run `check_names` on the paragraph's `my` text.
-  A reported variant is rewritten to `canonical`, and the evidence line cites
-  the entry: `check_names: လျိုကျင်း → လျိုချင်း (entry line 10)`.
+- **Before every `save_draft`**, run `check_names` on the Burmese draft paragraph.
+  Rewrite a reported variant to `canonical`, and note the entry used:
+  `check_names: လျိုကျင်း → လျိုချင်း (entry line 10)`.
 - **Existing entries are never edited, and never re-derived.** If the list says
-  လျိုချင်း, write လျိုချင်း. Do not improve it, do not modernise it, and do not
-  replace it with the term the API preferred.
+  လျိုချင်း, write လျိုချင်း. Do not improve it, modernise it, or replace it with
+  another spelling because it seems preferable.
 - **Two spellings for one concept is the defect this file exists to prevent.**
   The list is not innocent here: for `eunuch` it carries *both* lines 93
   `အထိန်းတော် = eunuch` and 94 `မိန်းမစိုး = eunuch`, and line 95 gives
@@ -209,59 +197,61 @@ What that means in practice:
   ရွှေလင်းတဓား, then ရွှေလင်းတ ဓား, then something else. Straightforward means
   *easy to translate*, not *safe to leave to chance*. Register it and the
   question never comes up again.
-- **The entry has two sides and no category.** The left side is the English as
-  the zh-en column writes it — `content/mtranslate/zh-en.txt`, the local MT, not
-  the AI translation and not an English gloss you invented. The right side is
-  the form the AI translation used, corrected by you if it is wrong. That pair
-  is the record: one line, `Key = Value`, the same shape as the 129 entries
-  already there.
-- **Do not hunt for terms.** There is no tool that finds names, and none is
-  wanted: you are reading the AI text anyway, and a scanner would hand you a
-  list of candidates with no sense of which matter. Notice the term while you
-  read, then write it down.
+- **The entry has two sides and no category.** Use a stable English key for the
+  Chinese concept (cross-check the local zh-en spelling, but do not trust a bad
+  gloss) and the chosen canonical Burmese form. That pair is the record: one
+  line, `Key = Value`, the same shape as the existing list.
+- **Do not register terms blindly.** Notice recurring names, titles, sects,
+  weapons, techniques, and places while reading the aligned Chinese and English;
+  search the existing list and review first. Register only a genuinely new term
+  with `register_name`.
 - **A rendering the review flags but does not replace** — ch 38 uses လောင်လျို
   for `老劉`, which turns an affectionate "Old Liu" into a proper name. The
   review explains the loss and proposes nothing; the list has no entry. Keep
   the existing form, do not coin an address form, and flag it. The same goes
   for every rendering the review diagnoses without prescribing.
 
-Writing to this file is the **only** write you are permitted outside saved
-drafts. `master.json`, the POS tree, the caches, the reference, the review and
-every source file stay untouched.
+The only allowed persistent writes are `register_name` for a genuinely new
+term, `save_draft`/`export_drafts` for Burmese drafts, and `save_verse`/
+`export_verse` for the separate verse review. Do not edit `master.json`, the POS
+tree, caches, Chinese source, human Burmese source, DOCX, review, English, or local
+MT outputs.
 
 ---
 
-## The three texts — do not confuse them
+## The source languages — do not confuse their roles
 
-| name | where it lives | what it is | what it is for |
-|---|---|---|---|
-| **Human Burmese** | `content/source/ယဲ့နင်.txt` and `content/merged/episodes.docx`, chapters 1–195 | retained human translation; encoding is damaged (Zawgyi-order clusters, substitutions, dropped vowels) | contextual clue only when the Burmese workflow is explicitly re-enabled; verify against Chinese and never copy corrupted forms as spelling truth |
-| **English** | `content/mtranslate/zh-en.txt` | Chinese → English local machine translation (Argos, offline) | read the source in a language you know |
-| **API English** | `content/mtranslate/english.txt` | API-translated English | retained English translation only; not a Burmese rewrite baseline |
-| **Burmese API output** | removed from this checkout | no current Burmese API baseline | do not recreate or use unless the human explicitly re-enables that workflow |
+| source | where it lives | role in this task |
+|---|---|---|
+| **Chinese** | `content/source/chinese-0511241012-from-8011_1.txt` | semantic authority; verify both the English bridge and final Burmese against it |
+| **API English** | `content/mtranslate/english.txt` | intermediate translation to assess and, if needed, correct in working context before Burmese |
+| **Local English** | `content/mtranslate/zh-en.txt` | fallible Argos witness for the English quality gate; never an authority |
+| **Human Burmese** | `content/source/ယဲ့နင်.txt` and `content/merged/episodes.docx`, Chinese chapters 1–193 | uncertain prior-context evidence; encoding damage includes Zawgyi-order clusters, substitutions, and dropped vowels |
+| **API Burmese** | removed from this checkout | no baseline; do not recreate or call an API |
 
-These constraints apply whenever the archived procedure is reopened:
-
-1. **Never feed the human Burmese reference to the segmentor as spelling
-   truth.** Its encoding damage makes its wording unreliable; verify meaning
-   against Chinese and do not treat its spelling or grammar as authoritative.
-2. **Do not start Burmese rewriting without an explicitly re-enabled source
-   translation.** There is no retained API Burmese text to judge. The only local
-   machine-translation routes are Chinese ↔ English.
+The task is Chinese → checked English bridge → **Burmese final draft**. English
+comparison is a required first phase, not a separate assignment. For chapters 194
+and later there is no same-chapter human Burmese reference; use the review, style
+rules, canonical names, and Chinese source. Never use the damaged human Burmese as
+a spelling, grammar, style, or meaning authority.
 
 ## Your job
 
-Take the AI translation of one chapter. Compare it against the reference's
-voice. Fix what breaks the author's style. Do not retranslate.
+For one chapter at a time, compare API English and local Argos English with the
+Chinese. If the API English is faithful enough, use it as a bridge into Burmese. If
+it is materially wrong or incomplete, correct a working English version against
+the Chinese first, then translate the corrected meaning into Burmese. Recheck the
+Burmese against Chinese so an English error does not propagate. Do not write
+English corrections into `english.txt`; the final target remains Burmese.
 
-The human translation stops at Chinese chapter **193**. From **194** on, you are
-the only Burmese in the pipeline: there is no reference for these chapters, so
-the AI translation plus this brief plus `EtoBnames.txt` are all the evidence
-there is. That is exactly why the voice has to be calibrated from the review
-before the first draft, and why a name may never be improvised.
+The human translation stops at Chinese chapter **193**. From **194** on there is
+no same-chapter Burmese reference, so calibrate voice from the review and earlier
+style evidence, and use `EtoBnames.txt` for established forms. A name may never be
+improvised when the list already settles it.
 
-You rewrite a sentence only when you can name the defect and point at the
-evidence that justifies the change. Otherwise you flag it and move on.
+A translation choice should be grounded in the Chinese, the English quality gate,
+the review, or a named tool result. If evidence is insufficient, flag the
+uncertainty instead of inventing certainty.
 
 ## Register: the house style you are preserving
 
@@ -278,9 +268,9 @@ Ends on `တယ်`, `ပေါ့`, `မယ်`, `လား`, `ဘူး`, `ပ
 May use `ရဲ့`, `တွေ`, `မှာ`.
 
 **The two never mix inside one sentence.** Zero of 155 measured sentences do.
-If an AI-translated narration sentence closes on `တယ်`, or a quoted line closes
-on `သည်`, that is a register break — fix it toward the surrounding register, not
-toward whichever you prefer.
+If a drafted narration sentence closes on `တယ်`, or a quoted line closes on
+`သည်`, that is a register break — revise it toward the surrounding register,
+not toward whichever form you prefer.
 
 Do not modernise. `၏` does not become `ရဲ့`. `တွင်` does not become `မှာ`.
 `များ` does not become `တွေ`. Formal sentences do not get shortened.
@@ -299,35 +289,44 @@ Reference particle counts, chapters 1 / 2 — the target distribution:
 
 ## The procedure, per paragraph
 
-**Step 1 — read the AI translation.** This is the text under judgement.
+**Step 1 — pass the English quality gate.** Compare API English and local Argos
+English against the Chinese, using `compare_english_chapter` in bounded windows.
+Keep an accurate English sentence as the bridge; correct an inaccurate one in
+working context before translating. Do not write corrections into `english.txt`.
 
-**Step 2 — read the reference passage for the same beat.** Absorb voice, not
-spelling. (For 194 and later there is no reference passage — the `reference`
-block is empty. Use the review's arc summary and the chapters you have already
-judged. Do not invent a reference.) If the reference writes `အေခြအေန` where the word is `အခြေအနေ`, that
-is PDF damage in the reference; do not copy it, and do not "fix" it either.
-The reference is not yours to edit.
+**Step 2 — read prior reference context for voice and terminology.** Absorb voice,
+not damaged spelling. For Chinese 194 and later there is no same-chapter Burmese
+reference. Use the review and earlier style evidence; do not invent a reference.
+The human Burmese may contain Zawgyi-order clusters, substitutions, or dropped
+vowels. Do not copy or silently "repair" those forms; verify meaning against
+Chinese.
 
-**Step 3 — run the engine on the AI translation.** This is the only text the
-segmentor may see, and it is clean, so the engine tells you the truth about it:
+**Step 3 — draft the Burmese from the verified meaning.** Chinese controls meaning;
+the English bridge is support, not authority. Preserve the paragraph's content and
+structure, apply the narration/dialogue register split, and do not omit or add
+story content.
+
+**Step 4 — run the engine on your Burmese draft.** Never feed the damaged human
+reference to the segmentor. Use the tool to inspect the draft and look up only
+specific uncertain spellings:
 
 ```
-segment_text {"text": "<one AI-translated sentence>"}
+segment_text {"text": "<one Burmese draft sentence>"}
 ```
 
 Read three things from the result:
 
-- **token boundaries** — is the AI text forming words the dictionary knows?
+- **token boundaries** — is the Burmese draft forming words the dictionary knows?
 - **splits** — each split cluster is labelled `word`, `unit`, `loan`, or
   `unknown`. The inventory now holds all 3,215 units, Pali included, so
   `ဗုဒ္ဓ`, `ခန္ဓာ`, `ဒုက္ခ`, `သဒ္ဒါ` and `ဝိပဿနာ` come back as single tokens; a
   `loan` verdict is now rare and means a virama stack the inventory still
   cannot name. `unknown` is the only bucket that may indicate a real problem
-  in the AI text.
+  in the Burmese draft.
 - **coverage** — characters no entry can explain. `1.0` means every Burmese
   character is accounted for by a word or a syllable.
 
-**Step 4 — check any word you doubt.**
+**Step 5 — check any Burmese word you doubt.**
 
 ```
 lookup_word {"word": "<the spelling as written>"}
@@ -338,35 +337,35 @@ can reach it, and — when the written form is *not* a word and a repaired form
 *is* — a proved repair. Only use those proved repairs. `{"verdict": "no proved
 repair"}` means: leave the word alone and flag it.
 
-**Step 5 — when meaning is in doubt, go back to the source.** Read the
-Chinese sentence in English (`content/mtranslate/zh-en.txt`) and check that the AI
-sentence says the same thing. If the AI sentence dropped a clause or added one,
-that is a meaning error, not a style choice — fix the meaning and say so.
+**Step 6 — resolve meaning against Chinese.** When meaning is in doubt, compare
+the Chinese source with the English bridge and your Burmese draft. Fix dropped,
+added, or reversed meaning in the Burmese. Do not call `translate_text` or any
+translator API; use the available aligned text and report unresolved ambiguity.
 
-**Step 6 — judge, then write.** The judgement is about voice, not grammar:
+**Step 7 — review the Burmese, then write.** Check the author's register and
+sentence shape using the review and earlier style evidence:
 
-- Does the AI sentence carry the reference's register?
-- Does it use the author's particles, or a flat neutral register?
-- Does it keep the author's sentence length, or chop/formality-mix?
-- Does it translate names, ranks, and cultivation terms the way
-  `EtoBnames.txt` does? That list is fixed; you consult it and add to it, you
-  do not build a rival glossary from the reference.
+- Is narration formal and dialogue colloquial, without mixing the registers?
+- Does the draft preserve the source's clauses, emphasis, and paragraph order?
+- Are names, ranks, and cultivation terms consistent with `EtoBnames.txt`?
+- Does the Burmese read naturally without flattening the author's cadence?
 
-**Step 7 — check the names, then save.**
+**Step 8 — check the names, then save.**
 
 ```
-check_names {"text": "<your revised paragraph>"}
+check_names {"text": "<your Burmese draft paragraph>"}
 ```
 
 Rewrite every suspected variant to its `canonical` form. If the paragraph needs
 a term the list lacks, register it now (once) before saving, so the next
 chapter inherits it.
 
-**Step 7b — the verse section.** While you read, some lines are not ordinary
-prose: a poem, a song, a maxim, an inscription, a philosophy line, a couplet
-that closes a chapter. **You** decide which — no tool extracts verse, because
-the boundary between a short sentence and a line of poetry is a judgement, and
-you are the one reading the paragraph and re-matching its tone.
+**Step 9 — separate verse session/pass.** Mark any poem, song, maxim,
+inscription, philosophical line, or closing couplet by its stable paragraph ID.
+Do not flatten it into ordinary prose. Handle those lines in a distinct
+verse-focused session/pass so their imagery, parallelism, and cadence receive
+separate attention. Keep the Burmese as the final target; `save_verse` records an
+English review aid, not a replacement for the Burmese translation.
 
 For each one, store an English version so the human can check the Burmese
 against something readable without opening the Chinese:
@@ -390,15 +389,15 @@ Two ways to get the English, and you say which:
 
 Rules for this section:
 
-- The English is for **review**, not for the draft. Do not paste it into
-  `save_draft`, and do not translate from it — the AI Burmese is what you
-  judge.
+- The English stored by `save_verse` is a **review aid**, not the final draft.
+  Translate the verse into Burmese in the separate verse pass, save that Burmese
+  with `save_draft`, and verify it against Chinese; do not use an inaccurate
+  English line as semantic authority.
 - Set `mt_english` whenever you used or overrode a zh-en line, so the human sees
-  both.
-- Read the verse **before** you rewrite that paragraph: a couplet has a rhythm
-  the Burmese has to keep, and a philosophy line has a cadence that a normal
-  narrative sentence does not. That is why this step sits with the tone pass,
-  not with the names.
+  both the raw aid and the chosen rendering.
+- Read and interpret the Chinese verse before drafting Burmese: a couplet has a
+  rhythm the Burmese should preserve, and a philosophy line has a cadence a
+  normal narrative sentence does not.
 - If the chapter genuinely has none, say so once: `save_verse {"chapter": 194,
   "kind": "none"}`. That is different from never looking, and the section says
   which one it was.
@@ -406,109 +405,77 @@ Rules for this section:
   `content/mtranslate/verse/ch0194.verse.md` — the separate section the human
   reviews.
 
-**Step 8 — save with provenance.**
+**Step 10 — save the fresh Burmese draft with honest provenance.**
 
 ```
 save_draft {"chapter": 194, "paragraph": "0194-042-3f9a1c2b",
-            "ai_text": "<the AI sentence exactly as received>",
-            "draft": "<your revision>",
+            "draft": "<your Burmese translation>",
             "model": "<your model name>",
-            "note": "register: AI closed narration on တယ် → သည်; လျိုကျင်း → လျိုချင်း"}
+            "note": "fresh Chinese-to-Burmese draft; API English checked against Chinese first"}
 ```
 
-`ai_text` must be byte-exact. The draft store keeps it so any revision can be
-diffed against what the API returned.
+Do not invent or copy an API Burmese source into `ai_text`. Omit `ai_text` for
+fresh translation. The Chinese paragraph is already stored by the draft tool; the
+note records that English was used only as a checked intermediate.
 
-## What you fix
+## What the quality passes address
 
-**A. Register breaks** — highest value. AI translation drifts into neutral or
-colloquial narration, or formalises dialogue. Restore the split.
+**A. English fidelity gate.** Check API English against Chinese using local Argos
+as a second witness. Correct omissions, additions, reversed relations, or mistranslated
+names in working context before carrying that passage into Burmese.
 
-**B. Particle and pronoun drift** — `ရဲ့` in narration, `မှာ` where the author
-writes `တွင်`, `တွေ` where the author writes `များ`, or the reverse in
-dialogue. Align to the reference's distribution.
+**B. Burmese meaning and completeness.** Translate the checked meaning faithfully;
+verify the Burmese against Chinese so errors do not compound through English.
 
-**C. Terminology inconsistency** — a name, title, sect, or technique rendered
-differently from `EtoBnames.txt`, or differently between chapters. The list
-wins; `check_names` finds the variants. Apply one form everywhere, including in
-sentences that read perfectly well as they are.
+**C. Register and cadence.** Keep formal narration distinct from colloquial dialogue;
+preserve clauses and rhythm instead of flattening long sentences.
 
-**D. Sentence shape** — AI translation shortens long subordinate clauses into
-choppy sentences, or merges dialogue beats into narration. Restore the author's
-rhythm.
+**D. Terminology.** Follow `EtoBnames.txt` for names, titles, sects, and techniques.
+Use `check_names`; register only a genuinely new recurring term.
 
-**E. Fluent-but-wrong** — the AI sentence reads well but states something the
-Chinese does not, or drops a clause. This is the one class where the source
-language wins: check `translate_text` against the Chinese and correct the
-meaning. Flag it separately; it is not a style edit.
-
-**F. Real orthographic errors in the AI output** — only when `lookup_word`
-returns a proved repair. The AI text is clean enough that this is rare.
+**E. Orthography and segmentation.** Use `lookup_word` only for proved repairs;
+`unknown` or `loan` output alone is not proof that Burmese is wrong.
 
 ## What you must not touch
 
-- The reference. It is read-only, damage and all.
-- `EtoBnames.txt`'s existing entries. You append new terms with
-  `register_name`; you never edit, re-spell, or replace an entry that is there.
-- The review. It is the record of what a human ruled. You align to it; you do
-  not correct it, and you do not coin a term it left open. Flag instead.
-- A Pali stack the engine still reports as `loan`. The 732 Pali units are in
-  the tree, so this is the leftover inventory gap, not a spelling error — flag
-  it, do not re-spell it.
-- Words where `lookup_word` says `no proved repair`.
-- The house particles: `၏`, `တွင်`, `များ` in narration.
-- Sentence length, for its own sake. Long is the house style.
-- The Chinese → English column. It is your reading aid, never a target.
+- The human reference, Chinese source, DOCX, review, API English, or local MT files.
+- Existing `EtoBnames.txt` entries. Append a genuinely new term only with
+  `register_name`; never edit or replace an existing entry.
+- `master.json`, the POS tree, or caches.
+- Any English or Burmese phrase whose meaning is uncertain: flag it for the human
+  rather than inventing certainty.
+- The formal narration particles `၏`, `တွင်`, `များ`, or the dialogue register.
 
 ## Output contract
 
-One record per changed sentence. Never emit bare rewritten prose.
-
-```
-id       ch0194-042-3f9a1c2b
-ai       လျိုကျင်းက နန်းတော်ကို သွားတယ်။
-draft    လျိုချင်းသည် နန်းတော်သို့ သွားသည်။
-class    A  register break
-evidence segment_text: AI tokens ['သူ','က','နန်းတော်','ကို','သွား','တယ်'] — narration
-         reference ch1: 20 sentences close on သည်, 0 on တယ်
-         → narration closes on သည် in 100% of reference narration
-class    C  terminology
-evidence check_names: လျိုကျင်း → လျိုချင်း (EtoBnames.txt line 10, Liu Jin)
-```
-
-Rules:
-- `ai` is a byte-exact copy of the input sentence.
-- `evidence` names the tool call and what it returned, or the reference count.
-- If a sentence needs several fixes, one record per class, applied A → F.
-- A name-only rewrite is a `C` record even when the sentence's register was
-  fine. "The AI was already correct" is not a reason to leave it.
-- If the chapter needs nothing, say so with counts.
+The final translation is Burmese. Save one Burmese draft per source paragraph with
+`save_draft`; omit `ai_text` because there is no API-Burmese source. Keep stable
+paragraph IDs and export the chapter draft with `export_drafts`. In the response,
+return the Burmese translation (or its exported draft location), a concise note on
+any corrected English bridge passages, registered names, verse handled separately,
+and unresolved questions. Do not return an English-only report as the final result.
 
 ## Working method
 
-1. **One chapter at a time.** Never batch-rewrite a file.
-2. **Read the whole chapter first**, AI text plus reference. Produce a defect
-   inventory before changing a character.
-3. **Build the term list while reading.** Names, titles, sects, techniques.
-   It is the single biggest consistency win across 195 chapters.
-4. **Fix by class, A → F.** Style before meaning; meaning flagged separately.
-5. **Re-run `segment_text` after each batch.** The `unknown` split count must
-   not rise. If it does, revert the batch.
-6. **Stop at 20 records per turn** and report.
-7. **Never write to the dictionary, the POS tree, or the caches.** Read-only.
+1. Work one chapter per prose session; use bounded source and comparison windows.
+2. Read `review_brief`, the chapter's `review_lookup`, and the names list before
+   drafting.
+3. Complete the English quality gate against Chinese; keep any correction only in
+   working context.
+4. Draft Burmese from the checked meaning; verify each passage against Chinese.
+5. Run `check_names`; use `segment_text` and `lookup_word` for Burmese draft QA.
+6. Save with `save_draft` without a fabricated `ai_text`; export with
+   `export_drafts`.
+7. Handle poems, songs, maxims, and philosophical lines in a separate verse
+   session/pass. Use `save_verse`/`export_verse` for the separate review aid.
+8. Stop at the requested chapter boundary. Report any unverified choice explicitly.
 
 ## Honesty clause
 
-Every turn, state:
-
-- how many paragraphs you read,
-- how many you changed, by class,
-- how many you flagged but did not change, and why,
-- which names were rewritten to the list, and any entry you think is wrong,
-- anything unverified.
-
-If a claim could not be checked with a tool, say "unverified". Do not present a
-plausible revision as a proved one.
+Every turn, state how many paragraphs were compared and translated, whether any
+English bridge corrections were needed, how many names were registered, which
+verse lines were reserved or completed separately, and anything unresolved. If a
+claim could not be checked with a tool, say "unverified".
 
 ---
 
@@ -516,61 +483,44 @@ plausible revision as a proved one.
 
 | tool | use |
 |---|---|
-| `read_chapter` | the chapter: stable paragraph ids, `my` (the AI translation), the reference lines, and the `translation` join block |
-| `compare_english_chapter` | one window of Chinese / local MT English / API English, aligned by paragraph |
-| `previous_burmese_context` | Burmese-only keyword hits in the two previous Chinese chapters' mapped Burmese chapters |
-| `segment_text` | run the engine on AI-translated text; tokens, units, splits, coverage |
-| `lookup_word` | dictionary fact + proved repairs for one spelling |
-| `review_brief` | the whole review in one round: characters, defects, verdict, every arc's opening |
-| `review_lookup` | one section of the background document (111 sections): characters, arcs, defects |
-| `lookup_name` | an entry of `EtoBnames.txt` by key or by Burmese form; no argument lists all |
-| `check_names` | canonical names in a paragraph, and suspected variant spellings |
-| `register_name` | append a genuinely new term to `EtoBnames.txt` — people, weapons, techniques, powers, places |
-| `save_verse` | record one poem / song / maxim / philosophy line with an English version |
-| `export_verse` | write the chapter's verse review section |
-| `translate_text` / `translate_batch` | check a short clause against the Chinese when meaning is in doubt — costs quota, use sparingly |
-| `translate_chapters` | batch-translate whole chapters through the API — the human's call, never yours |
-| `detect_language` | confirm a stray fragment is Burmese |
-| `save_draft` | store a revision with its AI source text |
-| `export_drafts` | `chNNNN.draft.my.txt` + comparison file |
+| `review_brief` / `review_lookup` | read the novel review and chapter-specific context |
+| `compare_english_chapter` | aligned windows of Chinese, local Argos English, and retained API English |
+| `read_chapter` | bounded Chinese paragraphs, stable IDs, prior Burmese reference, and translation status; missing API `my` is expected |
+| `previous_burmese_context` | bounded prior Burmese keyword hits, with encoding caution |
+| `lookup_name` / `check_names` / `register_name` | canonical Burmese terms and controlled additions |
+| `segment_text` / `lookup_word` | Burmese draft QA and proved spelling repairs |
+| `save_draft` / `export_drafts` | store and export fresh Burmese drafts; omit `ai_text` |
+| `save_verse` / `export_verse` | separate verse review aids for poems, songs, maxims, and philosophy |
 
-`read_chapter` is the only source of the AI text. The `my` field is that text;
-do not reconstruct it from the English or from memory.
+Do not call `translate_text`, `translate_batch`, or `translate_chapters`: this
+workflow uses the retained English files and local read-only tools, not an API.
 
-Chapter start:
+Chapter/source window:
 
 ```
-read_chapter {"chapter": 194, "reference_lines": 60}
+read_chapter {"chapter": 194, "start": 1, "count": 10}
+compare_english_chapter {"chapter": 194, "start": 1, "count": 10}
 ```
 
-Per sentence:
+Fresh Burmese draft (no false API source):
 
 ```
-segment_text {"text": "သူက နန်းတော်ကို သွားတယ်။"}
-lookup_word  {"word": "သွားတယ်"}
-save_draft   {"chapter": 194, "paragraph": "0194-042-3f9a1c2b",
-              "ai_text": "...", "draft": "...", "note": "class A"}
-```
-
-Chapter end:
-
-```
+save_draft {"chapter": 194, "paragraph": "0194-042-3f9a1c2b",
+            "draft": "<Burmese translation>", "model": "<agent>",
+            "note": "Chinese checked; API English used as corrected intermediate"}
 export_drafts {"chapter": 194}
 ```
 
 ## Self-check before finishing a chapter
 
-- [ ] `review_brief` was read once, and the register was stated before judging
-- [ ] `translation.available` was true before any sentence was judged
-- [ ] every name matches `EtoBnames.txt`; no entry was edited or replaced
-- [ ] anything the review flags but the list lacks was reported, not renamed
-- [ ] every `ai` string is a byte-exact copy of the paragraph's `my` text
-- [ ] the reference was never fed to `segment_text`
-- [ ] every rewrite cites a tool result or a reference count
-- [ ] `unknown` splits did not increase
-- [ ] zero mixed-register sentences introduced
-- [ ] the term list was updated and applied, including weapons and techniques
-- [ ] every poem, song or philosophy line got an English version, or `none` was recorded
-- [ ] `export_verse` ran, and the verse section is separate from the draft
-- [ ] nothing written to `master.json`, the tree, or the caches
-- [ ] the Chinese → English column was used only to read the source
+- [ ] `review_brief` and the relevant `review_lookup` were read
+- [ ] API English and local Argos English were compared against Chinese in aligned windows
+- [ ] any English correction stayed in working context; no file was overwritten
+- [ ] Burmese was drafted from checked meaning and verified against Chinese
+- [ ] absence of API Burmese `my` was not treated as a blocker
+- [ ] every name follows `EtoBnames.txt`; new terms alone were registered
+- [ ] the damaged human reference was not fed to `segment_text` or treated as authority
+- [ ] Burmese narration/dialogue registers remain distinct
+- [ ] verse lines were handled in their separate pass and exported separately
+- [ ] drafts were saved without fabricating `ai_text`
+- [ ] no API, source, English, MT, dictionary, POS tree, or cache files were modified

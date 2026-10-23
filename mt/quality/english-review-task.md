@@ -1,91 +1,69 @@
-# Local English review task
+# English quality gate for the Burmese translation task
 
-Use this task when the assignment is to proofread the **English chapters already
-translated by the API**. This is separate from the Burmese finetuning task in
-`finetune-agent-prompt.md`.
+This is **Phase 1 of the Chinese → Burmese workflow**, not a separate English-only
+assignment. The final target is Burmese. First make sure the retained API English is
+accurate enough against Chinese to serve as a bridge. If it is not, correct the
+meaning in a working copy, then continue into Burmese. Do not stop after reporting
+English corrections.
 
-Do not call the API, retranslate chapters, or read the whole book. The tracked
-API output is only `content/mtranslate/english.txt`; API-generated Burmese text
-and other per-chapter API text have been removed. Compare a small window against
-the Chinese and local machine English, then return only English lines that need
-revision.
+## Inputs and constraints
 
-## 1. Compare one chapter window
+- Chinese source: `content/source/chinese-0511241012-from-8011_1.txt` (also available
+  in bounded form through the chapter tools).
+- Retained API English: `content/mtranslate/english.txt`.
+- Local Chinese→English Argos witness: `content/mtranslate/zh-en.txt`.
+- Final target: a fresh Burmese draft. There is no API-generated Burmese baseline.
 
-Call the read-only tool with the **current Chinese chapter number**:
+Do not call an API. Do not write corrections into `english.txt`, the Argos files, or
+any source file. Keep the corrected English only as the working bridge for the
+Burmese translation. Chinese controls meaning; local Argos English is a fallible
+second witness.
+
+## Compare bounded, aligned windows
+
+Use the current Chinese chapter number and ten-paragraph windows:
 
 ```text
 compare_english_chapter {"chapter": 194, "start": 1, "count": 10}
+compare_english_chapter {"chapter": 195, "start": 1, "count": 10}
 ```
 
-Each returned `lines` row is one source paragraph and contains:
+Each row aligns the Chinese (`zh`), local machine English (`machine_en`), and
+retained API English (`api_en`). Read the alignment metadata before judging. Continue
+only at `window.next_start`. If a source is missing or alignment fails, stop and
+report the exact limitation; never shift rows by eye or fill missing text from
+memory.
 
-- `zh` — the original Chinese paragraph;
-- `machine_en` — the local `zh-en` machine translation, grouped back to that
-  source paragraph from its sentence-level output;
-- `api_en` — the RapidAPI English for the same paragraph;
-- `id` and `index` — stable chapter/paragraph reference.
+For each passage:
 
-Read `alignment` before judging. API JSONL source text is verified exactly; the
-single-file API output is checked by chapter and paragraph count. The local MT
-sentence counts are checked against the source before sentences are grouped. If
-a tool reports an alignment error, **stop**; do not guess or shift rows.
+1. Compare API English to Chinese for meaning, omissions, additions, names, and
+   paragraph alignment; use local machine English as a cross-check, not a verdict.
+2. If API English is faithful enough, use it as the meaning bridge into Burmese.
+3. If it is not, prepare a corrected English working version grounded in Chinese;
+   then translate that corrected meaning into Burmese.
+4. Recheck the resulting Burmese against Chinese so English errors do not propagate.
 
-The default is ten paragraphs. Continue with `window.next_start`; do not ask for
-a whole chapter in one call. The only tracked English translation inputs are:
+The English corrections are intermediate work, not the final deliverable. Do not
+return an English-only review when the assigned task is Burmese translation.
 
-- API English: `content/mtranslate/english.txt`;
-- local zh-en machine English: `content/mtranslate/zh-en.txt`.
+## Names and prior Burmese context
 
-If the API file does not contain the requested chapter, or either file is
-missing, stop and tell the human which input is unavailable. Do not substitute
-or recreate deleted API output. The comparison tool is read-only and never
-creates or rewrites either translation.
-
-## 2. Look up a Burmese term from the prior chapters
-
-Before finalizing any recurring name, title, place, or technical term whose
-established English is unclear, consult the human Burmese from the preceding
-chapters. Query it using a **Burmese-script keyword** and the current Chinese
-chapter number; this context check is required when such a prior rendering may
-exist:
+For an uncertain recurring term, consult `previous_burmese_context` with a
+Burmese-script keyword and the current Chinese chapter:
 
 ```text
 previous_burmese_context {"chapter": 194, "keyword": "နတ်"}
 ```
 
-The required `chapter` tells the tool where to look: it searches the two
-preceding **Chinese** chapters and uses the merged DOCX chapter map to find their
-Burmese counterparts. For Chinese chapter 194, those are Chinese 192 and 193,
-which map to Burmese 194 and 195. It returns only a few complete Burmese lines
-around each exact keyword hit. Set `before` and `after` to change the context
-window, or `max_hits` to cap the results.
+The prior human Burmese source has known encoding damage; use it only as an uncertain
+context clue. Do not copy corrupted spellings or treat it as a meaning authority.
+Use `content/reference/EtoBnames.txt` for canonical Burmese names and terms, with
+`lookup_name`, `check_names`, and `register_name` as directed by the Burmese task.
 
-Use the human Burmese excerpt when checking recurring terms or established
-renderings, but account for known encoding damage in the source (Zawgyi-order
-clusters, substitutions, and dropped vowels). Treat it as a contextual clue,
-not a reliable spelling or grammar baseline; verify meaning and any proposed
-English against the Chinese. If corrupted text prevents an exact keyword hit,
-do not guess or copy a form from it. If the keyword is not in Burmese script,
-the tool refuses it rather than doing a broad search.
+## Stop condition
 
-## 3. Review and report
-
-For each line, compare the API English with the Chinese. Use `machine_en` as a
-second witness, not as an unquestioned answer. Keep API English when it is
-already accurate and readable. When it is not, report the paragraph index and
-ID, the proposed English, and a brief reason grounded in the Chinese or a
-specific prior-Burmese context hit.
-
-Suggested response format:
-
-```text
-Chapter 194 — paragraphs 1–10
-- 0194-003-<id>: change “<API wording>” to “<revised English>” — the Chinese says …
-- 0194-007-<id>: keep — API and local MT preserve the same meaning.
-```
-
-Do not copy the whole tool result back. Do not modify `english.txt`, the API
-chapter files, or the machine MT files. Return only corrections and material
-ambiguities; if a window needs no changes, say so and give the next window
-number.
+Stop only for unavailable source text, broken alignment, or an ambiguity that cannot
+be resolved from the Chinese and available context—not because the Burmese `my`
+field is absent. For chapters 194 onward, the absence of API Burmese is expected.
+After the English gate, continue to the Burmese translation phase described in
+`mt/quality/START.md`.

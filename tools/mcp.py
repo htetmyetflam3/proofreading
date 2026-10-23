@@ -328,8 +328,8 @@ def build_parser() -> argparse.ArgumentParser:
     config.add_argument("--env-file", type=Path, default=None, metavar="PATH",
                         help="read KEY=VALUE lines from PATH at startup; the shell wins")
     config.add_argument("--tools", default=None, metavar="SPEC",
-                        help="--serve: advertise only a subset (a preset: lean, "
-                             "survey, edit, translate, full; or groups/names)")
+                        help="--serve: advertise only a subset (a preset: lean, survey, edit, "
+                             "translate, english-review, burmese-translation, full; or groups/names)")
     config.add_argument("--existing", type=Path, default=None,
                         help="existing human Burmese, for the comparison reference")
     config.add_argument("--cache", type=Path, default=None, help="SQLite cache path")

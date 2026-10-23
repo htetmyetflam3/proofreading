@@ -12,13 +12,15 @@ zh-en   Chinese -> English   offline model installed          RUNS HERE
 en-zh   English -> Chinese   offline model                    RUNS HERE
 ```
 
-There is no local machine-translation route to or from Burmese. The current
-tracked API output is English-only (`content/mtranslate/english.txt`); generated
-API Burmese text has been removed, and the separate Burmese rewrite workflow is
-suspended unless the human explicitly re-enables it. The human Burmese reference
-remains available as context but has known encoding damage, so it is not an
-authoritative spelling or grammar baseline. These two Argos routes provide
-Chinese → English reading and an English → Chinese reverse check.
+There is no local machine-translation route to or from Burmese. The tracked API
+output is English-only (`content/mtranslate/english.txt`); generated API Burmese
+text was removed because it is not an acceptable final target. The active,
+human-directed Burmese workflow checks that API English and local Argos English
+against Chinese, corrects the English bridge in working context when needed, then
+produces a Burmese draft. No API call is part of that workflow. The retained human
+Burmese reference has known encoding damage and is uncertain context only. These
+two Argos routes provide Chinese → English reading and an English → Chinese
+reverse check.
 
 ## Install
 

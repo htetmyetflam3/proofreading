@@ -1,4 +1,28 @@
-# Quality probes (read-only)
+# Quality tools and translation workflow
+
+## Active chapter task
+
+The final target is Burmese. The retained API English and local Argos English are
+checked against Chinese first; accurate-enough English is used as a bridge, and
+any correction is kept in working context before producing Burmese. This English
+quality gate is part of the Burmese translation task, not a separate English-only
+assignment.
+
+- Start card: [`START.md`](START.md)
+- Paste-ready task: [`arena-burmese-translation-entry.md`](arena-burmese-translation-entry.md)
+- English gate procedure: [`english-review-task.md`](english-review-task.md)
+- Detailed Burmese style, terminology, and verse rules:
+  [`finetune-agent-prompt.md`](finetune-agent-prompt.md)
+- `arena-english-review-entry.md` is a redirect to the unified task.
+
+The API-generated Burmese output was removed. Do not call an API or use
+`read_chapter`'s legacy `my` field as a prerequisite; for 194 onward it is
+expected to be absent. Use the aligned Chinese/English tools, register names,
+save Burmese drafts, and handle poems/philosophy in a separate verse pass.
+
+---
+
+## Quality probes (read-only)
 
 Scratch-free analysis of the Engine against real chapters. Nothing here writes
 to `Engine/`, `master.json`, the POS tree or the caches.
