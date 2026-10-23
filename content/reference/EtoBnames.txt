@@ -133,3 +133,9 @@ Cangwu County = ချန်၀ူခရိုင်
  Liu family = လျူမိသားစု
 Liu Yuanhua =လျူယွမ်ဟွာ
 Cangsong County = ချန်ဆုန်းခရိုင် 
+# added 2026-10-23
+plague deity (瘟神) = ကပ်ဆိုးနတ်ဘုရား  # ch194; author precedent ch126 ကပ်ဆိုးနတ်ဘုရားတစ်ပါး; classifier ပါး
+# added 2026-10-23
+inner demon of cultivation (心魔) = စိတ်နတ်ဆိုး  # ch194; author never uses မာရ် (0 in 193 ch); follows his နတ်ဆိုး pattern (ကောင်းကင်နတ်ဆိုး)
+# added 2026-10-23
+drought demon (旱魃) = မိုးခေါင်နတ်ဆိုး  # ch194; author's drought term is မိုးခေါင် (မိုးခေါင်ရေရှား x20); follows his နတ်ဆိုး pattern
