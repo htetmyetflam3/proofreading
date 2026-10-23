@@ -15,18 +15,21 @@ costs the whole thing, and it gets re-sent on every later turn of a session.
 | `chapter_titles.py` | chapter titles in both languages, from the DOCX | 1 s, one screen |
 | `mcp.py` | every MCP tool as one safe CLI flag; the same server the clients launch | local unless translated |
 | `mcp_server.py` | the MCP library/server; no CLI entry | launched only by `mcp.py --serve` |
+| `agent_english.py` | aligned Chinese / local MT English / API English and bounded prior Burmese keyword context | local, read-only |
 | `../vps.py` | one-shot file upload/download to the VPS | one ssh |
 
 ## `mcp.py` — one flag, one tool, one run
 
 Run from the repository root. With no command it prints help and does nothing.
-Each of the 16 MCP tool names has a matching underscore flag, plus a readable
+Each of the 18 MCP tool names has a matching underscore flag, plus a readable
 spelling (`--translate_text` and `--translate` are the same command). `--serve`
 is only for an MCP client.
 
 ```sh
 uv run mcp.py --help
 uv run mcp.py --read_chapter 194 --start 1 --count 10
+uv run mcp.py --compare_english_chapter 194 --start 1 --count 10
+uv run mcp.py --previous_burmese_context "နတ်" --chapter 194
 uv run mcp.py --segment --file paragraph.txt
 uv run mcp.py --getTitle 193
 uv run mcp.py --insecpt --check-range 194-408

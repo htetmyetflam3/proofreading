@@ -1,9 +1,12 @@
 # Start card — the first turn, cheap
 
-This repo proofreads Burmese. You judge the **AI translation** (RapidAPI,
-`content/mtranslate/rapidapi/`) against the **reference** (the human Burmese in
-`episodes.docx`) and rewrite it into the author's voice. You never translate a
-chapter yourself.
+This repo has two local proofreading tracks. For a **Burmese rewrite**, use
+this start card and `finetune-agent-prompt.md`: judge the RapidAPI Burmese
+against the human Burmese reference, then save Burmese drafts. For an **English
+API review**, follow `mt/quality/english-review-task.md`: compare Chinese, local
+machine English and the already-generated RapidAPI English. That track never
+calls the API and returns English corrections only. Follow the task named by
+the human; do not blend the two output languages.
 
 **Read this card, not the manual.** `mt/quality/finetune-agent-prompt.md` is 490
 lines / ~8k tokens; it is the full procedure and you read it once, later, when
@@ -74,7 +77,23 @@ Exit 1 from `--check` means holes in the range — say which, do not paper over 
   judgement; `save_verse` records one with an English version, `export_verse`
   writes the section the human reviews. `kind: none` means "checked, nothing".
 
-## When you start drafting
+## English API review (only when that is the assigned task)
+
+Read `mt/quality/english-review-task.md`. The first comparison call names the
+current Chinese chapter and reads ten paragraphs from the three aligned
+columns. If an English term needs Burmese precedent, search with a Burmese-only
+keyword and that same current chapter number:
+
+```text
+compare_english_chapter {"chapter": 194, "start": 1, "count": 10}
+previous_burmese_context {"chapter": 194, "keyword": "နတ်"}
+```
+
+The second tool searches the Burmese counterparts of the two previous Chinese
+chapters. It cannot infer that range without `chapter`. Never call a translator
+from this task; the API English already exists locally.
+
+## When you start Burmese drafting
 
 Read `mt/quality/finetune-agent-prompt.md` **once**, then work in windows of ten
 paragraphs. The manual has the procedure, the classes A–F, the output contract

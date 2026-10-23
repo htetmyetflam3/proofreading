@@ -25,12 +25,12 @@ class McpCliTests(unittest.TestCase):
         self.assertIn("--translate_text", result.stdout)
         self.assertNotIn('"jsonrpc"', result.stdout)
 
-    def test_selftest_lists_all_sixteen_tools(self):
+    def test_selftest_lists_all_eighteen_tools(self):
         result = self.run_cli("--selftest", "--json")
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         self.assertTrue(payload["ok"])
-        self.assertEqual(len(payload["tools"]), 16)
+        self.assertEqual(len(payload["tools"]), 18)
 
     def test_each_mcp_tool_has_its_exact_name_as_a_flag(self):
         sys.path.insert(0, str(ROOT / "tools"))
@@ -55,6 +55,11 @@ class McpCliTests(unittest.TestCase):
         audit = self.run_cli("--insecpt", "--check-range", "194-408")
         self.assertEqual(audit.returncode, 1)
         self.assertIn("241", audit.stdout)
+
+    def test_burmese_context_cli_requires_the_current_chapter(self):
+        result = self.run_cli("--previous_burmese_context", "နတ်")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("needs --chapter", result.stderr)
 
     def test_conflicting_commands_are_usage_error(self):
         result = self.run_cli("--selftest", "--read", "194")

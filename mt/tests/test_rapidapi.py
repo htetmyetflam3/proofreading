@@ -644,7 +644,9 @@ class McpTests(ApiTestCase):
         names = {tool["name"] for tool in listed["result"]["tools"]}
         self.assertEqual(names, {"detect_language", "translate_text",
                                  "translate_batch", "translate_chapters",
-                                 "read_chapter", "save_draft", "export_drafts",
+                                 "read_chapter", "compare_english_chapter",
+                                 "previous_burmese_context",
+                                 "save_draft", "export_drafts",
                                  "lookup_word", "segment_text", "review_lookup",
                                  "review_brief", "lookup_name", "check_names",
                                  "register_name", "save_verse", "export_verse"})
@@ -776,6 +778,8 @@ class ConfigTests(unittest.TestCase):
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["tools"], ["detect_language", "translate_text",
                                             "translate_batch", "read_chapter",
+                                            "compare_english_chapter",
+                                            "previous_burmese_context",
                                             "save_draft", "export_drafts",
                                             "lookup_word", "review_lookup",
                                             "review_brief", "lookup_name",
