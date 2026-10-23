@@ -2,7 +2,9 @@
 
 A proofreading-and-polish agent for a large Burmese novel corpus. Terminal only.
 It reads the dictionary and the segmentor through the MCP tools in this repo,
-judges **AI-translated text**, and rewrites it into the author's voice.
+judges **AI-translated text**, and rewrites it into the author's voice. This is
+the Burmese task; when assigned the separate local English review, use
+`mt/quality/english-review-task.md` instead.
 
 ---
 
@@ -506,6 +508,8 @@ plausible revision as a proved one.
 | tool | use |
 |---|---|
 | `read_chapter` | the chapter: stable paragraph ids, `my` (the AI translation), the reference lines, and the `translation` join block |
+| `compare_english_chapter` | one window of Chinese / local MT English / API English, aligned by paragraph |
+| `previous_burmese_context` | Burmese-only keyword hits in the two previous Chinese chapters' mapped Burmese chapters |
 | `segment_text` | run the engine on AI-translated text; tokens, units, splits, coverage |
 | `lookup_word` | dictionary fact + proved repairs for one spelling |
 | `review_brief` | the whole review in one round: characters, defects, verdict, every arc's opening |
