@@ -1,18 +1,24 @@
-# House style from the reference, chapters 1–2
+# Archived notes on the human reference, chapters 1–2
+
+> **Caution:** API-generated Burmese text has been removed from the current
+> workflow. This file is an older analysis of the human Burmese reference only;
+> it is not an AI-translation baseline. The reference has known encoding damage,
+> so its spelling, grammar, and stylistic details are uncertain. Use it only as
+> contextual evidence and verify interpretations against the Chinese.
 
 ## Which text this report is about
 
 | name | where | nature |
 |---|---|---|
-| **Reference** | `content/merged/episodes.docx` | human Burmese translation, PDF→DOCX, carries encoding damage |
-| **English** | `content/mtranslate/zh-en/` from `mt/translate.py` | Chinese → English, the reading aid for the source |
-| **AI translation** | RapidAPI `flybyapi1` output | AI-translated Burmese, close to publishable |
+| **Human reference** | `content/merged/episodes.docx`, chapters 1–2 | PDF→DOCX Burmese with encoding damage; contextual evidence only |
+| **English** | `content/mtranslate/zh-en.txt` | local Chinese → English reading aid |
+| **API English** | `content/mtranslate/english.txt` | retained API translation; unrelated to this archived Burmese analysis |
+| **Burmese API output** | removed | no current baseline |
 
-This report measures the **reference only**. It is a style oracle: the agent
-compares AI-translated text against it and restores its voice. The reference is
-**never** fed to the segmentor as spelling truth — its encoding damage is a
-PDF-extraction artifact (section 3.1), not a property of the language and not
-something an agent should repair.
+This archived report measures the **human reference only**. Its statistics and
+examples should not be treated as a reliable style, spelling, or grammar oracle;
+known PDF/extraction encoding damage may distort them. Do not use this file to
+recreate or judge deleted API-generated Burmese text.
 
 Measured with the repository's own engine (`Engine/tag-text.mjs` path, POS tree
 from `master.json`, `syllable.mapped.txt` inventory) after the encoder fix in

@@ -287,9 +287,9 @@ def build_parser() -> argparse.ArgumentParser:
     options.add_argument("--api-dir", dest="api_dir", type=Path, default=None,
                          metavar="PATH", help="directory holding per-chapter API English")
     options.add_argument("--machine-file", dest="machine_file", type=Path, default=None,
-                         metavar="PATH", help="one local zh-en machine-translation chapter")
+                         metavar="PATH", help="local zh-en one-file output; default zh-en.txt")
     options.add_argument("--machine-dir", dest="machine_dir", type=Path, default=None,
-                         metavar="PATH", help="directory holding local zh-en chapter files")
+                         metavar="PATH", help="legacy directory of per-chapter zh-en files")
     options.add_argument("--text", default=None, metavar="TEXT",
                          help="the string a command reads, instead of a value")
     options.add_argument("--file", type=Path, default=None, metavar="PATH",

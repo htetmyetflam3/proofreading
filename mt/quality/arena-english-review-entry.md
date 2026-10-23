@@ -9,8 +9,8 @@ proofreading/revision task, not a request to call a translator API.
 
 - **Do not call any API.** In particular, never call `translate_text`,
   `translate_batch`, `translate_chapters`, or run `api_translate.py --run`.
-  The user's monthly RapidAPI quota is exhausted. No retries, test calls, or
-  “just one sample” requests.
+  No retries, test calls, or “just one sample” requests; API generation is a
+  separate, human-run workflow.
 - Do not read the million-character source or whole-book English file directly.
   Use the chapter tools, which return bounded, aligned excerpts.
 - Do not alter or overwrite `english.txt`, RapidAPI output, or local machine
@@ -35,9 +35,10 @@ large text files directly. Unless the user gives another pair, the first and
 only chapters for the trial are **Chinese chapters 194 and 195**. Confirm that
 for both chapters you can access:
 
-- API English: `content/mtranslate/english.txt`, or a per-chapter API English
-  file under `content/mtranslate/rapidapi/`;
-- local machine English: `content/mtranslate/zh-en/chapters/chNNNN.en.txt`;
+- API English: `content/mtranslate/english.txt` only;
+- local machine English: `content/mtranslate/zh-en.txt` only;
+- prior human Burmese context, when a recurring term needs historical evidence,
+  via `previous_burmese_context` (encoding-damaged; clues only).
 - Chinese source, already used by `compare_english_chapter`.
 
 If an input is missing or the comparison tool reports an alignment error, do
@@ -84,11 +85,13 @@ uv run mcp.py --compare_english_chapter 194 --start 1 --count 10
 uv run mcp.py --previous_burmese_context "နတ်" --chapter 194
 ```
 
-The Burmese excerpt is terminology/context evidence only. Chinese controls the
-meaning; local machine English is a second witness, not an authority. Keep
-accurate API English unchanged. Revise only actual meaning, omission, grammar,
-readability, or consistency defects. Do not translate from Burmese or mistake
-OCR/PDF damage in the Burmese reference for source truth.
+The Burmese excerpt is terminology/context evidence only. The human Burmese
+source has known encoding damage (Zawgyi-order clusters, substitutions, dropped
+vowels); do not treat its spelling or grammar as authoritative, and do not copy
+corrupted forms. Chinese controls meaning; local machine English is a second
+witness, not an authority. Keep accurate API English unchanged. Revise only
+actual meaning, omission, grammar, readability, or consistency defects. Do not
+translate from Burmese or mistake OCR/PDF damage for source truth.
 
 ## Output and stop
 

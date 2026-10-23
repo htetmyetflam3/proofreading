@@ -1,5 +1,14 @@
 # Burmese prose fine-tuning agent (Kilo / Claude Code / Codex / Gemini CLI)
 
+> **SUSPENDED in the current workflow:** API-generated Burmese text has been
+> removed; `content/mtranslate/english.txt` is the only retained API translation.
+> Do not start this Burmese rewrite procedure, call a translator, recreate the
+> deleted Burmese output, or use stale API files as a baseline unless the human
+> explicitly re-enables the task. The human Burmese translation remains intact
+> for contextual reading, but has known encoding damage (Zawgyi-order clusters,
+> substitutions, and dropped vowels). Treat it as an uncertain clue, never as an
+> authoritative spelling, grammar, or meaning source; verify against Chinese.
+
 A proofreading-and-polish agent for a large Burmese novel corpus. Terminal only.
 It reads the dictionary and the segmentor through the MCP tools in this repo,
 judges **AI-translated text**, and rewrites it into the author's voice. This is
@@ -201,7 +210,7 @@ What that means in practice:
   *easy to translate*, not *safe to leave to chance*. Register it and the
   question never comes up again.
 - **The entry has two sides and no category.** The left side is the English as
-  the zh-en column writes it — `content/mtranslate/zh-en/`, the local MT, not
+  the zh-en column writes it — `content/mtranslate/zh-en.txt`, the local MT, not
   the AI translation and not an English gloss you invented. The right side is
   the form the AI translation used, corrected by you if it is wrong. That pair
   is the record: one line, `Key = Value`, the same shape as the 129 entries
@@ -226,19 +235,19 @@ every source file stay untouched.
 
 | name | where it lives | what it is | what it is for |
 |---|---|---|---|
-| **Reference** | `content/merged/episodes.docx`, chapters 1–195 | human Burmese translation of the Chinese novel. Produced by PDF→DOCX, so it carries encoding damage (Zawgyi-order clusters, digit-for-letter, dropped vowels) | **style oracle only.** Tone, register, particles, sentence rhythm |
-| **English** | `content/mtranslate/zh-en/`, written by `mt/translate.py` | Chinese → English machine translation (Argos, offline) | read the source in a language you know |
-| **AI translation** | RapidAPI `flybyapi1` output, e.g. `content/mtranslate/rapidapi/` | AI-translated Burmese, close to publishable | **the text you judge and rewrite** |
+| **Human Burmese** | `content/source/ယဲ့နင်.txt` and `content/merged/episodes.docx`, chapters 1–195 | retained human translation; encoding is damaged (Zawgyi-order clusters, substitutions, dropped vowels) | contextual clue only when the Burmese workflow is explicitly re-enabled; verify against Chinese and never copy corrupted forms as spelling truth |
+| **English** | `content/mtranslate/zh-en.txt` | Chinese → English local machine translation (Argos, offline) | read the source in a language you know |
+| **API English** | `content/mtranslate/english.txt` | API-translated English | retained English translation only; not a Burmese rewrite baseline |
+| **Burmese API output** | removed from this checkout | no current Burmese API baseline | do not recreate or use unless the human explicitly re-enables that workflow |
 
-Two rules that follow from this and must never be broken:
+These constraints apply whenever the archived procedure is reopened:
 
-1. **Never feed the reference to the segmentor as spelling truth.** Its
-   encoding damage is a PDF-extraction artifact. It says nothing about how the
-   language works and nothing about whether the AI translation is right.
-2. **Never call the AI translation "MT".** There is no Chinese → Burmese machine
-   translation in this project and none is needed. The only local MT is
-   Chinese → English, which exists so you can read the source. The Burmese you
-   judge comes from the API.
+1. **Never feed the human Burmese reference to the segmentor as spelling
+   truth.** Its encoding damage makes its wording unreliable; verify meaning
+   against Chinese and do not treat its spelling or grammar as authoritative.
+2. **Do not start Burmese rewriting without an explicitly re-enabled source
+   translation.** There is no retained API Burmese text to judge. The only local
+   machine-translation routes are Chinese ↔ English.
 
 ## Your job
 
@@ -330,7 +339,7 @@ can reach it, and — when the written form is *not* a word and a repaired form
 repair"}` means: leave the word alone and flag it.
 
 **Step 5 — when meaning is in doubt, go back to the source.** Read the
-Chinese sentence in English (`content/mtranslate/zh-en/`) and check that the AI
+Chinese sentence in English (`content/mtranslate/zh-en.txt`) and check that the AI
 sentence says the same thing. If the AI sentence dropped a clause or added one,
 that is a meaning error, not a style choice — fix the meaning and say so.
 
@@ -373,7 +382,7 @@ Two ways to get the English, and you say which:
 
 - **`english_source: "mt"`** — the zh-en column, quoted as it stands. It is flat
   but literal. `python3 mt/verse.py mt 194` prints it numbered, or read
-  `content/mtranslate/zh-en/chapters/ch0194.en.txt`.
+  the relevant `Chapter 194` block in `content/mtranslate/zh-en.txt`.
 - **`english_source: "own"`** — your own rendering. Use it when the zh-en line
   is unreadable (poetry is exactly where a sentence-at-a-time model falls
   apart) or when the line carries a metaphor the flat version destroys.

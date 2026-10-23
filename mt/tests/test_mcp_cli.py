@@ -54,7 +54,8 @@ class McpCliTests(unittest.TestCase):
         self.assertIn("葉大人來了", title.stdout)
         audit = self.run_cli("--insecpt", "--check-range", "194-408")
         self.assertEqual(audit.returncode, 1)
-        self.assertIn("241", audit.stdout)
+        self.assertIn("298, 299", audit.stdout)
+        self.assertNotIn("241", audit.stdout)
 
     def test_burmese_context_cli_requires_the_current_chapter(self):
         result = self.run_cli("--previous_burmese_context", "နတ်")

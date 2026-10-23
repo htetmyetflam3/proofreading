@@ -45,6 +45,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import tempfile
 from datetime import datetime, timezone
@@ -53,7 +54,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 DEFAULT_DIR = ROOT / "content" / "mtranslate" / "verse"
-ZH_EN = ROOT / "content" / "mtranslate" / "zh-en" / "chapters"
+ZH_EN = ROOT / "content" / "mtranslate" / "zh-en.txt"
 
 # `none` is not a line; it records that the agent looked and found nothing. It
 # is the only way a reader can tell "no poems here" from "the agent skipped it".
@@ -184,17 +185,33 @@ def save(chapter: int, *, kind: str, paragraph: str | int | None = None,
 def mt_lines(chapter: int, route_dir: Path | str | None = None) -> list[str]:
     """The zh-en body for one chapter, one line per model sentence.
 
-    Empty when the route has not been run. This is a reading aid, not a source:
-    the agent may quote a line, rewrite it, or ignore it entirely.
+    The default is the consolidated `zh-en.txt`; an explicitly supplied
+    directory remains supported for old temporary per-chapter runs.
     """
-    directory = Path(route_dir) if route_dir is not None else ZH_EN
-    path = directory / f"ch{chapter:04d}.en.txt"
+    path = Path(route_dir) if route_dir is not None else ZH_EN
+    if path.is_dir():
+        chapter_path = path / f"ch{chapter:04d}.en.txt"
+        if not chapter_path.is_file():
+            return []
+        lines = chapter_path.read_text(encoding="utf-8").splitlines()
+        body = lines[2:] if len(lines) > 1 and set(lines[1].strip()) <= {"="} else lines[1:]
+        return [line.strip() for line in body if line.strip()]
     if not path.is_file():
         return []
-    lines = path.read_text(encoding="utf-8").splitlines()
-    # title, underline, body — see translate.run_route
-    body = lines[2:] if len(lines) > 1 and set(lines[1].strip()) <= {"="} else lines[1:]
-    return [line.strip() for line in body if line.strip()]
+    active = False
+    found = False
+    body: list[str] = []
+    marker = re.compile(r"^===== Chapter (\d+)(?: — .*?)? =====$")
+    for line in path.read_text(encoding="utf-8").splitlines():
+        match = marker.match(line)
+        if match:
+            if active:
+                break
+            active = int(match.group(1)) == chapter
+            found = found or active
+        elif active:
+            body.append(line)
+    return [line.strip() for line in "\n".join(body).strip().splitlines() if line.strip()] if found else []
 
 
 def render(chapter: int, rows: list[dict] | None = None,

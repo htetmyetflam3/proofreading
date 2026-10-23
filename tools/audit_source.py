@@ -8,13 +8,13 @@
 The crawl is a web scrape, and it shows: chapter titles are sometimes glued onto
 the end of a body line, sometimes repeated as a page header
 (`第二百六十九卓: 風中許下的諾言.5/7`), sometimes mangled by OCR
-(`第八十一章: 我背刺了我自己？ 5/` for chapter 61), and three chapters never
-arrived at all (241, 298, 299).
+(`第八十一章: 我背刺了我自己？ 5/` for chapter 61). Numbers not recognized by
+this parser are reported as parsing gaps, not proof that source text is absent.
 
 This answers, in one screen and without reading the 4 MB file:
 
 - every chapter number the crawl holds, and its title
-- which numbers in the span are genuinely absent
+- which numbers this parser cannot recognize as standalone starts (not proof of absence)
 - which headings are page headers masquerading as chapter starts
 - whether any number is parsed more than once (and therefore which body a
   `--chapters` request would actually get)
@@ -42,6 +42,7 @@ sys.path.insert(0, str(ROOT / "mt"))
 from translate import (  # noqa: E402
     CHINESE,
     _CN_TITLE,
+    _CN_241_TITLE,
     _cn_label,
     chinese_chapters,
 )
@@ -74,6 +75,9 @@ def scan(path: Path = CHINESE) -> dict:
                              "number": _cn_label(match.group(1)),
                              "title": match.group(0).strip(),
                              "form": "inline"})
+        for match in _CN_241_TITLE.finditer(stripped):
+            headings.append({"line": index + 1, "number": 241,
+                             "title": match.group(0).strip(), "form": "inline"})
     chapters = chinese_chapters(path)
     present = sorted({chapter.number for chapter in chapters})
     counts = Counter(chapter.number for chapter in chapters)

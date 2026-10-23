@@ -78,7 +78,7 @@ Who reads what:
 
 | key | read by | for |
 |---|---|---|
-| `RAPIDAPI_KEY` | `mt/api_translate.py --env-file ~/.env`, `mcp.py --serve --env-file ~/.env` | producing the AI-translated Burmese |
+| `RAPIDAPI_KEY` | optional `mt/api_translate.py` API runs | external API translation; current tracked output is English-only and Burmese API text has been removed |
 | `GROQ_API_KEY` | the agent host (Kilo), exported into its shell | the model that runs the proofreading agent |
 
 The repository never reads `GROQ_API_KEY`. A variable named `groq` or `GROK_API_KEY`
@@ -100,10 +100,10 @@ Two `set` lines and a model list mean the keys are good. `401` = wrong value,
 
 ## 1.3 Offline translation models (optional)
 
-Only needed for `mt/translate.py`. There is **no Burmese model anywhere** — Argos
-publishes 100 packages and none is `my` — and that is deliberate: Burmese comes
-from the API, and no machine translation to or from Burmese is part of this
-pipeline.
+Only needed for `mt/translate.py`. The two Argos routes are local Chinese ↔ English;
+there is no Burmese machine-translation route. The human Burmese source is a
+separate, encoding-damaged reference. API-generated Burmese text is not retained
+in the current workflow.
 
 ```sh
 python3 mt/fetch_engine.py --check
@@ -115,9 +115,20 @@ python3 mt/translate.py --list          # the two routes, now available
 Exactly two routes exist, the two `mt/translate.py` runs: `zh-en` and `en-zh`.
 Models land in `$XDG_DATA_HOME/argos-translate/packages` (`translate-zh_en-1_0`,
 ~86 MB each) and are never committed. `--check` writes nothing, anywhere;
-`--json` prints the same table as one object. The install is standard library —
-no `argostranslate`, no `pip`, no virtualenv. If `git` is missing, the clone is
-the step that fails, before anything is downloaded.
+`--json` prints the same table as one object. The model fetch is standard library;
+the translation runtime dependencies are declared in the PEP 723 script metadata.
+
+To produce the consolidated outputs (no chapter files, reports, or manifests):
+
+```sh
+uv run mt/translate.py --route zh-en --one-file --chapters 1-408
+uv run mt/translate.py --route en-zh --one-file --chapters 1-408
+```
+
+These write `content/mtranslate/zh-en.txt` and `content/mtranslate/en-zh.txt`.
+The second route reads the first file by default. Each is resumable and writes
+only its one `.txt` output; the command prints parser coverage to stdout. Confirm
+`missing_chapter_numbers` is empty before treating the range as complete.
 
 ## 1.4 Dictionaries (optional, for the chapter merge)
 
@@ -351,19 +362,22 @@ python3 mt/api_translate.py --chapters 194-408 --one-file --target en          #
 python3 mt/api_translate.py --chapters 194-408 --one-file --target en --run --env-file ~/.env
 ```
 
-* The last chapter in this source is **408**, not 421. `--chapters 194-408`
-  selects 212 chapters: 43,083 paragraphs, 847,492 characters, **1,164
-  requests**. Three numbers in that span do not exist — **241, 298, 299** — and
-  `--one-file` skips them with a note instead of refusing the run.
+* The last chapter number in this source is **408**, not 421. The local MT
+  parser reconstructs `241` from OCR-damaged mid-body page headers and joins its
+  page fragments. The legacy API selector does not use that join; its `241`
+  result needs separate review. Chapters `298` and `299` are not recognized as
+  standalone starts. These are parser coverage notes, not proof that source text
+  is absent. Do not invent text for unrecognized chapters or claim they do not
+  exist.
 * `--one-file` alone writes `content/mtranslate/english.txt`; give a path to put
   it elsewhere. `--target` defaults to `en` in this mode.
 * **Resume by pasting the same command again.** The chapter headings are the
   cursor: a chapter already in the file is skipped, and a chapter cut off
   mid-write is rewritten rather than left as a stump. Nothing else tracks state,
   which is why there is no database to lose.
-* `--pause` (default `0.5`) is the gap between chapters. 1,164 requests will hit
-  a rate limit somewhere; 429s are retried with backoff, and a rerun costs only
-  the chapters that are not in the file yet.
+* `--pause` (default `0.5`) is the gap between chapters. Use the current
+  offline plan for its request estimate; 429s are retried with backoff, and a
+  rerun costs only the chapters that are not in the file yet.
 * `--plan` prints the counts and how many chapters the file already holds; it
   never creates the file.
 
@@ -390,10 +404,11 @@ python3 tools/audit_source.py --titles --from 194 # number -> title
 python3 tools/chapter_titles.py --at 194          # from the DOCX (blank past 193)
 ```
 
-Current answer: 427 parsed, last number **408**, and **241, 298 and 299 are
-absent** from the crawl entirely — not in a truncated way, simply never
-downloaded. `--check 194-408` exits 1 and names them, which is deliberate: a
-batch that silently skips three chapters is worse than one that says so.
+Current audit: the OCR-aware local MT parser recovers chapter 241 from its
+mid-body `第二自四十一卓` page header. Chapters 298 and 299 are not recognized
+as standalone starts; this is a parser limitation, not proof that their text is
+absent. `--check 194-408` exits 1 and names those unrecognized starts so a batch
+cannot silently claim complete coverage.
 
 The DOCX stops at Chinese 193, so `chapter_titles.py --at 194` prints a blank
 title rather than inventing one. For 194+ the crawl is the only witness.
@@ -994,6 +1009,9 @@ uv run mcp.py --serve --tools english-review  # expose only this read-only task 
 | `--list` | route availability, then exit |
 | `--resume` | skip chapters that already have output |
 | `--cascade` | `zh-en` first, then `en-zh` which reads it |
+| `--one-file [PATH]` | one resumable text output only; requires one explicit route |
+| `--input-file` | one-file zh-en input for the `en-zh` route |
+| `--chapters LOW-HIGH` | inclusive range for one-file runs (default `1-408`) |
 
 ## `mt/agent_work.py` — drafts without an agent host
 

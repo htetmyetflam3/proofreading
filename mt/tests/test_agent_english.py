@@ -52,6 +52,17 @@ class EnglishComparisonTests(unittest.TestCase):
         self.assertEqual(result["lines"][0]["api_en"], "API paragraph one.")
         self.assertTrue(result["alignment"]["api_en"]["source_checked"])
 
+    def test_consolidated_local_machine_file_is_parsed(self):
+        one_file = self.root / "zh-en.txt"
+        one_file.write_text(
+            "===== Chapter 10 — Test =====\n\n"
+            "Machine one.\nMachine two!\nMachine three.\n\n",
+            encoding="utf-8")
+        result = agent_english.compare_english_chapter(
+            10, source_file=self.source, machine_file=one_file, api_file=self.api)
+        self.assertEqual(result["lines"][0]["machine_en"], "Machine one. Machine two!")
+        self.assertEqual(result["alignment"]["machine_en"]["file"], str(one_file))
+
     def test_refuses_shifted_api_jsonl(self):
         data = self.api.read_text(encoding="utf-8").replace("第一句。第二句！", "different source")
         self.api.write_text(data, encoding="utf-8")
@@ -66,6 +77,35 @@ class EnglishComparisonTests(unittest.TestCase):
             agent_english.compare_english_chapter(
                 10, source_file=self.source, machine_file=self.machine,
                 api_file=self.api)
+
+    def test_default_inputs_are_the_two_consolidated_files(self):
+        machine = self.root / "zh-en.txt"
+        machine.write_text(
+            "===== Chapter 10 — Test =====\n\n"
+            "Machine one.\nMachine two!\nMachine three.\n\n",
+            encoding="utf-8")
+        api = self.root / "english.txt"
+        api.write_text(
+            "===== Chapter 10 — Test =====\n\n"
+            "API paragraph one.\n\nAPI paragraph two.\n\n",
+            encoding="utf-8")
+        from unittest.mock import patch
+        with patch.object(agent_english, "DEFAULT_MACHINE_FILE", machine):
+            with patch.object(agent_english, "DEFAULT_API_FILE", api):
+                result = agent_english.compare_english_chapter(10, source_file=self.source)
+        self.assertEqual(result["alignment"]["machine_en"]["file"], str(machine))
+        self.assertEqual(result["alignment"]["api_en"]["file"], str(api))
+
+    def test_default_api_does_not_fall_back_to_per_chapter_files(self):
+        from unittest.mock import patch
+        api = self.root / "english.txt"
+        api.write_text("===== Chapter 11 — Other =====\n\nText.\n\n", encoding="utf-8")
+        fallback = self.root / "rapidapi" / "ch0010.en.jsonl"
+        fallback.parent.mkdir()
+        fallback.write_text("{}", encoding="utf-8")
+        with patch.object(agent_english, "DEFAULT_API_FILE", api):
+            with self.assertRaisesRegex(ValueError, "has no chapter 10"):
+                agent_english._api_english(10, ["第一句。", "第二段。"], None, None)
 
     def test_one_file_api_rows_are_streamed_and_count_checked(self):
         one_file = self.root / "english.txt"
@@ -109,6 +149,7 @@ class BurmeseContextTests(unittest.TestCase):
         self.assertEqual([(row["chinese"], row["burmese"])
                           for row in result["searched_chapters"]], [(8, 108), (9, 109)])
         self.assertEqual(result["hit_count"], 2)
+        self.assertIn("encoding damage", result["note"])
         first = result["hits"][0]
         self.assertEqual(first["burmese_chapter"], 108)
         self.assertEqual(first["context"][0]["text"], "မတိုင်မီ တစ်ကြောင်း။")
