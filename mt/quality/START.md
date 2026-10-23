@@ -52,6 +52,18 @@ badly.
    `content/source/*.txt` (6 MB) or `Engine/knowledge/isTreasure/master.json`
    (1.4 MB). The tools exist so you do not have to.
 
+## Before you open a big file, use `tools/`
+
+The crawl (4.1 MB), the review (673 KB) and `master.json` (1.4 MB) each have a
+script that answers the question without reading them. Run these instead:
+
+```sh
+python3 tools/audit_source.py --check 194-408     # which chapters exist
+python3 tools/audit_source.py --titles --from 194 # what they are called
+```
+
+Exit 1 from `--check` means holes in the range — say which, do not paper over it.
+
 ## The two things that are not tools
 
 - **Finding names.** You notice a term while reading; `register_name` writes it.

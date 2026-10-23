@@ -20,7 +20,7 @@ Three files:
 | `mt/rapidapi_translator.py` | the API client: three endpoints, cache, retries, redaction |
 | `mt/apicaller.py` | the caller you run: exactly two chapters per call, starting behind the human translation |
 | `mt/api_translate.py` | the batch engine under it; writes the JSONL, TXT, comparison and report |
-| `mt/mcp_server.py` | the same caller as a local MCP server (stdio, no dependencies) |
+| `mcp.py` | single CLI for the same tools plus local MCP server (stdio) |
 
 Nothing needs installing: all four are standard-library Python 3.10+.
 
@@ -96,7 +96,7 @@ For the MCP server, put the file in the client entry so the key never has to be
 exported into the client's shell:
 
 ```sh
-python3 mt/mcp_server.py --install-config --client kilo --env-file /root/proofreading/.env
+uv run mcp.py --install-config --client kilo --env-file /root/proofreading/.env
 ```
 
 That writes the entry with `"--env-file", "/root/proofreading/.env"` and no
@@ -104,7 +104,7 @@ That writes the entry with `"--env-file", "/root/proofreading/.env"` and no
 For Claude Code and Codex the same flag appends `--env-file …` to the command:
 
 ```sh
-python3 mt/mcp_server.py --print-config --client codex --env-file ~/proofreading/.env
+uv run mcp.py --print-config --client codex --env-file ~/proofreading/.env
 ```
 
 Optional overrides, mainly for tests:
@@ -370,15 +370,15 @@ server to keep alive, output is plain files, and a reconnect changes nothing.
 
 ### 2. Register the MCP server with a CLI agent
 
-`python3 mt/mcp_server.py` is a stdio server, so every CLI agent can launch it.
+`uv run mcp.py --serve` is a stdio server, so every CLI agent can launch it.
 Pick your client:
 
 ```sh
-python3 mt/mcp_server.py --print-config --client claude
-python3 mt/mcp_server.py --print-config --client kilo
-python3 mt/mcp_server.py --print-config --client codex
-python3 mt/mcp_server.py --print-config --client gemini
-python3 mt/mcp_server.py --print-config               # generic JSON
+uv run mcp.py --print-config --client claude
+uv run mcp.py --print-config --client kilo
+uv run mcp.py --print-config --client codex
+uv run mcp.py --print-config --client gemini
+uv run mcp.py --print-config               # generic JSON
 ```
 
 **Kilo Code CLI** — global config, `~/.config/kilo/kilo.json` (the same file
@@ -388,7 +388,7 @@ keeps other keys, sets the file to `0600`, and refuses to touch a JSONC file
 that contains comments:
 
 ```sh
-python3 mt/mcp_server.py --install-config --client kilo
+uv run mcp.py --install-config --client kilo
 # {"status": "created", "path": "/root/.config/kilo/kilo.json", "entry": {...}}
 ```
 
@@ -404,7 +404,7 @@ The resulting block looks like this:
   "mcp": {
     "rapidapi-translator": {
       "type": "local",
-      "command": ["/usr/bin/python3", "/path/to/repo/mt/mcp_server.py"],
+      "command": ["/usr/bin/python3", "/path/to/repo/mcp.py", "--serve"],
       "enabled": true,
       "environment": {"RAPIDAPI_KEY": "{env:RAPIDAPI_KEY}"}
     }
@@ -432,7 +432,7 @@ literal key in `environment` (the config lives outside the repo and is `0600`).
 
 ```sh
 claude mcp add --scope user rapidapi-translator -- \
-  /usr/bin/python3 /path/to/repo/mt/mcp_server.py
+  /usr/bin/python3 /path/to/repo/mcp.py --serve
 claude mcp list
 ```
 
@@ -445,11 +445,11 @@ user` makes it available in every project; omit it for this project only.
 ```toml
 [mcp_servers.rapidapi-translator]
 command = "/usr/bin/python3"
-args = ["/path/to/repo/mt/mcp_server.py"]
+args = ["/path/to/repo/mcp.py", "--serve"]
 env_vars = ["RAPIDAPI_KEY"]
 ```
 
-`codex mcp add rapidapi-translator -- python3 /path/to/repo/mt/mcp_server.py`
+`codex mcp add rapidapi-translator -- python3 /path/to/repo/mcp.py --serve`
 writes the same table, but it has no flag for forwarding a variable, so add
 `env_vars = ["RAPIDAPI_KEY"]` to the table afterwards. (`--env KEY=VALUE` stores
 the literal value instead — avoid it on a shared VPS.)
@@ -461,7 +461,7 @@ the literal value instead — avoid it on a shared VPS.)
   "mcpServers": {
     "rapidapi-translator": {
       "command": "/usr/bin/python3",
-      "args": ["/path/to/repo/mt/mcp_server.py"],
+      "args": ["/path/to/repo/mcp.py", "--serve"],
       "env": {"RAPIDAPI_KEY": "${RAPIDAPI_KEY}"}
     }
   }
@@ -469,7 +469,7 @@ the literal value instead — avoid it on a shared VPS.)
 ```
 
 ```sh
-gemini mcp add -s user rapidapi-translator /usr/bin/python3 /path/to/repo/mt/mcp_server.py
+gemini mcp add -s user rapidapi-translator /usr/bin/python3 /path/to/repo/mcp.py --serve
 ```
 
 **Cursor / Zed / other editors** take the generic `mcpServers` JSON from
@@ -478,7 +478,7 @@ gemini mcp add -s user rapidapi-translator /usr/bin/python3 /path/to/repo/mt/mcp
 Verify before wiring anything up — this needs no key and no network:
 
 ```sh
-python3 mt/mcp_server.py --selftest
+uv run mcp.py --selftest
 ```
 
 ```json
@@ -486,7 +486,7 @@ python3 mt/mcp_server.py --selftest
  "tools": ["detect_language", "translate_text", "translate_batch",
            "translate_chapters"],
  "key": "missing", "python": "/usr/bin/python3",
- "server": "/path/to/repo/mt/mcp_server.py"}
+ "server": "/path/to/repo/mcp.py"}
 ```
 
 If `key` says `missing` but the tools list is fine, the server works and only
@@ -513,7 +513,7 @@ reconnect costs nothing.
 ## MCP server
 
 ```sh
-python3 mt/mcp_server.py --print-config
+uv run mcp.py --print-config
 ```
 
 prints a ready-to-paste JSON block:
@@ -523,7 +523,7 @@ prints a ready-to-paste JSON block:
   "mcpServers": {
     "rapidapi-translator": {
       "command": "python3",
-      "args": ["/absolute/path/to/repo/mt/mcp_server.py"],
+      "args": ["/absolute/path/to/repo/mcp.py", "--serve"],
       "env": {"RAPIDAPI_KEY": "<your-rapidapi-key>"}
     }
   }

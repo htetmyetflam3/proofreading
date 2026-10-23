@@ -28,6 +28,17 @@ Outputs go to `content/mtranslate/rapidapi/` by default:
                              existing human Burmese chapter as a reference
     report.json              counts, detected language, request count, files
 
+`--one-file [PATH]` replaces all of that with a single text file: no cache, no
+jsonl, no per-chapter txt, no comparison and no report. It is the mode for
+translating a range to English for reading, and it is resumable because the
+chapter headings in the file are the cursor:
+
+    python3 mt/api_translate.py --chapters 194-408 --one-file --target en
+    python3 mt/api_translate.py --chapters 194-408 --one-file --target en --run
+
+Any range is accepted here; the two-chapter rule belongs to `mt/apicaller.py`
+and the MCP tool `translate_chapters`, which spend quota from a cursor.
+
 The comparison does not claim paragraph-level alignment with the human
 translation: that alignment has never been verified, and the human text comes
 from a PDF with its own line wrapping.
@@ -36,6 +47,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import time
@@ -47,7 +59,6 @@ ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 
 from rapidapi_translator import (  # noqa: E402
-    MAX_CHAPTERS_PER_CALL,
     MAX_REQUEST_CHARS,
     MAX_REQUEST_ITEMS,
     CachedTranslator,
@@ -116,7 +127,19 @@ def reference_lines(chapter: BurmeseChapter) -> list[str]:
 
 
 def select(chapters: list[Chapter], wanted: list[int]) -> list[Chapter]:
-    by_number = {chapter.number: chapter for chapter in chapters}
+    """The chapter for each wanted number, preferring the longest body.
+
+    A web crawl sometimes promotes a running page header to a chapter start, so
+    one number can be parsed several times: chapter 61 arrives four times in this
+    source, three of them stubs cut out of the middle of the real chapter. The
+    real one is the long one, so a plain last-wins dictionary would hand a
+    request a 213-character fragment in place of a 1,652-character chapter.
+    """
+    by_number: dict[int, Chapter] = {}
+    for chapter in chapters:
+        current = by_number.get(chapter.number)
+        if current is None or len(chapter.body) > len(current.body):
+            by_number[chapter.number] = chapter
     return [by_number[number] for number in wanted if number in by_number]
 
 
@@ -422,6 +445,148 @@ def run(chapters: list[Chapter], *, target: str = "my", source: str = "auto",
     return report
 
 
+# ---------------------------------------------------------------- one file
+
+# One chapter's heading inside the single text file, and the pattern that reads
+# it back on the next run: the heading is the resume cursor, so no database and
+# no sidecar exist to get out of step with the text.
+CHAPTER_MARK = "===== Chapter {number} — {title} ====="
+_CHAPTER_MARK = re.compile(r"^===== Chapter (\d+)(?: — .*)? =====$", re.MULTILINE)
+DEFAULT_ONE_FILE = ROOT / "content" / "mtranslate" / "english.txt"
+
+
+def chapter_block(chapter: Chapter, texts: list[str]) -> str:
+    """The chapter exactly as it is written into the single text file."""
+    heading = CHAPTER_MARK.format(number=chapter.number, title=chapter.title)
+    body = "\n\n".join(text for text in texts if text.strip())
+    return f"{heading}\n\n{body}\n\n"
+
+
+def scan_block(text: str) -> tuple[list[int], int]:
+    """Chapters present in `text`, and the offset a resumed run may append at.
+
+    A chapter counts only when its heading is followed by text: a block is
+    written in one call and fsynced, so an empty body or a tail that does not
+    end on a blank line means that chapter was cut off mid-write. The offset
+    then points at its heading, and the resumed run rewrites it instead of
+    leaving a stump in the middle of the file.
+    """
+    marks = [(match.start(), int(match.group(1)))
+             for match in _CHAPTER_MARK.finditer(text)]
+    if not marks:
+        if text.strip():
+            raise ValueError(
+                "the file has text but no '===== Chapter N =====' heading, so "
+                "it was not written by this mode; move it aside or pass a "
+                "different --one-file")
+        return [], 0
+    done: list[int] = []
+    for position, (start, number) in enumerate(marks):
+        end = marks[position + 1][0] if position + 1 < len(marks) else len(text)
+        body = text[start:end].split("\n", 1)[-1]
+        if not body.strip():
+            return done, start
+        done.append(number)
+    if not text.endswith("\n\n"):
+        return done[:-1], marks[-1][0]
+    return done, len(text)
+
+
+class SingleTextFile:
+    """Append chapters to exactly one `.txt`, resuming from what is already in it.
+
+    No database, no sidecar, no per-chapter file: the text is the state. A run
+    that dies at chapter 300 is resumed by pasting the same command again.
+    """
+
+    def __init__(self, path: Path | str) -> None:
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        original = (self.path.read_text(encoding="utf-8")
+                    if self.path.is_file() else "")
+        self.done, cut = scan_block(original)
+        if cut < len(original):
+            self.path.write_text(original[:cut], encoding="utf-8")
+        self.handle = self.path.open("a", encoding="utf-8")
+
+    def add(self, chapter: Chapter, texts: list[str]) -> None:
+        self.handle.write(chapter_block(chapter, texts))
+        self.handle.flush()
+        os.fsync(self.handle.fileno())
+        self.done.append(chapter.number)
+
+    def close(self) -> None:
+        if not self.handle.closed:
+            self.handle.close()
+
+    def __enter__(self) -> "SingleTextFile":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.close()
+
+
+def translate_into_one_file(chapters: list[Chapter], *, path: Path | str,
+                            target: str = "en", source: str = "auto",
+                            keep_notes: bool = False,
+                            max_chars: int = MAX_REQUEST_CHARS,
+                            max_items: int = MAX_REQUEST_ITEMS,
+                            timeout: float = 60.0, max_attempts: int = 3,
+                            pause: float = 0.0, translator=None,
+                            log=None) -> dict:
+    """Translate chapters into a single `.txt`; nothing else is written.
+
+    The cache is off by construction, so no SQLite file appears; and there is no
+    jsonl, no per-chapter txt, no comparison and no report. Chapters already in
+    the file are skipped, which is what makes an interrupted run resumable.
+
+    The translator is built **before** the file is opened, so a missing key
+    fails without leaving an empty `.txt` behind.
+    """
+    emit = log or (lambda text: None)
+    started = time.time()
+    owner = translator is None
+    active = translator if translator is not None else CachedTranslator(
+        cache_path=None, enabled=False, timeout=timeout,
+        max_attempts=max_attempts, max_chars=max_chars, max_items=max_items)
+    totals = {"target": target, "chapters": 0, "paragraphs": 0,
+              "characters": 0, "requests": 0, "skipped": 0,
+              "path": _relative(Path(path))}
+    try:
+        with SingleTextFile(path) as sink:
+            already = set(sink.done)
+            wanted = [chapter for chapter in chapters
+                      if chapter.number not in already]
+            totals["skipped"] = len(chapters) - len(wanted)
+            emit(f"[one-file] {len(chapters)} chapter(s) asked, "
+                 f"{totals['skipped']} already in {sink.path}, "
+                 f"{len(wanted)} to translate")
+            for position, chapter in enumerate(wanted, 1):
+                paragraphs = chapter_paragraphs(chapter, keep_notes=keep_notes)
+                if not paragraphs:
+                    emit(f"[one-file] chapter {chapter.number} has no "
+                         "translatable paragraphs; skipped")
+                    continue
+                result = active.translate_batch(paragraphs, target, source)
+                sink.add(chapter, result.texts)
+                totals["chapters"] += 1
+                totals["paragraphs"] += len(paragraphs)
+                totals["characters"] += sum(len(p) for p in paragraphs)
+                totals["requests"] += result.requests
+                emit(f"[one-file] {position}/{len(wanted)} chapter "
+                     f"{chapter.number}: {len(paragraphs)} paragraphs, "
+                     f"{result.requests} request(s)")
+                if pause and position < len(wanted):
+                    time.sleep(pause)
+            totals["chapters_in_file"] = len(sink.done)
+    finally:
+        if owner:
+            active.close()
+    totals["elapsed_seconds"] = round(time.time() - started, 1)
+    return totals
+
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Translate Chinese chapters via RapidAPI and compare with the "
@@ -432,7 +597,8 @@ def main(argv: list[str] | None = None) -> int:
                              "Burmese, 194), last (the Chinese chapter behind the "
                              "last existing Burmese, 193) or existing (every "
                              "Chinese chapter that has one). Default: 1-2")
-    parser.add_argument("--target", default="my", help="target language (default: my)")
+    parser.add_argument("--target", default=None,
+                        help="target language (default: my, or en with --one-file)")
     parser.add_argument("--source", default="auto",
                         help="source language or auto (default: auto)")
     parser.add_argument("--source-file", type=Path, default=CHINESE,
@@ -466,9 +632,18 @@ def main(argv: list[str] | None = None) -> int:
                       help="offline: count work and requests (default)")
     mode.add_argument("--run", action="store_true",
                       help="actually call the API; needs RAPIDAPI_KEY")
-    parser.add_argument("--allow-bulk", action="store_true",
-                        help="lift the two-chapter limit for one --run; "
-                             "mt/apicaller.py is the normal way to spend quota")
+    parser.add_argument("--one-file", nargs="?", const="", default=None,
+                        metavar="PATH",
+                        help="write every chapter into this one .txt and nothing "
+                             "else: no cache, no jsonl, no per-chapter file, no "
+                             "report (default with the flag alone: "
+                             "content/mtranslate/english.txt). Chapters already "
+                             "in the file are skipped, so a killed run resumes")
+    parser.add_argument("--skip-missing", action="store_true",
+                        help="translate the chapters that exist when a range has "
+                             "holes; on by default with --one-file")
+    parser.add_argument("--pause", type=float, default=0.5,
+                        help="seconds between chapters (default: 0.5; 0 for none)")
     args = parser.parse_args(argv)
 
     try:
@@ -526,24 +701,26 @@ def main(argv: list[str] | None = None) -> int:
             return 2
     selected = select(chapters, wanted)
     missing = sorted(set(wanted) - {chapter.number for chapter in selected})
-    if missing:
+    if missing and (args.skip_missing or args.one_file is not None):
+        print(f"[rapidapi] the source has no chapter(s) "
+              f"{', '.join(str(number) for number in missing)}; translating the "
+              f"{len(selected)} that exist", file=sys.stderr)
+    elif missing:
         known = ", ".join(str(number) for number in wanted if number not in missing)
         print(f"[rapidapi] no chapter(s) {missing} in {args.source_file.name}; "
-              f"found {known or 'nothing'}", file=sys.stderr)
+              f"found {known or 'nothing'}. Add --skip-missing to translate the "
+              "rest", file=sys.stderr)
         return 2
     if not selected:
         print("[rapidapi] nothing selected", file=sys.stderr)
         return 2
 
-    if args.run and len(selected) > MAX_CHAPTERS_PER_CALL and not args.allow_bulk:
-        print(f"[rapidapi] --run translates {MAX_CHAPTERS_PER_CALL} chapters at a "
-              f"time; {len(selected)} were selected. Use mt/apicaller.py for the "
-              "pair-by-pair run, or add --allow-bulk for one bulk call.",
-              file=sys.stderr)
-        return 2
+    target = args.target or ("en" if args.one_file is not None else "my")
+    one_file = (Path(args.one_file) if args.one_file else DEFAULT_ONE_FILE
+                if args.one_file is not None else None)
 
     if not args.run:
-        plan = build_plan(selected, target=args.target, source=args.source,
+        plan = build_plan(selected, target=target, source=args.source,
                           max_chars=args.max_chars, max_items=args.max_items,
                           keep_notes=args.keep_notes)
         plan["source_file"] = _relative(args.source_file)
@@ -558,8 +735,8 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print("[rapidapi] plan only — no request made, key not needed")
             print(f"[rapidapi] language: {args.source} → "
-                  f"{target_label(args.target)} "
-                  f"(query source={args.source}&target={args.target})")
+                  f"{target_label(target)} "
+                  f"(query source={args.source}&target={target})")
             print(f"{'chapter':>7}  {'paragraphs':>10}  {'characters':>10}  {'requests':>8}  title")
             for row in plan["chapters"]:
                 print(f"{row['chapter']:>7}  {row['paragraphs']:>10}  "
@@ -578,12 +755,47 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  last chapter behind the existing Burmese: Chinese "
                       f"{chapter_map.last_chinese}")
                 print(f"  next without a counterpart: Chinese {chapter_map.next_chinese}")
+            if one_file is not None:
+                present = (scan_block(one_file.read_text(encoding="utf-8"))[0]
+                           if one_file.is_file() else [])
+                reuse = [row["chapter"] for row in plan["chapters"]
+                         if row["chapter"] in set(present)]
+                print(f"\none file: {_relative(one_file)} — {len(present)} "
+                      f"chapter(s) already there, {len(reuse)} of the "
+                      f"{len(plan['chapters'])} selected would be skipped")
+                print("no cache, no jsonl, no per-chapter file, no report")
             print("\nRun the same command with --run to translate "
-                  f"({args.source} → {args.target}).")
+                  f"({args.source} → {target}).")
+        return 0
+
+    if one_file is not None:
+        try:
+            report = translate_into_one_file(
+                selected, path=one_file, target=target, source=args.source,
+                keep_notes=args.keep_notes, max_chars=args.max_chars,
+                max_items=args.max_items, timeout=args.timeout,
+                max_attempts=args.attempts, pause=args.pause,
+                log=None if args.json else print)
+        except TranslatorError as error:
+            print(f"[rapidapi] {error}", file=sys.stderr)
+            return 3
+        except ValueError as error:
+            print(f"[rapidapi] {error}", file=sys.stderr)
+            return 2
+        if args.json:
+            print(json.dumps(report, indent=2, ensure_ascii=False))
+        else:
+            print(f"[rapidapi] {args.source} → {target_label(target)}: "
+                  f"{report['chapters']} translated, {report['skipped']} already "
+                  f"present, {report['paragraphs']} paragraph(s), "
+                  f"{report['requests']} request(s), "
+                  f"{report['elapsed_seconds']}s -> {report['path']}")
+            print(f"[rapidapi] {report['chapters_in_file']} chapter(s) in the "
+                  "file; nothing else was written")
         return 0
 
     try:
-        report = run(selected, target=args.target, source=args.source,
+        report = run(selected, target=target, source=args.source,
                      out_dir=args.out_dir, cache_path=args.cache,
                      enabled_cache=not args.no_cache, keep_notes=args.keep_notes,
                      max_chars=args.max_chars, max_items=args.max_items,
@@ -599,7 +811,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         totals = report["totals"]
         check = report.get("target_check") or {}
-        print(f"[rapidapi] {args.source} → {target_label(args.target)}: "
+        print(f"[rapidapi] {args.source} → {target_label(target)}: "
               f"{totals['chapters']} chapter(s), {totals['paragraphs']} "
               f"paragraph(s), {totals['requests']} request(s), "
               f"{report['elapsed_seconds']}s -> {args.out_dir}")

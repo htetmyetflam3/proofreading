@@ -281,7 +281,7 @@ On chapter 193 that is 295 unresolved of 786 terms.
 "Multi format AI translator" service, called through `POST /translate/batch`.
 `mt/api_translate.py` runs it over the first two chapters and writes
 `content/mtranslate/rapidapi/` (JSONL, TXT, a Chinese/Burmese comparison and
-`report.json`). `mt/mcp_server.py` exposes the three endpoints over MCP stdio.
+`report.json`). `mcp.py` exposes the translator and proofreading tools over MCP stdio.
 
 `mt/chapter_map.py` derives the chapter pairing from `content/merged/episodes.docx`
 instead of trusting an offset: it reproduces the verified alignment (Burmese 1..61 =
