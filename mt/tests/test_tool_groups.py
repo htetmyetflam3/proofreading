@@ -1,10 +1,10 @@
 """`--tools` narrows the advertised schema, which is paid for every request.
 
-Sixteen tool schemas are ~10.7k characters (~3.3k tokens), and they ride along
-with *every* request. On a free 8,000-token-per-minute budget that is a third of
-the minute before the model reads anything, so the server can be started with
-only the tools the current phase needs. The tools stay in the code; the
-advertisement shrinks.
+Eighteen tool schemas are ~12.9k characters, and they ride along with *every*
+request. On a free 8,000-token-per-minute budget that is a large part of the
+minute before the model reads anything, so the server can be started with only
+the tools the current phase needs. The tools stay in the code; the advertisement
+shrinks.
 """
 import json
 import sys
@@ -39,6 +39,15 @@ class ResolutionTests(unittest.TestCase):
         self.assertIn("check_names", wanted)
         self.assertIn("segment_text", wanted)
         self.assertNotIn("translate_text", wanted)
+
+    def test_english_group_and_preset(self):
+        self.assertEqual(mcp_server.resolve_tools("english"), {
+            "compare_english_chapter", "previous_burmese_context",
+        })
+        preset = mcp_server.resolve_tools("english-review")
+        self.assertIn("compare_english_chapter", preset)
+        self.assertIn("previous_burmese_context", preset)
+        self.assertNotIn("translate_text", preset)
 
     def test_presets_shrink_the_schema(self):
         full = len(json.dumps(mcp_server.TOOLS, ensure_ascii=False))

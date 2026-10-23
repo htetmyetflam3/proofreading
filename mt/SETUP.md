@@ -268,17 +268,20 @@ uv run mcp.py --install-config --client kilo --env-file ~/.env
 `--install-config` merges into plain JSON only. If the target is JSONC with
 comments it refuses and prints the snippet, so nothing you wrote is lost.
 
-Sixteen tools. Reading and checking (free, no API request):
-`read_chapter`, `review_lookup`, `review_brief`, `lookup_word`, `lookup_name`,
-`check_names`, `segment_text`, `detect_language`. Writing, all local:
+Eighteen tools. Reading and checking (free, no API request):
+`read_chapter`, `compare_english_chapter`, `previous_burmese_context`,
+`review_lookup`, `review_brief`, `lookup_word`, `lookup_name`, `check_names`,
+`segment_text`, `detect_language`. Writing, all local:
 `save_draft`, `export_drafts`, `register_name`, `save_verse`, `export_verse`.
 Paid, never on your behalf: `translate_text`, `translate_batch`,
 `translate_chapters`.
 
-All sixteen are advertised by default, and their schemas — 10,720 characters,
-~3k tokens — are re-sent with **every** request. `--tools survey` (11 tools,
-7,501 characters) covers a reading pass and `--tools lean` (7 tools, 5,468)
-covers a drafting pass; details in *`mcp.py`* under Part 3.
+All eighteen are advertised by default, and their schemas — 12,886 characters,
+about 3.2–4.3k tokens — are re-sent with **every** request. `--tools survey`
+(11 tools, 7,501 characters) covers the Burmese reading pass, `--tools lean`
+(7 tools, 5,468) covers a drafting pass, and `--tools english-review` (7 tools,
+5,448) adds the English comparison, previous-Burmese context, review and names.
+Details in *`mcp.py`* under Part 3.
 
 Two things there are deliberately **not** tools: finding new names, and finding
 verse. Both are reading judgements the agent makes while it reads the AI text
@@ -469,7 +472,7 @@ the MCP entry's `command` array ends with:
 "--tools", "review"
 ```
 
-That is 2 tools and 1,460 characters of schema instead of 16 and 10,720 — the
+That is 2 tools and 1,460 characters of schema instead of 18 and 12,886 — the
 difference between fitting in an 8k minute and not.
 
 **Step 2 — paste this:**
@@ -549,7 +552,7 @@ The exact limits for your own organisation are on the limits page in the Groq
 console (Settings → Limits) — the docs table is a sample.
 
 **On the free plan an agent loop cannot run at all**, and trimming does not save
-it: the 16 MCP tool schemas alone are ~3.4k tokens, and they are re-sent with
+it: the 18 MCP tool schemas alone are ~3.2–4.3k tokens, and they are re-sent with
 every request. Add `START.md` (~1.0k) and one `review_brief` (~2.4k) and the
 first two turns already exceed 8k. Kilo then shows the failure as "context
 exceeds model limits" because compaction is what gives up first — read it as
@@ -565,7 +568,7 @@ host).
 |---|---|---|
 | `mt/quality/START.md` | 3,419 | **0.9k – 1.2k** |
 | `mt/quality/finetune-agent-prompt.md` | 26,283 | **6.9k – 9.3k** |
-| 16 MCP tool schemas (every turn) | 10,731 | **2.7k – 3.6k** |
+| 18 MCP tool schemas (every turn) | 12,886 | **3.2k – 4.3k** |
 | `review_brief {}` | 14,431 | **8.1k – 13.2k** |
 | `review_brief {"chars_per_arc": 60}` | 7,766 | **4.1k – 6.5k** |
 | `read_chapter` 10 paragraphs | 2,053 | **0.6k – 0.8k** |
@@ -628,7 +631,7 @@ Two things to read carefully:
   or three requests (model → tool, tool result → model), so the free trial
   affords roughly two turns a minute. That is fine for a human typing, useless
   for a loop. Cerebras also publishes 30k *uncached* against 90k *total* TPM,
-  which means the repeated static prefix — the 16 tool schemas and
+  which means the repeated static prefix — the 18 tool schemas and
   `START.md` — can be discounted by prompt caching. Confirm on your own usage
   page rather than trusting it.
 
@@ -908,7 +911,7 @@ same text.
 ## `mcp.py` — one flag per tool, or the agent's tool server
 
 Run `uv run mcp.py` from the repository root. With no command it prints help
-and runs nothing. The 16 MCP tools are also direct CLI commands (for example,
+and runs nothing. The 18 MCP tools are also direct CLI commands (for example,
 `--read_chapter`, `--segment_text`, `--review_brief`, `--translate_text`); the
 short hyphenated aliases work too. The source-inspection tools are
 `--insecpt`/`--inspect` and `--getTitle`. To start the stdio server explicitly,
@@ -933,22 +936,23 @@ use `--serve`; MCP clients must use that flag.
 | `--tools` | advertise only some tools: a preset, a group, or names (below) |
 | `--list-groups` | print the groups, their sizes, and exit |
 
-**Sixteen tools — and you pay for all of them every turn.** The schemas are
-10,720 characters (~3.0–3.8k tokens) and Kilo re-sends them with every request,
+**Eighteen tools — and you pay for all of them every turn.** The schemas are
+12,886 characters (~3.2–4.3k tokens) and Kilo re-sends them with every request,
 so on a small free budget they are a third of the minute before the model has
 read a word. `--tools` narrows what the process advertises:
 
 | spec | tools | schema chars | when |
 |---|---|---|---|
-| *(none)* | 16 | 10,720 | nothing to save |
+| *(none)* | 18 | 12,886 | nothing to save |
 | `--tools lean` | 7 | 5,468 | the smallest loop that still edits: read ten, segment, check a name, save a draft |
 | `--tools survey` | 11 | 7,501 | the read-only first pass: review digest, names, verse |
 | `--tools edit` | 11 | 7,398 | rewriting paragraphs; no review digest, no API |
 | `--tools review` | 2 | 1,460 | one `review_brief` question on an 8k-per-minute key |
 | `--tools review,names` | 5 | 3,282 | groups instead of presets, comma-separated |
+| `--tools english-review` | 7 | 5,448 | English comparison + prior Burmese context + review + names |
 
-Groups: `read` `review` `names` `verse` `draft` `api`. Presets: `survey` `edit`
-`lean` `translate` `full`. A tool that is not advertised is refused if called,
+Groups: `read` `english` `review` `names` `verse` `draft` `api`. Presets:
+`survey` `edit` `lean` `translate` `english-review` `full`. A tool that is not advertised is refused if called,
 with the flag named in the error — no silent empty answer. Verify the arithmetic
 on your own machine:
 
@@ -964,6 +968,16 @@ The four the agent needs before it judges anything:
 | `lookup_name` | one `EtoBnames.txt` entry by key or Burmese form |
 | `check_names` | names present in a paragraph, plus suspected variant spellings |
 | `register_name` | append a new term to `EtoBnames.txt` |
+| `compare_english_chapter` | one window of Chinese, local MT English, and API English, aligned by paragraph |
+| `previous_burmese_context` | Burmese-only keyword lines from the two Chinese chapters before the required current chapter |
+
+Local English task examples (no API call):
+
+```sh
+uv run mcp.py --compare_english_chapter 194 --start 1 --count 10
+uv run mcp.py --previous_burmese_context "နတ်" --chapter 194
+uv run mcp.py --serve --tools english-review  # expose only this read-only task set
+```
 
 ## `mt/translate.py` — Chinese/English routes
 

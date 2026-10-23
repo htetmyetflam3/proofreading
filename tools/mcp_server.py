@@ -54,7 +54,12 @@ SUPPORTED_PROTOCOLS = ("2025-06-18", "2025-03-26", "2024-11-05", "2024-10-07")
 DEFAULT_PROTOCOL = "2024-11-05"
 
 INSTRUCTIONS = (
-    "Translation tools backed by the RapidAPI 'Multi format AI translator' API. "
+    "Translation and read-only proofreading tools backed by the RapidAPI "
+    "'Multi format AI translator' API. `compare_english_chapter` compares "
+    "Chinese, local machine English, and API English by source paragraph; it "
+    "does not call the API. `previous_burmese_context` requires the current "
+    "Chinese chapter and a Burmese-only keyword, then searches its two mapped "
+    "predecessor chapters. "
     f"The API key is read from {KEY_ENV}. `translate_chapters` translates ONE "
     "PAIR of chapters of the local Chinese novel, two chapters at most, and "
     "writes files under content/mtranslate/rapidapi; it costs about five "
@@ -139,6 +144,49 @@ TOOLS = [
                                     "default": 0},
             },
             "required": ["chapter"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "compare_english_chapter",
+        "description": "Return one bounded chapter window as aligned rows: original Chinese, "
+                       "local machine English, and English translated by the API. Defaults "
+                       "to ten paragraphs. Source and line counts are verified; the tool "
+                       "refuses to silently shift mismatched translations. Reads the API "
+                       "one-file content/mtranslate/english.txt when present, otherwise "
+                       "per-chapter API output.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "chapter": {"type": "integer", "description": "Chinese chapter number."},
+                "start": {"type": "integer", "default": 1, "description": "First paragraph, 1-based."},
+                "count": {"type": "integer", "default": 10, "description": "Paragraphs in this window; ten is the default."},
+                "api_file": {"type": "string", "description": "Optional API english.txt, per-chapter .txt, or source-verified .jsonl."},
+                "api_dir": {"type": "string", "description": "Optional directory of per-chapter API output."},
+                "machine_file": {"type": "string", "description": "Optional local zh-en chapter file."},
+                "machine_dir": {"type": "string", "description": "Optional directory containing chNNNN.en.txt machine translations."},
+            },
+            "required": ["chapter"],
+            "additionalProperties": False,
+        },
+    },
+    {
+        "name": "previous_burmese_context",
+        "description": "Search a Burmese-only keyword in the Burmese human translation "
+                       "for the two Chinese chapters before the current chapter. The "
+                       "current Chinese chapter is required; the DOCX chapter map handles "
+                       "splits such as Chinese 193 → Burmese 195. Return only a few full "
+                       "lines around each match, not whole chapters.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "chapter": {"type": "integer", "description": "Current Chinese chapter; search its two predecessors."},
+                "keyword": {"type": "string", "description": "A Burmese-script word or phrase only."},
+                "before": {"type": "integer", "default": 2, "description": "Context lines before each match."},
+                "after": {"type": "integer", "default": 2, "description": "Context lines after each match."},
+                "max_hits": {"type": "integer", "default": 10, "description": "Maximum matching lines returned."},
+            },
+            "required": ["chapter", "keyword"],
             "additionalProperties": False,
         },
     },
@@ -396,13 +444,14 @@ TOOLS = [
 # ─── Tool groups ─────────────────────────────────────────────────────────
 #
 # The tool list is not paid for once — it is re-sent with every request, and on
-# a free Groq plan (8,000 tokens a minute) all sixteen schemas (~3k tokens) are
+# a free Groq plan (8,000 tokens a minute) all eighteen schemas are
 # most of the budget before the model has read a word. `--tools` narrows what
 # this process advertises, so the fixed cost drops to whatever the phase needs.
 # Nothing is removed from the code: a phase that needs a name lookup just
 # declares it.
 TOOL_GROUPS = {
     "read": ("read_chapter", "segment_text", "lookup_word", "detect_language"),
+    "english": ("compare_english_chapter", "previous_burmese_context"),
     "review": ("review_brief", "review_lookup"),
     "names": ("lookup_name", "check_names", "register_name"),
     "verse": ("save_verse", "export_verse"),
@@ -423,6 +472,7 @@ TOOL_PRESETS = {
     "lean": ("read_chapter", "segment_text", "lookup_word",
              "check_names", "lookup_name", "save_draft", "save_verse"),
     "translate": ("api", "read"),
+    "english-review": ("english", "review", "names"),
     "full": tuple(TOOL_GROUPS),
 }
 
@@ -520,6 +570,32 @@ class Server:
         if name == "read_chapter":
             chapter = self._chapter_arg(arguments)
             return self._read_chapter(chapter, arguments)
+        if name == "compare_english_chapter":
+            from agent_english import compare_english_chapter  # noqa: PLC0415
+            chapter = self._chapter_arg(arguments)
+            paths = {}
+            for key in ("api_file", "api_dir", "machine_file", "machine_dir"):
+                if arguments.get(key):
+                    paths[key] = Path(arguments[key]).expanduser()
+            return compare_english_chapter(
+                chapter,
+                start=int(arguments.get("start", 1)),
+                count=int(arguments.get("count", 10)),
+                source_file=Path(self.source_file) if self.source_file else None,
+                **paths,
+            )
+        if name == "previous_burmese_context":
+            from agent_english import previous_burmese_context  # noqa: PLC0415
+            chapter = self._chapter_arg(arguments)
+            return previous_burmese_context(
+                chapter,
+                arguments.get("keyword", ""),
+                before=int(arguments.get("before", 2)),
+                after=int(arguments.get("after", 2)),
+                max_hits=int(arguments.get("max_hits", 10)),
+                docx=Path(self.docx) if self.docx else None,
+                burmese_file=Path(self.existing) if self.existing else None,
+            )
         if name == "save_draft":
             return self._save_draft(arguments)
         if name == "export_drafts":

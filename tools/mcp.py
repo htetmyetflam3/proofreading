@@ -44,6 +44,8 @@ examples:
   uv run mcp.py --review-brief --chars-per-arc 60
   uv run mcp.py --review-lookup --chapter 194
   uv run mcp.py --read 194 --start 1 --count 10
+  uv run mcp.py --compare_english_chapter 194 --start 1 --count 10
+  uv run mcp.py --previous_burmese_context "နတ်" --chapter 194
   uv run mcp.py --segment --file paragraph.txt
   uv run mcp.py --check-names --text "လျိုကျင်းက"
   uv run mcp.py --lookup-word ၀န်ကြီး
@@ -63,7 +65,8 @@ command needs is missing.
 what goes where:
   mcp.py               this door: every flag
   tools/mcp.py         the implementation behind mcp.py
-  tools/mcp_server.py  the MCP tools (16), the JSON-RPC server, client config
+  tools/mcp_server.py  the MCP tools (18), the JSON-RPC server, client config
+  tools/agent_english.py the read-only English comparison/context implementation
   tools/audit_source.py / tools/chapter_titles.py
                        the two scripts behind --inspect and --get-title
   mt/                  the libraries: api_translate, agent_work, names, verse …
@@ -125,6 +128,8 @@ TOOL_FLAGS = {
     "translate": ("translate_text", "one string, any pair (one API request)"),
     "translate-batch": ("translate_batch", "many strings in one request"),
     "translate-chapters": ("translate_chapters", "the Chinese novel, two chapters"),
+    "compare-english": ("compare_english_chapter", "Chinese + local MT English + API English, aligned by paragraph"),
+    "previous-burmese": ("previous_burmese_context", "Burmese-only keyword context from the two previous chapters"),
 }
 
 
@@ -196,6 +201,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--read", "--read_chapter", nargs="?", const=USE_DEFAULT, default=None, metavar="CHAPTER",
         help=TOOL_FLAGS["read"][1] + "; window with --start/--count.")
     read_command.add_argument(
+        "--compare-english", "--compare_english_chapter", dest="compare_english",
+        nargs="?", const=USE_DEFAULT, default=None, metavar="CHAPTER",
+        help=TOOL_FLAGS["compare-english"][1] + "; defaults to ten paragraphs.")
+    read_command.add_argument(
+        "--previous-burmese-context", "--previous_burmese_context",
+        dest="previous_burmese_context", nargs="?", const=USE_DEFAULT,
+        default=None, metavar="BURMESE_KEYWORD",
+        help=TOOL_FLAGS["previous-burmese"][1] + "; requires --chapter N.")
+    read_command.add_argument(
         "--segment", "--segment_text", nargs="?", const=USE_DEFAULT, default=None, metavar="TEXT",
         help=TOOL_FLAGS["segment"][1] + "; or --file PATH.")
 
@@ -260,6 +274,22 @@ def build_parser() -> argparse.ArgumentParser:
                          help="one review section by number or title")
     options.add_argument("--term", default=None, metavar="TERM",
                          help="a name to look up, for --lookup-name")
+    options.add_argument("--keyword", default=None, metavar="BURMESE",
+                         help="Burmese-only keyword for --previous-burmese-context")
+    options.add_argument("--before-lines", dest="before_lines", type=int, default=None,
+                         metavar="N", help="context lines before each Burmese keyword hit")
+    options.add_argument("--after-lines", dest="after_lines", type=int, default=None,
+                         metavar="N", help="context lines after each Burmese keyword hit")
+    options.add_argument("--max-hits", dest="max_hits", type=int, default=None,
+                         metavar="N", help="maximum Burmese context hits (default 10)")
+    options.add_argument("--api-file", dest="api_file", type=Path, default=None,
+                         metavar="PATH", help="API English one-file or chapter file/JSONL")
+    options.add_argument("--api-dir", dest="api_dir", type=Path, default=None,
+                         metavar="PATH", help="directory holding per-chapter API English")
+    options.add_argument("--machine-file", dest="machine_file", type=Path, default=None,
+                         metavar="PATH", help="one local zh-en machine-translation chapter")
+    options.add_argument("--machine-dir", dest="machine_dir", type=Path, default=None,
+                         metavar="PATH", help="directory holding local zh-en chapter files")
     options.add_argument("--text", default=None, metavar="TEXT",
                          help="the string a command reads, instead of a value")
     options.add_argument("--file", type=Path, default=None, metavar="PATH",
@@ -374,6 +404,27 @@ def _arguments(args) -> tuple[str, dict]:
 
     def given(value):
         return value is not None and value is not USE_DEFAULT
+
+    if args.compare_english is not None:
+        arguments = {"chapter": _chapter(args.compare_english, args, "--compare-english")}
+        for key, value in (("start", args.start), ("count", args.count),
+                           ("api_file", args.api_file), ("api_dir", args.api_dir),
+                           ("machine_file", args.machine_file), ("machine_dir", args.machine_dir)):
+            if value is not None:
+                arguments[key] = str(value) if isinstance(value, Path) else value
+        return "compare_english_chapter", arguments
+
+    if args.previous_burmese_context is not None:
+        value = (str(args.previous_burmese_context)
+                 if given(args.previous_burmese_context) else args.keyword)
+        if not value:
+            raise UsageError("--previous-burmese-context needs a Burmese keyword")
+        arguments = {"chapter": _check_chapter(args), "keyword": value}
+        for key, value in (("before", args.before_lines), ("after", args.after_lines),
+                           ("max_hits", args.max_hits)):
+            if value is not None:
+                arguments[key] = value
+        return "previous_burmese_context", arguments
 
     if args.read is not None:
         arguments = {"chapter": _chapter(args.read, args, "--read")}
@@ -646,7 +697,8 @@ def main(argv: list[str] | None = None) -> int:
         args.get_title is not None, args.review_brief,
         args.review_lookup is not None, args.lookup_word is not None,
         args.lookup_name is not None, args.check_names is not None,
-        args.read is not None, args.segment is not None,
+        args.read is not None, args.compare_english is not None,
+        args.previous_burmese_context is not None, args.segment is not None,
         args.save_draft, args.export_drafts is not None, args.register_name,
         args.save_verse, args.export_verse is not None,
         args.detect is not None, args.translate is not None,
@@ -710,6 +762,8 @@ def _flag_names(args) -> list[str]:
                        ("lookup_word", "--lookup-word"),
                        ("lookup_name", "--lookup-name"),
                        ("check_names", "--check-names"), ("read", "--read"),
+                       ("compare_english", "--compare-english"),
+                       ("previous_burmese_context", "--previous-burmese-context"),
                        ("segment", "--segment"),
                        ("export_drafts", "--export-drafts"),
                        ("export_verse", "--export-verse"), ("detect", "--detect"),
