@@ -49,6 +49,19 @@ class ResolutionTests(unittest.TestCase):
         self.assertIn("previous_burmese_context", preset)
         self.assertNotIn("translate_text", preset)
 
+    def test_burmese_translation_preset_advertises_the_unified_workflow(self):
+        preset = mcp_server.resolve_tools("burmese-translation")
+        required = {
+            "read_chapter", "compare_english_chapter", "previous_burmese_context",
+            "review_brief", "review_lookup", "lookup_name", "check_names",
+            "register_name", "segment_text", "lookup_word", "save_draft",
+            "export_drafts", "save_verse", "export_verse",
+        }
+        self.assertTrue(required <= preset)
+        self.assertNotIn("translate_text", preset)
+        self.assertNotIn("translate_batch", preset)
+        self.assertNotIn("translate_chapters", preset)
+
     def test_presets_shrink_the_schema(self):
         full = len(json.dumps(mcp_server.TOOLS, ensure_ascii=False))
         for preset in ("lean", "survey", "edit"):
